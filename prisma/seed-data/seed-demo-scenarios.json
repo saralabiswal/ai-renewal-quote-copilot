@@ -1,0 +1,59 @@
+[
+  {
+    "key": "BASE_CASE",
+    "label": "Base Case",
+    "description": "Use seeded baseline signals with no overrides.",
+    "overrides": {}
+  },
+  {
+    "key": "ADOPTION_DECLINE",
+    "label": "Adoption Decline",
+    "description": "Push usage down, worsen login trend, and increase support burden.",
+    "overrides": {
+      "usagePercentOfEntitlementDelta": -18,
+      "activeUserPercentDelta": -12,
+      "loginTrend30dDelta": -14,
+      "ticketCount90dDelta": 4,
+      "sev1Count90dDelta": 1,
+      "csatScoreDelta": -0.7
+    }
+  },
+  {
+    "key": "MARGIN_RECOVERY",
+    "label": "Margin Recovery",
+    "description": "Improve commercial confidence while preserving healthy adoption.",
+    "overrides": {
+      "usagePercentOfEntitlementDelta": 4,
+      "activeUserPercentDelta": 3,
+      "loginTrend30dDelta": 3,
+      "ticketCount90dDelta": -1,
+      "csatScoreDelta": 0.2
+    }
+  },
+  {
+    "key": "EXPANSION_UPSIDE",
+    "label": "Expansion Upside",
+    "description": "Push adoption near capacity and strengthen adjacent fit.",
+    "overrides": {
+      "usagePercentOfEntitlementDelta": 12,
+      "activeUserPercentDelta": 10,
+      "loginTrend30dDelta": 8,
+      "ticketCount90dDelta": -1,
+      "csatScoreDelta": 0.3,
+      "tagNotes": ["adjacent whitespace", "data modernization fit", "hybrid deployment preference"]
+    }
+  },
+  {
+    "key": "CUSTOMER_RISK_ESCALATION",
+    "label": "Customer Risk Escalation",
+    "description": "Combine weak usage, support stress, and satisfaction decline.",
+    "overrides": {
+      "usagePercentOfEntitlementDelta": -25,
+      "activeUserPercentDelta": -18,
+      "loginTrend30dDelta": -18,
+      "ticketCount90dDelta": 6,
+      "sev1Count90dDelta": 1,
+      "csatScoreDelta": -1.0
+    }
+  }
+]

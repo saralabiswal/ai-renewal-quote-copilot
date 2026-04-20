@@ -1,0 +1,1475 @@
+import { Prisma } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
+import { formatCurrency } from '@/lib/format/currency'
+import { formatDate } from '@/lib/format/date'
+import { formatPercent } from '@/lib/format/percent'
+import { labelize, toneForStatus } from '@/lib/format/risk'
+
+export type QuoteInsightView = {
+  id: string
+  title: string
+  insightType: string
+  insightTypeLabel: string
+  statusLabel: string
+  statusTone?: 'default' | 'info' | 'success' | 'warn' | 'danger'
+  isAddedToQuote?: boolean
+  productName: string
+  productSku: string
+  productFamily: string
+  insightSummary: string
+  recommendedActionSummary: string | null
+  aiExplanation: string | null
+  aiModelLabel: string | null
+  confidenceScore: number | null
+  fitScore: number | null
+  recommendedQuantity: number | null
+  recommendedUnitPriceFormatted: string | null
+  recommendedDiscountPercentFormatted: string | null
+  estimatedArrImpactFormatted: string | null
+  justification: QuoteInsightJustificationView | null
+}
+
+type EvidenceValue = string | number | boolean | null
+
+export type QuoteInsightEvidenceSignalView = {
+  label: string
+  value: EvidenceValue
+}
+
+export type QuoteInsightCommercialDeltaView = {
+  currentQuantity: number | null
+  proposedQuantity: number | null
+  quantityDelta: number | null
+  currentArr: number | null
+  proposedArr: number | null
+  arrDelta: number | null
+  currentUnitPrice: number | null
+  proposedUnitPrice: number | null
+  recommendedDiscountPercent: number | null
+}
+
+export type QuoteInsightDecisionMetaView = {
+  decisionRunId: string | null
+  generatedAt: string | null
+  actor: string | null
+  engineVersion: string | null
+  policyVersion: string | null
+  scenarioVersion: string | null
+  sourceRecordVersion: string | null
+}
+
+export type QuoteInsightRuleHitView = {
+  ruleId: string
+  reasonCode: string
+  outcome: string
+  weight: number | null
+  detail: string
+}
+
+export type QuoteInsightAlternativeView = {
+  action: string
+  reasonRejected: string
+}
+
+export type QuoteInsightExpectedImpactView = {
+  arrDelta: number | null
+  marginDirection: string | null
+  retentionRisk: string | null
+}
+
+export type QuoteInsightChangeLogView = {
+  fromSummary: string | null
+  toSummary: string | null
+  changedFields: string[]
+  changedAt: string | null
+}
+
+export type QuoteInsightJustificationView = {
+  version: 'v1' | 'v2'
+  sourceType: string
+  insightType: string
+  scenarioKey: string | null
+  reasoning: string[]
+  signals: QuoteInsightEvidenceSignalView[]
+  commercialDelta: QuoteInsightCommercialDeltaView | null
+  decisionMeta?: QuoteInsightDecisionMetaView | null
+  reasonCodes?: string[]
+  ruleHits?: QuoteInsightRuleHitView[]
+  alternativesConsidered?: QuoteInsightAlternativeView[]
+  expectedImpact?: QuoteInsightExpectedImpactView | null
+  changeLog?: QuoteInsightChangeLogView | null
+}
+
+const SKU_TO_PRODUCT_ID: Record<string, string> = {
+  'ORCL-FUSION-APPS': 'prod_fusion_apps',
+  'ORCL-SUBSCRIPTION-MGMT': 'prod_subscription_mgmt',
+  'ORCL-CPQ': 'prod_cpq',
+  'ORCL-OCI': 'prod_oci',
+  'ORCL-AUTONOMOUS-AI-DB': 'prod_autonomous_ai_db',
+  'ORCL-AI-DATA-PLATFORM': 'prod_ai_data_platform',
+  'ORCL-CLOUD-AT-CUSTOMER': 'prod_cloud_at_customer',
+  'ORCL-EXADATA-CAC': 'prod_exadata_cac',
+  'ORCL-DATABASE-AZURE': 'prod_db_azure',
+  'ORCL-DATABASE-AWS': 'prod_db_aws',
+  'ORCL-INDUSTRY-APPS': 'prod_industry_apps',
+  'ORCL-HEALTH-SUITE': 'prod_health_suite',
+  'ORCL-NETSUITE': 'prod_netsuite',
+}
+
+const PRODUCT_NAME_TO_SKU: Record<string, string> = {
+  'Oracle Fusion Applications': 'ORCL-FUSION-APPS',
+  'Oracle Subscription Management': 'ORCL-SUBSCRIPTION-MGMT',
+  'Oracle CPQ': 'ORCL-CPQ',
+  'Oracle Cloud Infrastructure': 'ORCL-OCI',
+  'Oracle Autonomous AI Database': 'ORCL-AUTONOMOUS-AI-DB',
+  'Oracle AI Data Platform': 'ORCL-AI-DATA-PLATFORM',
+  'Oracle Cloud@Customer': 'ORCL-CLOUD-AT-CUSTOMER',
+  'Oracle Exadata Cloud@Customer': 'ORCL-EXADATA-CAC',
+  'Oracle Database@Azure': 'ORCL-DATABASE-AZURE',
+  'Oracle Database@AWS': 'ORCL-DATABASE-AWS',
+  'Oracle Industry Applications': 'ORCL-INDUSTRY-APPS',
+  'Oracle Health Suite': 'ORCL-HEALTH-SUITE',
+  'Oracle NetSuite': 'ORCL-NETSUITE',
+}
+
+function makeId(prefix: string) {
+  return `${prefix}_${crypto.randomUUID()}`
+}
+
+function decimal(value: Prisma.Decimal | number | string | null | undefined) {
+  if (value === null || value === undefined || value === '') {
+    return new Prisma.Decimal(0)
+  }
+  return new Prisma.Decimal(value)
+}
+
+function clampScore(value: number) {
+  return Math.max(50, Math.min(95, Math.round(value)))
+}
+
+function toEvidenceNumber(
+  value: Prisma.Decimal | number | string | null | undefined,
+): number | null {
+  if (value === null || value === undefined || value === '') return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return null
+  return Math.round(parsed * 100) / 100
+}
+
+function toEvidenceValue(value: unknown): EvidenceValue {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value
+  }
+  return String(value)
+}
+
+function parseQuoteInsightJustification(
+  raw: string | null | undefined,
+): QuoteInsightJustificationView | null {
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown> | null
+    if (!parsed || typeof parsed !== 'object') return null
+
+    const rawSignals = Array.isArray(parsed.signals) ? parsed.signals : []
+    const signals = rawSignals
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null
+        const rec = item as Record<string, unknown>
+        const label = typeof rec.label === 'string' ? rec.label : null
+        if (!label) return null
+        return {
+          label,
+          value: toEvidenceValue(rec.value),
+        }
+      })
+      .filter(Boolean) as QuoteInsightEvidenceSignalView[]
+
+    let commercialDelta: QuoteInsightCommercialDeltaView | null = null
+    if (parsed.commercialDelta && typeof parsed.commercialDelta === 'object') {
+      const rec = parsed.commercialDelta as Record<string, unknown>
+      commercialDelta = {
+        currentQuantity: toEvidenceNumber(rec.currentQuantity as number | null),
+        proposedQuantity: toEvidenceNumber(rec.proposedQuantity as number | null),
+        quantityDelta: toEvidenceNumber(rec.quantityDelta as number | null),
+        currentArr: toEvidenceNumber(rec.currentArr as number | null),
+        proposedArr: toEvidenceNumber(rec.proposedArr as number | null),
+        arrDelta: toEvidenceNumber(rec.arrDelta as number | null),
+        currentUnitPrice: toEvidenceNumber(rec.currentUnitPrice as number | null),
+        proposedUnitPrice: toEvidenceNumber(rec.proposedUnitPrice as number | null),
+        recommendedDiscountPercent: toEvidenceNumber(
+          rec.recommendedDiscountPercent as number | null,
+        ),
+      }
+    }
+
+    let decisionMeta: QuoteInsightDecisionMetaView | null = null
+    if (parsed.decisionMeta && typeof parsed.decisionMeta === 'object') {
+      const rec = parsed.decisionMeta as Record<string, unknown>
+      decisionMeta = {
+        decisionRunId: typeof rec.decisionRunId === 'string' ? rec.decisionRunId : null,
+        generatedAt: typeof rec.generatedAt === 'string' ? rec.generatedAt : null,
+        actor: typeof rec.actor === 'string' ? rec.actor : null,
+        engineVersion: typeof rec.engineVersion === 'string' ? rec.engineVersion : null,
+        policyVersion: typeof rec.policyVersion === 'string' ? rec.policyVersion : null,
+        scenarioVersion: typeof rec.scenarioVersion === 'string' ? rec.scenarioVersion : null,
+        sourceRecordVersion:
+          typeof rec.sourceRecordVersion === 'string' ? rec.sourceRecordVersion : null,
+      }
+    }
+
+    const reasonCodes = Array.isArray(parsed.reasonCodes)
+      ? parsed.reasonCodes.map((item) => String(item)).filter(Boolean)
+      : []
+
+    const ruleHits = Array.isArray(parsed.ruleHits)
+      ? parsed.ruleHits
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null
+            const rec = item as Record<string, unknown>
+            const ruleId = typeof rec.ruleId === 'string' ? rec.ruleId : null
+            const reasonCode = typeof rec.reasonCode === 'string' ? rec.reasonCode : null
+            const detail = typeof rec.detail === 'string' ? rec.detail : null
+            if (!ruleId || !reasonCode || !detail) return null
+            return {
+              ruleId,
+              reasonCode,
+              outcome: typeof rec.outcome === 'string' ? rec.outcome : 'INFERRED',
+              weight: toEvidenceNumber(rec.weight as number | null),
+              detail,
+            } as QuoteInsightRuleHitView
+          })
+          .filter(Boolean) as QuoteInsightRuleHitView[]
+      : []
+
+    const alternativesConsidered = Array.isArray(parsed.alternativesConsidered)
+      ? parsed.alternativesConsidered
+          .map((item) => {
+            if (!item || typeof item !== 'object') return null
+            const rec = item as Record<string, unknown>
+            const action = typeof rec.action === 'string' ? rec.action : null
+            const reasonRejected =
+              typeof rec.reasonRejected === 'string' ? rec.reasonRejected : null
+            if (!action || !reasonRejected) return null
+            return { action, reasonRejected } as QuoteInsightAlternativeView
+          })
+          .filter(Boolean) as QuoteInsightAlternativeView[]
+      : []
+
+    let expectedImpact: QuoteInsightExpectedImpactView | null = null
+    if (parsed.expectedImpact && typeof parsed.expectedImpact === 'object') {
+      const rec = parsed.expectedImpact as Record<string, unknown>
+      expectedImpact = {
+        arrDelta: toEvidenceNumber(rec.arrDelta as number | null),
+        marginDirection: typeof rec.marginDirection === 'string' ? rec.marginDirection : null,
+        retentionRisk: typeof rec.retentionRisk === 'string' ? rec.retentionRisk : null,
+      }
+    }
+
+    let changeLog: QuoteInsightChangeLogView | null = null
+    if (parsed.changeLog && typeof parsed.changeLog === 'object') {
+      const rec = parsed.changeLog as Record<string, unknown>
+      changeLog = {
+        fromSummary: typeof rec.fromSummary === 'string' ? rec.fromSummary : null,
+        toSummary: typeof rec.toSummary === 'string' ? rec.toSummary : null,
+        changedFields: Array.isArray(rec.changedFields)
+          ? rec.changedFields.map((item) => String(item)).filter(Boolean)
+          : [],
+        changedAt: typeof rec.changedAt === 'string' ? rec.changedAt : null,
+      }
+    }
+
+    return {
+      version: parsed.version === 'v2' ? 'v2' : 'v1',
+      sourceType: typeof parsed.sourceType === 'string' ? parsed.sourceType : 'UNKNOWN',
+      insightType: typeof parsed.insightType === 'string' ? parsed.insightType : 'UNKNOWN',
+      scenarioKey: typeof parsed.scenarioKey === 'string' ? parsed.scenarioKey : null,
+      reasoning: Array.isArray(parsed.reasoning)
+        ? parsed.reasoning.map((item) => String(item)).filter(Boolean)
+        : [],
+      signals,
+      commercialDelta,
+      decisionMeta,
+      reasonCodes,
+      ruleHits,
+      alternativesConsidered,
+      expectedImpact,
+      changeLog,
+    }
+  } catch {
+    return null
+  }
+}
+
+function buildJustificationJson(payload: QuoteInsightJustificationView): string {
+  return JSON.stringify(payload)
+}
+
+function getSkuForProductName(productName: string) {
+  return PRODUCT_NAME_TO_SKU[productName] ?? productName
+}
+
+function getProductFamilyForProductName(productName: string) {
+  if (productName.includes('CPQ') || productName.includes('Subscription')) {
+    return 'Revenue Operations'
+  }
+
+  if (productName.includes('Cloud@Customer') || productName.includes('Exadata')) {
+    return 'Hybrid Deployment'
+  }
+
+  if (productName.includes('Azure') || productName.includes('AWS')) {
+    return 'Multicloud Data'
+  }
+
+  if (productName.includes('OCI') || productName.includes('Cloud Infrastructure')) {
+    return 'Infrastructure'
+  }
+
+  if (
+    productName.includes('Autonomous AI Database') ||
+    productName.includes('AI Data Platform')
+  ) {
+    return 'AI / Data'
+  }
+
+  if (productName.includes('Health')) {
+    return 'Industry Applications'
+  }
+
+  if (productName.includes('Industry Applications')) {
+    return 'Industry Applications'
+  }
+
+  if (productName.includes('NetSuite')) {
+    return 'Applications'
+  }
+
+  return 'Applications'
+}
+
+const DECISION_ENGINE_VERSION = 'quote-insight-engine-v2'
+const POLICY_VERSION = 'pricing-policy-matrix-2026-q2'
+const SCENARIO_VERSION = 'demo-scenarios-v1'
+
+function retentionRiskBandFromScore(score: number | null): string {
+  if (score == null) return 'UNKNOWN'
+  if (score >= 70) return 'HIGH'
+  if (score >= 40) return 'MEDIUM'
+  return 'LOW'
+}
+
+function marginDirectionFromArrDelta(arrDelta: number | null): string {
+  if (arrDelta == null) return 'UNKNOWN'
+  if (arrDelta > 0) return 'UP'
+  if (arrDelta < 0) return 'DOWN'
+  return 'FLAT'
+}
+
+function lineReasonCodes(normalizedDisposition: string): string[] {
+  switch (normalizedDisposition) {
+    case 'ESCALATE':
+    case 'DEFENSIVE_RENEWAL':
+      return ['RISK_ESCALATION_REQUIRED', 'PRICE_HOLD_PROTECTION']
+    case 'RENEW_WITH_CONCESSION':
+    case 'STRATEGIC_CONCESSION':
+    case 'CONCESSION':
+      return ['RETENTION_CONCESSION', 'POLICY_GUARDRAIL_REVIEW']
+    case 'EXPANSION':
+    case 'EXPAND':
+      return ['EXPANSION_SIGNAL', 'ADOPTION_STRENGTH']
+    case 'MARGIN_RECOVERY':
+    case 'PRICE_ADJUST':
+      return ['MARGIN_RECOVERY', 'DISCOUNT_NORMALIZATION']
+    case 'UPLIFT_RESTRAINT':
+      return ['UPLIFT_RESTRAINT', 'RETENTION_PRIORITY']
+    case 'CONTROLLED_UPLIFT':
+    case 'UPLIFT':
+      return ['CONTROLLED_UPLIFT', 'LOW_RISK_MONETIZATION']
+    case 'RENEW_AS_IS':
+    case 'RENEW':
+    default:
+      return ['STABLE_RENEWAL', 'NO_MATERIAL_EXCEPTION']
+  }
+}
+
+function lineRuleHits(args: {
+  normalizedDisposition: string
+  insightType: string
+  itemRiskScore: number | null
+}): QuoteInsightRuleHitView[] {
+  const { normalizedDisposition, insightType, itemRiskScore } = args
+  const riskScore = itemRiskScore ?? 60
+  return [
+    {
+      ruleId: `DISPOSITION_${normalizedDisposition}`,
+      reasonCode: lineReasonCodes(normalizedDisposition)[0] ?? 'POLICY_MATCH',
+      outcome: 'TRIGGERED',
+      weight: Math.max(55, Math.min(95, Math.round(100 - riskScore / 3))),
+      detail: `Line disposition ${normalizedDisposition} selected by recommendation engine.`,
+    },
+    {
+      ruleId: `INSIGHT_MAP_${insightType}`,
+      reasonCode: `${insightType}_MAPPING`,
+      outcome: 'TRIGGERED',
+      weight: Math.max(55, Math.min(95, Math.round(100 - riskScore / 4))),
+      detail: `Disposition ${normalizedDisposition} mapped to quote insight ${insightType}.`,
+    },
+  ]
+}
+
+function defaultAlternatives(insightType: string): QuoteInsightAlternativeView[] {
+  return [
+    {
+      action: 'RENEW_AS_IS',
+      reasonRejected:
+        insightType === 'RENEW_AS_IS'
+          ? 'Selected as preferred action for this signal set.'
+          : 'Rejected because current signals indicate a higher-impact action is needed.',
+    },
+    {
+      action: 'CONCESSION',
+      reasonRejected:
+        insightType === 'CONCESSION'
+          ? 'Selected as preferred action for this signal set.'
+          : 'Rejected to avoid unnecessary concession against current risk profile.',
+    },
+    {
+      action: 'DEFENSIVE_RENEWAL',
+      reasonRejected:
+        insightType === 'DEFENSIVE_RENEWAL'
+          ? 'Selected because escalation posture is required.'
+          : 'Rejected because current profile does not require defensive escalation handling.',
+    },
+  ]
+}
+
+function buildLineInsightJustification(args: {
+  insightType: string
+  normalizedDisposition: string
+  scenarioKey: string | null
+  decisionRunId: string
+  generatedAtIso: string
+  sourceRecordVersion: string | null
+  itemRiskScore: number | null
+  confidenceScore: number
+  fitScore: number
+  currentQuantity: number
+  proposedQuantity: number
+  currentArr: Prisma.Decimal
+  proposedArr: Prisma.Decimal
+  currentNetUnitPrice: Prisma.Decimal
+  proposedNetUnitPrice: Prisma.Decimal
+  recommendedDiscountPercent: Prisma.Decimal | null
+  analysisSummary: string | null
+}): string {
+  const {
+    insightType,
+    normalizedDisposition,
+    scenarioKey,
+    decisionRunId,
+    generatedAtIso,
+    sourceRecordVersion,
+    itemRiskScore,
+    confidenceScore,
+    fitScore,
+    currentQuantity,
+    proposedQuantity,
+    currentArr,
+    proposedArr,
+    currentNetUnitPrice,
+    proposedNetUnitPrice,
+    recommendedDiscountPercent,
+    analysisSummary,
+  } = args
+
+  const quantityDelta = proposedQuantity - currentQuantity
+  const currentArrNumber = toEvidenceNumber(currentArr)
+  const proposedArrNumber = toEvidenceNumber(proposedArr)
+  const arrDelta =
+    currentArrNumber != null && proposedArrNumber != null
+      ? Math.round((proposedArrNumber - currentArrNumber) * 100) / 100
+      : null
+
+  const reasoning = [
+    `Recommendation disposition ${normalizedDisposition} mapped to quote insight type ${insightType}.`,
+    quantityDelta > 0
+      ? `Quantity increases from ${currentQuantity} to ${proposedQuantity}.`
+      : quantityDelta < 0
+        ? `Quantity decreases from ${currentQuantity} to ${proposedQuantity}.`
+        : `Quantity remains stable at ${currentQuantity}.`,
+    arrDelta != null
+      ? `Estimated ARR impact is ${arrDelta >= 0 ? '+' : ''}${arrDelta}.`
+      : 'Estimated ARR impact could not be calculated from current inputs.',
+    analysisSummary
+      ? 'Line-level analysis summary was included as supporting context.'
+      : 'No line-level analysis summary was available; decision used structured signals only.',
+  ]
+
+  const signals: QuoteInsightEvidenceSignalView[] = [
+    { label: 'Scenario', value: scenarioKey ?? 'BASE_CASE' },
+    { label: 'Disposition', value: normalizedDisposition },
+    { label: 'Risk Score', value: itemRiskScore },
+    { label: 'Confidence Score', value: confidenceScore },
+    { label: 'Fit Score', value: fitScore },
+    { label: 'Current Quantity', value: currentQuantity },
+    { label: 'Proposed Quantity', value: proposedQuantity },
+    { label: 'Quantity Delta', value: quantityDelta },
+    { label: 'Current ARR', value: currentArrNumber },
+    { label: 'Proposed ARR', value: proposedArrNumber },
+    { label: 'ARR Delta', value: arrDelta },
+    { label: 'Current Unit Price', value: toEvidenceNumber(currentNetUnitPrice) },
+    { label: 'Proposed Unit Price', value: toEvidenceNumber(proposedNetUnitPrice) },
+    {
+      label: 'Recommended Discount Percent',
+      value: toEvidenceNumber(recommendedDiscountPercent),
+    },
+  ]
+
+  const reasonCodes = lineReasonCodes(normalizedDisposition)
+  const ruleHits = lineRuleHits({
+    normalizedDisposition,
+    insightType,
+    itemRiskScore,
+  })
+  const expectedImpact: QuoteInsightExpectedImpactView = {
+    arrDelta,
+    marginDirection: marginDirectionFromArrDelta(arrDelta),
+    retentionRisk: retentionRiskBandFromScore(itemRiskScore),
+  }
+
+  return buildJustificationJson({
+    version: 'v2',
+    sourceType: 'RULE_ENGINE',
+    insightType,
+    scenarioKey,
+    reasoning,
+    signals,
+    commercialDelta: {
+      currentQuantity,
+      proposedQuantity,
+      quantityDelta,
+      currentArr: currentArrNumber,
+      proposedArr: proposedArrNumber,
+      arrDelta,
+      currentUnitPrice: toEvidenceNumber(currentNetUnitPrice),
+      proposedUnitPrice: toEvidenceNumber(proposedNetUnitPrice),
+      recommendedDiscountPercent: toEvidenceNumber(recommendedDiscountPercent),
+    },
+    decisionMeta: {
+      decisionRunId,
+      generatedAt: generatedAtIso,
+      actor: 'RULE_ENGINE',
+      engineVersion: DECISION_ENGINE_VERSION,
+      policyVersion: POLICY_VERSION,
+      scenarioVersion: SCENARIO_VERSION,
+      sourceRecordVersion,
+    },
+    reasonCodes,
+    ruleHits,
+    alternativesConsidered: defaultAlternatives(insightType),
+    expectedImpact,
+    changeLog: null,
+  })
+}
+
+function buildAdditiveInsightJustification(args: {
+  insightType: string
+  scenarioKey: string | null
+  decisionRunId: string
+  generatedAtIso: string
+  accountSegment: string | null
+  accountIndustry: string | null
+  reasoning: string[]
+  signals: QuoteInsightEvidenceSignalView[]
+  recommendedQuantity: number
+  recommendedUnitPrice: Prisma.Decimal
+  estimatedArrImpact: Prisma.Decimal
+  recommendedDiscountPercent: Prisma.Decimal | null
+}): string {
+  const {
+    insightType,
+    scenarioKey,
+    decisionRunId,
+    generatedAtIso,
+    accountSegment,
+    accountIndustry,
+    reasoning,
+    signals,
+    recommendedQuantity,
+    recommendedUnitPrice,
+    estimatedArrImpact,
+    recommendedDiscountPercent,
+  } = args
+
+  const arrDelta = toEvidenceNumber(estimatedArrImpact)
+  const reasonCodes =
+    insightType === 'HYBRID_DEPLOYMENT_FIT'
+      ? ['HYBRID_DEPLOYMENT_FIT', 'STRATEGIC_ADJACENCY']
+      : insightType === 'DATA_MODERNIZATION'
+        ? ['DATA_MODERNIZATION', 'INDUSTRY_ALIGNMENT']
+        : ['CROSS_SELL_SIGNAL', 'ADJACENT_EXPANSION']
+
+  return buildJustificationJson({
+    version: 'v2',
+    sourceType: 'HYBRID',
+    insightType,
+    scenarioKey,
+    reasoning,
+    signals: [
+      { label: 'Scenario', value: scenarioKey ?? 'BASE_CASE' },
+      { label: 'Account Segment', value: accountSegment ?? 'Unknown' },
+      { label: 'Account Industry', value: accountIndustry ?? 'Unknown' },
+      ...signals,
+    ],
+    commercialDelta: {
+      currentQuantity: null,
+      proposedQuantity: recommendedQuantity,
+      quantityDelta: recommendedQuantity,
+      currentArr: null,
+      proposedArr: toEvidenceNumber(estimatedArrImpact),
+      arrDelta: toEvidenceNumber(estimatedArrImpact),
+      currentUnitPrice: null,
+      proposedUnitPrice: toEvidenceNumber(recommendedUnitPrice),
+      recommendedDiscountPercent: toEvidenceNumber(recommendedDiscountPercent),
+    },
+    decisionMeta: {
+      decisionRunId,
+      generatedAt: generatedAtIso,
+      actor: 'HYBRID_RULE_ENGINE',
+      engineVersion: DECISION_ENGINE_VERSION,
+      policyVersion: POLICY_VERSION,
+      scenarioVersion: SCENARIO_VERSION,
+      sourceRecordVersion: null,
+    },
+    reasonCodes,
+    ruleHits: [
+      {
+        ruleId: `ADDITIVE_${insightType}`,
+        reasonCode: reasonCodes[0] ?? 'ADDITIVE_RULE',
+        outcome: 'TRIGGERED',
+        weight: 78,
+        detail: `Additive rule created ${insightType} from account profile and product mix.`,
+      },
+    ],
+    alternativesConsidered: [
+      {
+        action: 'NO_ADDITIVE_ACTION',
+        reasonRejected: 'Rejected because additive fit conditions were satisfied in this scenario.',
+      },
+      {
+        action: 'QUEUE_FOR_NEXT_RENEWAL',
+        reasonRejected:
+          'Rejected because current scenario supports an immediate adjacent quote option.',
+      },
+    ],
+    expectedImpact: {
+      arrDelta,
+      marginDirection: marginDirectionFromArrDelta(arrDelta),
+      retentionRisk: 'LOW',
+    },
+    changeLog: null,
+  })
+}
+
+function buildLineInsight(args: {
+  caseId: string
+  scenarioKey: string | null
+  decisionRunId: string
+  generatedAtIso: string
+  productSkuSnapshot: string
+  productNameSnapshot: string
+  productFamilySnapshot: string
+  currentQuantity: number
+  currentNetUnitPrice: Prisma.Decimal
+  currentArr: Prisma.Decimal
+  recommendedDisposition: string | null
+  proposedQuantity: number
+  proposedNetUnitPrice: Prisma.Decimal
+  proposedArr: Prisma.Decimal
+  recommendedDiscountPercent: Prisma.Decimal | null
+  itemRiskScore: number | null
+  analysisSummary: string | null
+  sourceRecordVersion: string | null
+}) {
+  const {
+    caseId,
+    scenarioKey,
+    decisionRunId,
+    generatedAtIso,
+    productSkuSnapshot,
+    productNameSnapshot,
+    productFamilySnapshot,
+    currentQuantity,
+    currentNetUnitPrice,
+    currentArr,
+    recommendedDisposition,
+    proposedQuantity,
+    proposedNetUnitPrice,
+    proposedArr,
+    recommendedDiscountPercent,
+    itemRiskScore,
+    analysisSummary,
+    sourceRecordVersion,
+  } = args
+
+  const normalizedDisposition = recommendedDisposition ?? 'RENEW'
+  const baseScore = itemRiskScore ?? 60
+  const productId = SKU_TO_PRODUCT_ID[productSkuSnapshot]
+
+  if (!productId) return null
+
+  const estimatedArrImpact = decimal(proposedArr).minus(decimal(currentArr)).toDecimalPlaces(2)
+
+  let insightType = 'RENEW_AS_IS'
+  let title = `Renew ${productNameSnapshot} at current posture`
+  let insightSummary =
+    analysisSummary ??
+    `Maintain the current commercial posture on ${productNameSnapshot} based on the latest renewal recommendation.`
+  let recommendedActionSummary = `Keep ${productNameSnapshot} aligned to the current quote recommendation.`
+
+  switch (normalizedDisposition) {
+    case 'MARGIN_RECOVERY':
+    case 'PRICE_ADJUST':
+      insightType = 'MARGIN_RECOVERY'
+      title = `Recover margin on ${productNameSnapshot}`
+      recommendedActionSummary =
+        `Reduce discount depth on ${productNameSnapshot} and move the line closer to policy.`
+      break
+
+    case 'RENEW_WITH_CONCESSION':
+    case 'STRATEGIC_CONCESSION':
+    case 'CONCESSION':
+      insightType = 'CONCESSION'
+      title = `Apply controlled concession on ${productNameSnapshot}`
+      recommendedActionSummary =
+        `Renew ${productNameSnapshot} with a controlled concession to preserve renewal momentum.`
+      break
+
+    case 'EXPANSION':
+    case 'EXPAND':
+      insightType = 'EXPANSION'
+      title = `Expand ${productNameSnapshot}`
+      recommendedActionSummary =
+        `Increase quantity on ${productNameSnapshot} in line with the current quote recommendation.`
+      break
+
+    case 'ESCALATE':
+    case 'DEFENSIVE_RENEWAL':
+      insightType = 'DEFENSIVE_RENEWAL'
+      title = `Protect ${productNameSnapshot} with a defensive renewal`
+      recommendedActionSummary =
+        `Route ${productNameSnapshot} for escalation review and hold pricing stable until risk is cleared.`
+      break
+
+    case 'UPLIFT_RESTRAINT':
+      insightType = 'UPLIFT_RESTRAINT'
+      title = `Restrain uplift on ${productNameSnapshot}`
+      recommendedActionSummary =
+        `Hold ${productNameSnapshot} flat and avoid uplift in the current quote recommendation.`
+      break
+
+    case 'CONTROLLED_UPLIFT':
+    case 'UPLIFT':
+      insightType = 'CONTROLLED_UPLIFT'
+      title = `Apply controlled uplift on ${productNameSnapshot}`
+      recommendedActionSummary =
+        `Renew ${productNameSnapshot} with a modest uplift aligned to low-risk posture.`
+      break
+
+    case 'RENEW_AS_IS':
+    case 'RENEW':
+    default:
+      insightType = 'RENEW_AS_IS'
+      title = `Renew ${productNameSnapshot} at current posture`
+      recommendedActionSummary =
+        `Keep ${productNameSnapshot} unchanged in the draft and preserve the current pricing posture.`
+      break
+  }
+
+  const confidenceScore = clampScore(100 - baseScore / 2)
+  const fitScore = clampScore(100 - baseScore / 3)
+
+  const recommendedQuantity =
+    insightType === 'EXPANSION'
+      ? Math.max(proposedQuantity - currentQuantity, 0)
+      : proposedQuantity
+
+  const effectiveEstimatedArrImpact =
+    insightType === 'EXPANSION'
+      ? decimal(proposedNetUnitPrice)
+          .mul(Math.max(proposedQuantity - currentQuantity, 0))
+          .toDecimalPlaces(2)
+      : estimatedArrImpact
+
+  const justificationJson = buildLineInsightJustification({
+    insightType,
+    normalizedDisposition,
+    scenarioKey,
+    decisionRunId,
+    generatedAtIso,
+    sourceRecordVersion,
+    itemRiskScore,
+    confidenceScore,
+    fitScore,
+    currentQuantity,
+    proposedQuantity,
+    currentArr: decimal(currentArr),
+    proposedArr: decimal(proposedArr),
+    currentNetUnitPrice: decimal(currentNetUnitPrice),
+    proposedNetUnitPrice: decimal(proposedNetUnitPrice),
+    recommendedDiscountPercent,
+    analysisSummary,
+  })
+
+  return {
+    id: makeId('qi'),
+    renewalCaseId: caseId,
+    sourceType: 'RULE_ENGINE',
+    insightType,
+    status: 'SUGGESTED',
+    productId,
+    productSkuSnapshot,
+    productNameSnapshot,
+    productFamilySnapshot,
+    title,
+    insightSummary,
+    recommendedActionSummary,
+    confidenceScore,
+    fitScore,
+    recommendedQuantity,
+    recommendedUnitPrice: decimal(proposedNetUnitPrice),
+    recommendedDiscountPercent: recommendedDiscountPercent
+      ? decimal(recommendedDiscountPercent)
+      : null,
+    estimatedArrImpact: effectiveEstimatedArrImpact,
+    justificationJson,
+    addedQuoteDraftId: null,
+    addedQuoteDraftLineId: null,
+    dismissedReason: null,
+  }
+}
+
+function buildAdditiveInsights(args: {
+  caseId: string
+  account: { industry: string | null; segment: string | null; name: string }
+  existingSkus: Set<string>
+  existingAppliedFingerprints: Set<string>
+  scenarioKey?: string | null
+  decisionRunId: string
+  generatedAtIso: string
+}) {
+  const {
+    caseId,
+    account,
+    existingSkus,
+    existingAppliedFingerprints,
+    scenarioKey,
+    decisionRunId,
+    generatedAtIso,
+  } = args
+  const insights: any[] = []
+
+  const isExpansionScenario = scenarioKey === 'EXPANSION_UPSIDE'
+  const isRiskScenario = scenarioKey === 'CUSTOMER_RISK_ESCALATION' || scenarioKey === 'ADOPTION_DECLINE'
+
+  const isRegulated =
+    ['Healthcare', 'Public Sector', 'Government', 'Utilities'].includes(account.industry ?? '') ||
+    account.segment === 'STRATEGIC'
+
+  const canAddCloudAtCustomer =
+    !existingSkus.has('ORCL-CLOUD-AT-CUSTOMER') &&
+    !existingAppliedFingerprints.has('HYBRID_DEPLOYMENT_FIT|ORCL-CLOUD-AT-CUSTOMER')
+
+  if ((isRegulated || isExpansionScenario) && canAddCloudAtCustomer && !isRiskScenario) {
+    const recommendedQuantity = 1
+    const recommendedUnitPrice = new Prisma.Decimal(134900)
+    const recommendedDiscountPercent = new Prisma.Decimal(4)
+    const estimatedArrImpact = new Prisma.Decimal(134900)
+
+    const reasoning = [
+      isRegulated
+        ? 'Regulated/strategic account profile supports deployment-controlled hybrid options.'
+        : 'Account profile is eligible for hybrid deployment cross-sell.',
+      isExpansionScenario
+        ? 'Expansion Upside scenario increases confidence for additive hybrid motion.'
+        : 'Base scenario still supports hybrid fit without risk escalation triggers.',
+      'Cloud@Customer is not already present in the current subscription mix.',
+      'No risk-escalation scenario is active, so additive motion is allowed.',
+    ]
+
+    insights.push({
+      id: makeId('qi'),
+      renewalCaseId: caseId,
+      sourceType: 'HYBRID',
+      insightType: 'HYBRID_DEPLOYMENT_FIT',
+      status: 'SUGGESTED',
+      productId: 'prod_cloud_at_customer',
+      productSkuSnapshot: 'ORCL-CLOUD-AT-CUSTOMER',
+      productNameSnapshot: 'Oracle Cloud@Customer',
+      productFamilySnapshot: 'Hybrid Deployment',
+      title: 'Position Cloud@Customer for deployment-sensitive workloads',
+      insightSummary:
+        'The current quote recommendation and account profile suggest a credible hybrid deployment motion alongside the base renewal.',
+      recommendedActionSummary:
+        'Add Cloud@Customer as an optional strategic line and route for approval.',
+      confidenceScore: isExpansionScenario ? 78 : 70,
+      fitScore: isExpansionScenario ? 84 : 78,
+      recommendedQuantity,
+      recommendedUnitPrice,
+      recommendedDiscountPercent,
+      estimatedArrImpact,
+      justificationJson: buildAdditiveInsightJustification({
+        insightType: 'HYBRID_DEPLOYMENT_FIT',
+        scenarioKey: scenarioKey ?? null,
+        decisionRunId,
+        generatedAtIso,
+        accountSegment: account.segment,
+        accountIndustry: account.industry,
+        reasoning,
+        signals: [
+          { label: 'Regulated or Strategic Profile', value: isRegulated },
+          { label: 'Expansion Scenario Active', value: isExpansionScenario },
+          { label: 'Risk Scenario Active', value: isRiskScenario },
+          { label: 'Cloud@Customer Already Present', value: existingSkus.has('ORCL-CLOUD-AT-CUSTOMER') },
+          {
+            label: 'Cloud@Customer Already Applied',
+            value: existingAppliedFingerprints.has('HYBRID_DEPLOYMENT_FIT|ORCL-CLOUD-AT-CUSTOMER'),
+          },
+        ],
+        recommendedQuantity,
+        recommendedUnitPrice,
+        estimatedArrImpact,
+        recommendedDiscountPercent,
+      }),
+      addedQuoteDraftId: null,
+      addedQuoteDraftLineId: null,
+      dismissedReason: null,
+    })
+  }
+
+  const hasDataPlatformBase =
+    existingSkus.has('ORCL-OCI') || existingSkus.has('ORCL-AUTONOMOUS-AI-DB')
+
+  const canAddAiDataPlatform =
+    hasDataPlatformBase &&
+    !existingSkus.has('ORCL-AI-DATA-PLATFORM') &&
+    !existingAppliedFingerprints.has('CROSS_SELL|ORCL-AI-DATA-PLATFORM') &&
+    !existingAppliedFingerprints.has('DATA_MODERNIZATION|ORCL-AI-DATA-PLATFORM')
+
+  if (canAddAiDataPlatform && !isRiskScenario) {
+    const insightType =
+      account.industry === 'Healthcare' ? 'DATA_MODERNIZATION' : 'CROSS_SELL'
+    const recommendedQuantity = 1
+    const recommendedUnitPrice = new Prisma.Decimal(97250)
+    const recommendedDiscountPercent = new Prisma.Decimal(10)
+    const estimatedArrImpact = new Prisma.Decimal(97250)
+
+    const reasoning = [
+      hasDataPlatformBase
+        ? 'Existing OCI/Autonomous footprint enables adjacent data-platform expansion.'
+        : 'No base infrastructure footprint detected for additive data-platform motion.',
+      account.industry === 'Healthcare'
+        ? 'Healthcare profile maps to data modernization positioning.'
+        : 'General enterprise profile maps to governed data cross-sell positioning.',
+      'AI Data Platform is not already included in current subscription lines.',
+      'No risk-escalation scenario is active, so additive motion is allowed.',
+    ]
+
+    insights.push({
+      id: makeId('qi'),
+      renewalCaseId: caseId,
+      sourceType: 'HYBRID',
+      insightType,
+      status: 'SUGGESTED',
+      productId: 'prod_ai_data_platform',
+      productSkuSnapshot: 'ORCL-AI-DATA-PLATFORM',
+      productNameSnapshot: 'Oracle AI Data Platform',
+      productFamilySnapshot: 'AI / Data',
+      title:
+        insightType === 'DATA_MODERNIZATION'
+          ? 'Add AI Data Platform to modernize governed analytics'
+          : 'Add AI Data Platform as a governed data layer',
+      insightSummary:
+        'The latest quote recommendation suggests a credible adjacent data-platform motion based on the current infrastructure footprint.',
+      recommendedActionSummary:
+        'Add Oracle AI Data Platform as a new strategic quote line.',
+      confidenceScore: isExpansionScenario ? 82 : 76,
+      fitScore: isExpansionScenario ? 87 : 82,
+      recommendedQuantity,
+      recommendedUnitPrice,
+      recommendedDiscountPercent,
+      estimatedArrImpact,
+      justificationJson: buildAdditiveInsightJustification({
+        insightType,
+        scenarioKey: scenarioKey ?? null,
+        decisionRunId,
+        generatedAtIso,
+        accountSegment: account.segment,
+        accountIndustry: account.industry,
+        reasoning,
+        signals: [
+          { label: 'Data Platform Base Present', value: hasDataPlatformBase },
+          { label: 'Expansion Scenario Active', value: isExpansionScenario },
+          { label: 'Risk Scenario Active', value: isRiskScenario },
+          { label: 'AI Data Platform Already Present', value: existingSkus.has('ORCL-AI-DATA-PLATFORM') },
+          {
+            label: 'AI Data Platform Already Applied',
+            value:
+              existingAppliedFingerprints.has('CROSS_SELL|ORCL-AI-DATA-PLATFORM') ||
+              existingAppliedFingerprints.has('DATA_MODERNIZATION|ORCL-AI-DATA-PLATFORM'),
+          },
+        ],
+        recommendedQuantity,
+        recommendedUnitPrice,
+        estimatedArrImpact,
+        recommendedDiscountPercent,
+      }),
+      addedQuoteDraftId: null,
+      addedQuoteDraftLineId: null,
+      dismissedReason: null,
+    })
+  }
+
+  return insights
+}
+
+type InsightComparisonSnapshot = {
+  key: string
+  insightType: string
+  productSkuSnapshot: string
+  title: string | null
+  insightSummary: string | null
+  recommendedActionSummary: string | null
+  confidenceScore: number | null
+  fitScore: number | null
+  recommendedQuantity: number | null
+  recommendedUnitPrice: number | null
+  recommendedDiscountPercent: number | null
+  estimatedArrImpact: number | null
+}
+
+function buildInsightKey(insightType: string, productSkuSnapshot: string) {
+  return `${insightType}|${productSkuSnapshot}`
+}
+
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function sameNullableNumber(a: number | null, b: number | null) {
+  if (a === null || b === null) {
+    return a === b
+  }
+
+  return Math.abs(a - b) < 0.0001
+}
+
+function normalizeInsightForDiff(item: {
+  insightType: string
+  productSkuSnapshot: string
+  title?: string | null
+  insightSummary?: string | null
+  recommendedActionSummary?: string | null
+  confidenceScore?: number | null
+  fitScore?: number | null
+  recommendedQuantity?: number | null
+  recommendedUnitPrice?: unknown
+  recommendedDiscountPercent?: unknown
+  estimatedArrImpact?: unknown
+}): InsightComparisonSnapshot {
+  return {
+    key: buildInsightKey(item.insightType, item.productSkuSnapshot),
+    insightType: item.insightType,
+    productSkuSnapshot: item.productSkuSnapshot,
+    title: item.title ?? null,
+    insightSummary: item.insightSummary ?? null,
+    recommendedActionSummary: item.recommendedActionSummary ?? null,
+    confidenceScore: item.confidenceScore ?? null,
+    fitScore: item.fitScore ?? null,
+    recommendedQuantity: item.recommendedQuantity ?? null,
+    recommendedUnitPrice: toNullableNumber(item.recommendedUnitPrice),
+    recommendedDiscountPercent: toNullableNumber(item.recommendedDiscountPercent),
+    estimatedArrImpact: toNullableNumber(item.estimatedArrImpact),
+  }
+}
+
+export async function recalculateQuoteInsights(caseId: string) {
+  const renewalCase = await prisma.renewalCase.findUnique({
+    where: { id: caseId },
+    include: {
+      account: true,
+      items: { orderBy: { sortOrder: 'asc' } },
+      quoteInsights: true,
+    },
+  })
+
+  if (!renewalCase) {
+    throw new Error(`Renewal case ${caseId} not found.`)
+  }
+
+  const scenarioKey = renewalCase.demoScenarioKey ?? 'BASE_CASE'
+  const generatedAtIso = new Date().toISOString()
+  const decisionRunId = makeId('qirun')
+
+  const appliedFingerprints = new Set(
+    renewalCase.quoteInsights
+      .filter((item) => item.status === 'ADDED_TO_QUOTE')
+      .map((item) => `${item.insightType}|${item.productSkuSnapshot}`),
+  )
+
+  const previousSuggested = renewalCase.quoteInsights
+    .filter((item) => item.status !== 'ADDED_TO_QUOTE')
+    .map((item) => normalizeInsightForDiff(item))
+
+  const lineInsights = renewalCase.items
+    .map((item) => {
+      const productSkuSnapshot = getSkuForProductName(item.productNameSnapshot)
+      return buildLineInsight({
+        caseId,
+        scenarioKey,
+        decisionRunId,
+        generatedAtIso,
+        productSkuSnapshot,
+        productNameSnapshot: item.productNameSnapshot,
+        productFamilySnapshot: getProductFamilyForProductName(item.productNameSnapshot),
+        currentQuantity: item.currentQuantity,
+        currentNetUnitPrice: decimal(item.currentNetUnitPrice),
+        currentArr: decimal(item.currentArr),
+        recommendedDisposition: item.recommendedDisposition,
+        proposedQuantity: item.proposedQuantity ?? item.currentQuantity,
+        proposedNetUnitPrice: decimal(item.proposedNetUnitPrice),
+        proposedArr: decimal(item.proposedArr),
+        recommendedDiscountPercent:
+          item.recommendedDiscountPercent != null
+            ? decimal(item.recommendedDiscountPercent)
+            : null,
+        itemRiskScore: item.itemRiskScore,
+        analysisSummary: item.analysisSummary,
+        sourceRecordVersion: item.updatedAt ? new Date(item.updatedAt).toISOString() : null,
+      })
+    })
+    .filter(Boolean)
+    .filter(
+      (item) =>
+        !appliedFingerprints.has(`${item!.insightType}|${item!.productSkuSnapshot}`),
+    ) as any[]
+
+  const existingSkus = new Set(
+    renewalCase.items.map((item) => getSkuForProductName(item.productNameSnapshot)),
+  )
+
+  const additiveInsights = buildAdditiveInsights({
+    caseId,
+    account: {
+      industry: renewalCase.account.industry,
+      segment: renewalCase.account.segment,
+      name: renewalCase.account.name,
+    },
+    existingSkus,
+    existingAppliedFingerprints: appliedFingerprints,
+    scenarioKey,
+    decisionRunId,
+    generatedAtIso,
+  })
+
+  const nextSuggested = [...lineInsights, ...additiveInsights].map((item) =>
+    normalizeInsightForDiff(item),
+  )
+
+  const previousByKey = new Map(previousSuggested.map((item) => [item.key, item]))
+  const nextByKey = new Map(nextSuggested.map((item) => [item.key, item]))
+
+  const added = nextSuggested.filter(
+    (next) => !previousByKey.has(next.key),
+  ).map((item) => ({
+    insightType: item.insightType,
+    productSkuSnapshot: item.productSkuSnapshot,
+    title: item.title,
+  }))
+
+  const removed = previousSuggested.filter(
+    (prev) => !nextByKey.has(prev.key),
+  ).map((item) => ({
+    insightType: item.insightType,
+    productSkuSnapshot: item.productSkuSnapshot,
+    title: item.title,
+  }))
+
+  const modified = nextSuggested.flatMap((next) => {
+    const previous = previousByKey.get(next.key)
+    if (!previous) return []
+
+    const changedFields: string[] = []
+
+    if (previous.title !== next.title) changedFields.push('title')
+    if (previous.insightSummary !== next.insightSummary) changedFields.push('insightSummary')
+    if (previous.recommendedActionSummary !== next.recommendedActionSummary) {
+      changedFields.push('recommendedActionSummary')
+    }
+    if (!sameNullableNumber(previous.confidenceScore, next.confidenceScore)) {
+      changedFields.push('confidenceScore')
+    }
+    if (!sameNullableNumber(previous.fitScore, next.fitScore)) {
+      changedFields.push('fitScore')
+    }
+    if (!sameNullableNumber(previous.recommendedQuantity, next.recommendedQuantity)) {
+      changedFields.push('recommendedQuantity')
+    }
+    if (!sameNullableNumber(previous.recommendedUnitPrice, next.recommendedUnitPrice)) {
+      changedFields.push('recommendedUnitPrice')
+    }
+    if (!sameNullableNumber(previous.recommendedDiscountPercent, next.recommendedDiscountPercent)) {
+      changedFields.push('recommendedDiscountPercent')
+    }
+    if (!sameNullableNumber(previous.estimatedArrImpact, next.estimatedArrImpact)) {
+      changedFields.push('estimatedArrImpact')
+    }
+
+    if (changedFields.length === 0) return []
+
+    return [
+      {
+        insightType: next.insightType,
+        productSkuSnapshot: next.productSkuSnapshot,
+        title: next.title,
+        changedFields,
+        previous: {
+          title: previous.title,
+          insightSummary: previous.insightSummary,
+          recommendedActionSummary: previous.recommendedActionSummary,
+          confidenceScore: previous.confidenceScore,
+          fitScore: previous.fitScore,
+          recommendedQuantity: previous.recommendedQuantity,
+          recommendedUnitPrice: previous.recommendedUnitPrice,
+          recommendedDiscountPercent: previous.recommendedDiscountPercent,
+          estimatedArrImpact: previous.estimatedArrImpact,
+        },
+        next: {
+          title: next.title,
+          insightSummary: next.insightSummary,
+          recommendedActionSummary: next.recommendedActionSummary,
+          confidenceScore: next.confidenceScore,
+          fitScore: next.fitScore,
+          recommendedQuantity: next.recommendedQuantity,
+          recommendedUnitPrice: next.recommendedUnitPrice,
+          recommendedDiscountPercent: next.recommendedDiscountPercent,
+          estimatedArrImpact: next.estimatedArrImpact,
+        },
+      },
+    ]
+  })
+
+  const modifiedByKey = new Map(
+    modified.map((item) => [buildInsightKey(item.insightType, item.productSkuSnapshot), item]),
+  )
+
+  const enrichedSuggestedInsights = [...lineInsights, ...additiveInsights].map((item) => {
+    const key = buildInsightKey(item.insightType, item.productSkuSnapshot)
+    const previous = previousByKey.get(key)
+    const modifiedEntry = modifiedByKey.get(key)
+
+    const changeLog: QuoteInsightChangeLogView | null = !previous
+      ? {
+          fromSummary: null,
+          toSummary: item.recommendedActionSummary ?? item.insightSummary ?? null,
+          changedFields: ['added'],
+          changedAt: generatedAtIso,
+        }
+      : modifiedEntry
+        ? {
+            fromSummary:
+              modifiedEntry.previous.recommendedActionSummary ??
+              modifiedEntry.previous.insightSummary ??
+              null,
+            toSummary:
+              modifiedEntry.next.recommendedActionSummary ?? modifiedEntry.next.insightSummary ?? null,
+            changedFields: modifiedEntry.changedFields,
+            changedAt: generatedAtIso,
+          }
+        : null
+
+    const justification = parseQuoteInsightJustification(item.justificationJson)
+    if (!justification) {
+      return item
+    }
+
+    return {
+      ...item,
+      justificationJson: buildJustificationJson({
+        ...justification,
+        version: 'v2',
+        changeLog,
+      }),
+    }
+  })
+
+  await prisma.$transaction(async (tx) => {
+    await tx.quoteInsight.deleteMany({
+      where: {
+        renewalCaseId: caseId,
+        status: { not: 'ADDED_TO_QUOTE' },
+      },
+    })
+
+    if (enrichedSuggestedInsights.length > 0) {
+      await tx.quoteInsight.createMany({
+        data: enrichedSuggestedInsights,
+      })
+    }
+
+    await tx.renewalCase.update({
+      where: { id: caseId },
+      data: {
+        quoteInsightsNeedRefresh: false,
+        quoteInsightsGeneratedAt: new Date(),
+        lastInsightDiffJson: JSON.stringify({
+          added,
+          removed,
+          modified,
+          regeneratedAt: generatedAtIso,
+          scenarioKey,
+          decisionRunId,
+          engineVersion: DECISION_ENGINE_VERSION,
+          policyVersion: POLICY_VERSION,
+          scenarioVersion: SCENARIO_VERSION,
+        }),
+      },
+    })
+  })
+
+  return {
+    caseId,
+    regeneratedCount: enrichedSuggestedInsights.length,
+    diffSummary: {
+      added: added.length,
+      removed: removed.length,
+      modified: modified.length,
+    },
+  }
+}
+
+export async function getQuoteInsightsByRenewalCaseId(
+  renewalCaseId: string,
+): Promise<{
+  caseId: string
+  currencyCode: string
+  needsRefresh: boolean
+  generatedAtLabel: string | null
+  items: QuoteInsightView[]
+}> {
+  const renewalCase = await prisma.renewalCase.findUnique({
+    where: { id: renewalCaseId },
+    select: {
+      id: true,
+      quoteInsightsNeedRefresh: true,
+      quoteInsightsGeneratedAt: true,
+      account: {
+        select: {
+          billingCurrency: true,
+        },
+      },
+      quoteInsights: {
+        orderBy: [
+          { status: 'asc' },
+          { fitScore: 'desc' },
+          { confidenceScore: 'desc' },
+          { createdAt: 'desc' },
+        ],
+      },
+      narratives: {
+        where: {
+          scopeType: 'CASE',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          narrativeType: true,
+          content: true,
+          modelLabel: true,
+        },
+      },
+    },
+  })
+
+  if (!renewalCase) {
+    return {
+      caseId: renewalCaseId,
+      currencyCode: 'USD',
+      needsRefresh: false,
+      generatedAtLabel: null,
+      items: [],
+    }
+  }
+
+  const currencyCode = renewalCase.account.billingCurrency || 'USD'
+
+  const narrativeMap = new Map<string, { content: string; modelLabel: string | null }>()
+
+  for (const narrative of renewalCase.narratives) {
+    if (
+      narrative.narrativeType.startsWith('QUOTE_INSIGHT_') &&
+      !narrativeMap.has(narrative.narrativeType)
+    ) {
+      narrativeMap.set(narrative.narrativeType, {
+        content: narrative.content,
+        modelLabel: narrative.modelLabel,
+      })
+    }
+  }
+
+  return {
+    caseId: renewalCase.id,
+    currencyCode,
+    needsRefresh: renewalCase.quoteInsightsNeedRefresh,
+    generatedAtLabel: renewalCase.quoteInsightsGeneratedAt
+      ? formatDate(renewalCase.quoteInsightsGeneratedAt)
+      : null,
+    items: renewalCase.quoteInsights.map((item) => {
+      const isAddedToQuote = item.status === 'ADDED_TO_QUOTE'
+      const narrative = narrativeMap.get(`QUOTE_INSIGHT_${item.id}`)
+      const justification = parseQuoteInsightJustification(item.justificationJson)
+
+      return {
+        id: item.id,
+        title: item.title,
+        insightType: item.insightType,
+        insightTypeLabel: labelize(item.insightType),
+        statusLabel: labelize(item.status),
+        statusTone: toneForStatus(item.status),
+        isAddedToQuote,
+        productName: item.productNameSnapshot,
+        productSku: item.productSkuSnapshot,
+        productFamily: item.productFamilySnapshot,
+        insightSummary: item.insightSummary,
+        recommendedActionSummary: item.recommendedActionSummary,
+        aiExplanation: narrative?.content ?? null,
+        aiModelLabel: narrative?.modelLabel ?? null,
+        confidenceScore: item.confidenceScore,
+        fitScore: item.fitScore,
+        recommendedQuantity: item.recommendedQuantity,
+        recommendedUnitPriceFormatted:
+          item.recommendedUnitPrice != null
+            ? formatCurrency(Number(item.recommendedUnitPrice), currencyCode)
+            : null,
+        recommendedDiscountPercentFormatted:
+          item.recommendedDiscountPercent != null
+            ? formatPercent(Number(item.recommendedDiscountPercent))
+            : null,
+        estimatedArrImpactFormatted:
+          item.estimatedArrImpact != null
+            ? formatCurrency(Number(item.estimatedArrImpact), currencyCode)
+            : null,
+        justification,
+      }
+    }),
+  }
+}

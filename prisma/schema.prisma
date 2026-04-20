@@ -1,0 +1,382 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                   String         @id
+  accountNumber        String         @unique
+  name                 String
+  segment              String
+  industry             String?
+  region               String?
+  billingCurrency      String         @default("USD")
+  csmName              String?
+  accountExecutiveName String?
+  healthScore          Int?
+  npsBand              String?
+  openEscalationCount  Int            @default(0)
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  subscriptions        Subscription[]
+  renewalCases         RenewalCase[]
+
+  @@index([name])
+  @@index([segment])
+}
+
+model Product {
+  id                     String                @id
+  sku                    String                @unique
+  name                   String
+  productFamily          String
+  chargeModel            String
+  isActive               Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+
+  subscriptions          Subscription[]
+  quoteInsights QuoteInsight[]
+
+  @@index([productFamily])
+  @@index([name])
+}
+
+model Subscription {
+  id                     String                       @id
+  subscriptionNumber     String                       @unique
+  accountId              String
+  productId              String
+  status                 String
+  termStartDate          DateTime
+  termEndDate            DateTime
+  renewalDate            DateTime
+  billingFrequency       String?
+  quantity               Int
+  listUnitPrice          Decimal
+  netUnitPrice           Decimal
+  discountPercent        Decimal
+  netAmount              Decimal
+  arr                    Decimal
+  autoRenewFlag          Boolean                      @default(false)
+  cancellationNoticeDate DateTime?
+  lastAmendmentDate      DateTime?
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+
+  account                Account                      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  product                Product                      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  metricSnapshots        SubscriptionMetricSnapshot[]
+  renewalCaseItems       RenewalCaseItem[]
+
+  @@index([accountId])
+  @@index([productId])
+  @@index([renewalDate])
+  @@index([status])
+  @@index([accountId, renewalDate])
+}
+
+model SubscriptionMetricSnapshot {
+  id                         String       @id
+  subscriptionId             String
+  snapshotDate               DateTime
+  usagePercentOfEntitlement  Decimal?
+  activeUserPercent          Decimal?
+  loginTrend30d              Decimal?
+  ticketCount90d             Int?
+  sev1Count90d               Int?
+  csatScore                  Decimal?
+  paymentRiskBand            String?
+  adoptionBand               String?
+  notes                      String?
+  createdAt                  DateTime     @default(now())
+
+  subscription               Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([snapshotDate])
+  @@index([subscriptionId, snapshotDate])
+}
+
+model PricingPolicy {
+  id                             String   @id
+  name                           String
+  accountSegment                 String?
+  productFamily                  String?
+  maxAutoDiscountPercent         Decimal
+  approvalDiscountPercent        Decimal
+  floorPricePercentOfList        Decimal
+  expansionThresholdUsagePercent Decimal?
+  requiresEscalationIfSev1Count  Int?
+  isActive                       Boolean  @default(true)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+
+  @@index([accountSegment])
+  @@index([productFamily])
+  @@index([isActive])
+}
+
+model RenewalCase {
+  id                     String                  @id
+  caseNumber             String                  @unique
+  accountId              String
+  status                 String
+  bundleStrategy         String
+  evaluationDate         DateTime
+  windowStartDate        DateTime
+  windowEndDate          DateTime
+  recommendedAction      String?
+  riskScore              Int?
+  riskLevel              String?
+  bundleCurrentArr       Decimal?
+  bundleProposedArr      Decimal?
+  bundleDeltaArr         Decimal?
+  requiresApproval       Boolean                 @default(false)
+  approvalReason         String?
+  ownerUserName          String?
+  reviewerUserName       String?
+  approvedAt             DateTime?
+  rejectedAt             DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  quoteInsightsNeedRefresh Boolean @default(false)
+  quoteInsightsGeneratedAt DateTime?
+  demoScenarioKey         String?   @default("BASE_CASE")
+  lastRecommendationJson  String?
+  lastInsightDiffJson     String?
+  lastScenarioChangedAt   DateTime?
+  scenarioKey             String?
+
+  account                Account                 @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  items                  RenewalCaseItem[]
+  analyses               RenewalCaseAnalysis[]
+  narratives             RecommendationNarrative[]
+  reviewDecisions        ReviewDecision[]
+  quoteDraft             QuoteDraft?
+  quoteInsights QuoteInsight[]
+
+  @@index([accountId])
+  @@index([status])
+  @@index([evaluationDate])
+  @@index([windowStartDate, windowEndDate])
+  @@index([accountId, status])
+}
+
+model RenewalCaseItem {
+  id                         String                  @id
+  renewalCaseId              String
+  subscriptionId             String
+  itemStatus                 String
+  includedInBundle           Boolean                 @default(true)
+  productNameSnapshot        String
+  subscriptionNumberSnapshot String
+  renewalDate                DateTime
+  currentQuantity            Int
+  currentListUnitPrice       Decimal
+  currentNetUnitPrice        Decimal
+  currentArr                 Decimal
+  recommendedDisposition     String?
+  recommendedDiscountPercent Decimal?
+  proposedQuantity           Int?
+  proposedNetUnitPrice       Decimal?
+  proposedArr                Decimal?
+  itemRiskScore              Int?
+  itemRiskLevel              String?
+  analysisSummary            String?
+  sortOrder                  Int?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+
+  renewalCase                RenewalCase             @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+  subscription               Subscription            @relation(fields: [subscriptionId], references: [id], onDelete: Restrict)
+  analyses                   RenewalCaseItemAnalysis[]
+  narratives                 RecommendationNarrative[]
+  quoteDraftLines            QuoteDraftLine[]
+
+  @@index([renewalCaseId])
+  @@index([subscriptionId])
+  @@index([renewalDate])
+  @@index([recommendedDisposition])
+  @@index([renewalCaseId, sortOrder])
+  @@unique([renewalCaseId, subscriptionId])
+}
+
+model RenewalCaseAnalysis {
+  id                 String      @id
+  renewalCaseId      String
+  analysisVersion    Int         @default(1)
+  riskScore          Int?
+  riskLevel          String?
+  recommendedAction  String?
+  pricingPosture     String?
+  approvalRequired   Boolean     @default(false)
+  primaryDriversJson String?
+  bundleSummaryText  String?
+  generatedBy        String      @default("HYBRID")
+  createdAt          DateTime    @default(now())
+
+  renewalCase        RenewalCase @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+
+  @@index([renewalCaseId])
+  @@unique([renewalCaseId, analysisVersion])
+}
+
+model RenewalCaseItemAnalysis {
+  id                         String          @id
+  renewalCaseItemId          String
+  analysisVersion            Int             @default(1)
+  riskScore                  Int?
+  riskLevel                  String?
+  recommendedDisposition     String?
+  recommendedDiscountPercent Decimal?
+  priceGuardrailResult       String?
+  driverSummaryJson          String?
+  rationaleText              String?
+  createdAt                  DateTime        @default(now())
+
+  renewalCaseItem            RenewalCaseItem @relation(fields: [renewalCaseItemId], references: [id], onDelete: Cascade)
+
+  @@index([renewalCaseItemId])
+  @@unique([renewalCaseItemId, analysisVersion])
+}
+
+model RecommendationNarrative {
+  id                String           @id
+  scopeType         String
+  renewalCaseId     String?
+  renewalCaseItemId String?
+  narrativeType     String
+  content           String
+  modelLabel        String?
+  createdAt         DateTime         @default(now())
+
+  renewalCase       RenewalCase?     @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+  renewalCaseItem   RenewalCaseItem? @relation(fields: [renewalCaseItemId], references: [id], onDelete: Cascade)
+
+  @@index([renewalCaseId])
+  @@index([renewalCaseItemId])
+  @@index([scopeType, narrativeType])
+}
+
+model ReviewDecision {
+  id            String      @id
+  renewalCaseId String
+  decision      String
+  reviewerName  String?
+  comment       String?
+  createdAt     DateTime    @default(now())
+
+  renewalCase   RenewalCase @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+
+  @@index([renewalCaseId])
+  @@index([decision])
+  @@index([createdAt])
+}
+
+model QuoteDraft {
+  id                String                 @id
+  renewalCaseId     String                 @unique
+  quoteNumber       String                 @unique
+  status            String
+  currencyCode      String                 @default("USD")
+  effectiveDate     DateTime?
+  expirationDate    DateTime?
+  totalListAmount   Decimal?
+  totalNetAmount    Decimal?
+  totalDiscountPercent Decimal?
+  approvalRequired  Boolean                @default(false)
+  generatedBy       String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  renewalCase       RenewalCase            @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+  lines             QuoteDraftLine[]
+  appliedQuoteInsights QuoteInsight[] @relation("QuoteInsightAddedQuoteDraft")
+
+  @@index([status])
+}
+
+model QuoteDraftLine {
+  id                   String            @id
+  quoteDraftId         String
+  renewalCaseItemId    String?
+  lineNumber           Int
+  productSku           String
+  productName          String
+  chargeType           String?
+  quantity             Int
+  listUnitPrice        Decimal
+  netUnitPrice         Decimal
+  discountPercent      Decimal?
+  lineNetAmount        Decimal
+  disposition          String?
+  comment              String?
+
+  sourceType           String?
+  sourceInsightType    String?
+  sourceQuoteInsightId String?
+  insightSummary       String?
+  aiExplanation        String?
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  quoteDraft           QuoteDraft        @relation(fields: [quoteDraftId], references: [id], onDelete: Cascade)
+  renewalCaseItem      RenewalCaseItem?  @relation(fields: [renewalCaseItemId], references: [id], onDelete: Restrict)
+  sourceQuoteInsight   QuoteInsight?     @relation("QuoteInsightAddedQuoteDraftLine", fields: [sourceQuoteInsightId], references: [id])
+
+  @@index([quoteDraftId])
+  @@index([renewalCaseItemId])
+  @@index([quoteDraftId, sourceType])
+  @@index([sourceQuoteInsightId])
+  @@index([sourceInsightType])
+  @@unique([quoteDraftId, lineNumber])
+}
+
+model QuoteInsight {
+  id                         String          @id
+  renewalCaseId              String
+  sourceType                 String
+  insightType                String
+  status                     String
+
+  productId                  String
+  productSkuSnapshot         String
+  productNameSnapshot        String
+  productFamilySnapshot      String
+
+  title                      String
+  insightSummary             String
+  recommendedActionSummary   String?
+  confidenceScore            Int?
+  fitScore                   Int?
+
+  recommendedQuantity        Int?
+  recommendedUnitPrice       Decimal?
+  recommendedDiscountPercent Decimal?
+  estimatedArrImpact         Decimal?
+
+  justificationJson          String?
+
+  addedQuoteDraftId          String?
+  addedQuoteDraftLineId      String?
+  dismissedReason            String?
+
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+
+  renewalCase                RenewalCase     @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+  product                    Product         @relation(fields: [productId], references: [id])
+  addedQuoteDraft            QuoteDraft?     @relation("QuoteInsightAddedQuoteDraft", fields: [addedQuoteDraftId], references: [id])
+  addedQuoteDraftLine        QuoteDraftLine[] @relation("QuoteInsightAddedQuoteDraftLine")
+
+  @@index([renewalCaseId, status])
+  @@index([renewalCaseId, insightType])
+  @@index([productId])
+}

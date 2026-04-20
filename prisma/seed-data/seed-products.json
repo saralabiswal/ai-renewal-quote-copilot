@@ -1,0 +1,106 @@
+[
+  {
+    "id": "prod_fusion_apps",
+    "sku": "ORCL-FUSION-APPS",
+    "name": "Oracle Fusion Applications",
+    "productFamily": "Applications",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_netsuite",
+    "sku": "ORCL-NETSUITE",
+    "name": "Oracle NetSuite",
+    "productFamily": "Applications",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_subscription_mgmt",
+    "sku": "ORCL-SUBSCRIPTION-MGMT",
+    "name": "Oracle Subscription Management",
+    "productFamily": "Revenue Operations",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_cpq",
+    "sku": "ORCL-CPQ",
+    "name": "Oracle CPQ",
+    "productFamily": "Revenue Operations",
+    "chargeModel": "Per User / Annual",
+    "isActive": true
+  },
+  {
+    "id": "prod_oci",
+    "sku": "ORCL-OCI",
+    "name": "Oracle Cloud Infrastructure",
+    "productFamily": "Infrastructure",
+    "chargeModel": "Annual / Consumption Commit",
+    "isActive": true
+  },
+  {
+    "id": "prod_ai_data_platform",
+    "sku": "ORCL-AI-DATA-PLATFORM",
+    "name": "Oracle AI Data Platform",
+    "productFamily": "AI / Data",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_autonomous_ai_db",
+    "sku": "ORCL-AUTONOMOUS-AI-DB",
+    "name": "Oracle Autonomous AI Database",
+    "productFamily": "AI / Data",
+    "chargeModel": "Annual / Consumption Commit",
+    "isActive": true
+  },
+  {
+    "id": "prod_cloud_at_customer",
+    "sku": "ORCL-CLOUD-AT-CUSTOMER",
+    "name": "Oracle Cloud@Customer",
+    "productFamily": "Hybrid Deployment",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_exadata_cac",
+    "sku": "ORCL-EXADATA-CAC",
+    "name": "Oracle Exadata Cloud@Customer",
+    "productFamily": "Hybrid Deployment",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_health_suite",
+    "sku": "ORCL-HEALTH-SUITE",
+    "name": "Oracle Health Suite",
+    "productFamily": "Industry Applications",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_industry_apps",
+    "sku": "ORCL-INDUSTRY-APPS",
+    "name": "Oracle Industry Applications",
+    "productFamily": "Industry Applications",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_db_azure",
+    "sku": "ORCL-DATABASE-AZURE",
+    "name": "Oracle Database@Azure",
+    "productFamily": "Multicloud Data",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  },
+  {
+    "id": "prod_db_aws",
+    "sku": "ORCL-DATABASE-AWS",
+    "name": "Oracle Database@AWS",
+    "productFamily": "Multicloud Data",
+    "chargeModel": "Annual Subscription",
+    "isActive": true
+  }
+]

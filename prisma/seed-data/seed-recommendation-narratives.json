@@ -1,0 +1,252 @@
+[
+  {
+    "id": "rn_case_001",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_apex_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Apex Manufacturing Group is currently assessed as low risk with a recommended action of renew as is. The bundle spans 1 quote insight across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Renew As Is: Stable usage and low renewal risk support a standard renewal on the Fusion line.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_002",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_vertex_industrial",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Vertex Industrial Systems is currently assessed as low risk with a recommended action of controlled uplift. The bundle spans 1 quote insight across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Controlled Uplift: Healthy infrastructure adoption and low churn risk support a modest uplift on the OCI renewal line.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_003",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_bluepeak",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "BluePeak Retail Holdings is currently assessed as medium risk with a recommended action of renew with concession. The bundle spans 2 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Concession: Commercial sensitivity and moderate churn risk justify a retention-oriented concession on the core NetSuite line.\n- Retention Protection: The secondary revenue-operations line should support retention rather than absorb price recovery this cycle.\n- Approval is required because Controlled concession exceeds standard approval threshold for at least one renewal line..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_003",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_bluepeak",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "BluePeak Retail Holdings requires approval review because the renewal bundle includes concession, retention protection and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Controlled concession exceeds standard approval threshold for at least one renewal line.\n- Bundle risk level is medium with a recommended action of renew with concession.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_case_004",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_summitone",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "SummitOne Distribution is currently assessed as high risk with a recommended action of renew with concession. The bundle spans 2 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Concession: Elevated support burden and weak recent adoption on the CPQ line support a selective concession rather than a price increase.\n- Retention Protection: The core Fusion line should remain commercially stable while the weaker line absorbs the concession pressure.\n- Approval is required because Controlled concession exceeds standard approval threshold for at least one renewal line..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_004",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_summitone",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "SummitOne Distribution requires approval review because the renewal bundle includes concession, retention protection and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Controlled concession exceeds standard approval threshold for at least one renewal line.\n- Bundle risk level is high with a recommended action of renew with concession.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_case_005",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_orion_revenue",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Orion Revenue Services is currently assessed as medium risk with a recommended action of margin recovery. The bundle spans 1 quote insight across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Margin Recovery: Low churn risk and severe margin erosion support a firmer pricing posture on the Subscription Management line.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_006",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_northstar_telecom",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Northstar Telecom Platforms is currently assessed as medium risk with a recommended action of margin recovery. The bundle spans 1 quote insight across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Margin Recovery: Historic over-discounting is not supported by current churn posture, making this a good candidate for discount reduction.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_007",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_redwood_energy",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Redwood Energy Operations is currently assessed as medium risk with a recommended action of defensive renewal. The bundle spans 1 quote insight across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Defensive Renewal: Declining utilization and moderate churn risk suggest a defensive renewal posture on the OCI line.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_008",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_horizon_util",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Horizon Utilities Network is currently assessed as high risk with a recommended action of defensive renewal. The bundle spans 1 quote insight across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Uplift Restraint: Usage decline and increasing service burden indicate that uplift should be restrained on this renewal.\n- Approval is required because Reviewer approval required due to commercial posture and account risk mix..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_008",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_horizon_util",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "Horizon Utilities Network requires approval review because the renewal bundle includes uplift restraint and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Reviewer approval required due to commercial posture and account risk mix.\n- Bundle risk level is high with a recommended action of defensive renewal.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_case_009",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_lumina_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Lumina Commerce Cloud is currently assessed as low risk with a recommended action of expand. The bundle spans 1 quote insight across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Expansion: CPQ is operating near entitlement capacity with strong active adoption and a healthy support profile.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_010",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_arclight_saas",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "ArcLight SaaS Group is currently assessed as low risk with a recommended action of expand. The bundle spans 2 quote insights across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Expansion: Infrastructure usage and workload growth justify an expansion of the OCI commitment.\n- Cross Sell: The account shows strong infrastructure and database adoption but lacks a data foundation product for governed AI use cases.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_011",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_harbor_fin",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Harbor Financial Systems is currently assessed as low risk with a recommended action of cross sell. The bundle spans 2 quote insights across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Cross Sell: The account has a healthy Fusion and CPQ footprint and a clear whitespace opportunity for AI-ready data capabilities.\n- Hybrid Deployment Fit: The account combines healthy adoption with data residency sensitivity, making hybrid deployment a credible adjacent motion.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_012",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_crestview_health",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Crestview Health Alliance is currently assessed as low risk with a recommended action of cross sell. The bundle spans 2 quote insights across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Data Modernization: The installed healthcare and enterprise application footprint suggests a strong fit for governed AI and analytics modernization.\n- Hybrid Deployment Fit: Compliance-sensitive operations make Cloud@Customer a strong deployment option for this renewal relationship.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_013",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_meridian_public",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Meridian Public Services is currently assessed as low risk with a recommended action of cross sell. The bundle spans 2 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Hybrid Deployment Fit: Strong platform fit combined with sovereignty constraints supports a Cloud@Customer motion.\n- Cross Sell: The customer profile supports a performance-sensitive hybrid database deployment expansion.\n- Approval is required because Reviewer approval required due to commercial posture and account risk mix..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_013",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_meridian_public",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "Meridian Public Services requires approval review because the renewal bundle includes hybrid deployment fit, cross sell and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Reviewer approval required due to commercial posture and account risk mix.\n- Bundle risk level is low with a recommended action of cross sell.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_case_014",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_novacare",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "NovaCare Health Analytics is currently assessed as low risk with a recommended action of cross sell. The bundle spans 2 quote insights across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Data Modernization: Data growth and a strong core healthcare footprint make Autonomous AI Database a credible modernization step.\n- Cross Sell: The account lacks an AI-ready data layer despite a healthy application and infrastructure base.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_015",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_skyline_multi",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Skyline Multicloud Labs is currently assessed as low risk with a recommended action of cross sell. The bundle spans 2 quote insights across the renewal motion and should be handled through a standard renewal workflow.\n\nKey drivers:\n- Cross Sell: The customer has a strong Oracle infrastructure footprint and a clear fit for multicloud database deployment.\n- Expansion: Growing data workloads support an expansion of the Autonomous AI Database commitment.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_case_016",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_aster_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Aster Global Commerce is currently assessed as high risk with a recommended action of mixed action plan. The bundle spans 4 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Margin Recovery: One revenue-operations line remains over-discounted relative to churn posture and should absorb price normalization.\n- Concession: A weaker adoption signal on the infrastructure line justifies a limited concession to preserve the overall bundle.\n- Expansion: One CPQ line shows strong usage and is a clear candidate for expansion in the same renewal motion.\n- Approval is required because Strategic bundle includes mixed pricing actions and at least one non-standard quote insight..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_016",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_aster_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "Aster Global Commerce requires approval review because the renewal bundle includes margin recovery, concession, expansion and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Strategic bundle includes mixed pricing actions and at least one non-standard quote insight.\n- Bundle risk level is high with a recommended action of mixed action plan.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_case_017",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_helio_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Helio Manufacturing Cloud is currently assessed as medium risk with a recommended action of mixed action plan. The bundle spans 3 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Concession: A weaker commercial line in the bundle needs a targeted concession to preserve the broader renewal.\n- Margin Recovery: Low churn and acceptable adoption support discount reduction on the subscription operations line.\n- Cross Sell: The account profile suggests a credible fit for industry-specific functionality that is not currently owned.\n- Approval is required because Strategic bundle includes mixed pricing actions and at least one non-standard quote insight..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_017",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_helio_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "Helio Manufacturing Cloud requires approval review because the renewal bundle includes concession, margin recovery, cross sell and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Strategic bundle includes mixed pricing actions and at least one non-standard quote insight.\n- Bundle risk level is medium with a recommended action of mixed action plan.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_case_018",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_quantum_grid",
+    "renewalCaseItemId": null,
+    "narrativeType": "RATIONALE",
+    "content": "Quantum Enterprise Grid is currently assessed as medium risk with a recommended action of mixed action plan. The bundle spans 4 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Expansion: Strategic commercial growth and very strong adoption justify an expansion of the CPQ line.\n- Defensive Renewal: One data line is showing weaker engagement and should not be used for monetization this cycle.\n- Cross Sell: The account\u2019s broad infrastructure and application footprint supports a new AI Data Platform line.\n- Approval is required because Strategic bundle includes mixed pricing actions and at least one non-standard quote insight..",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rn_appr_018",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_quantum_grid",
+    "renewalCaseItemId": null,
+    "narrativeType": "APPROVAL_BRIEF",
+    "content": "Quantum Enterprise Grid requires approval review because the renewal bundle includes expansion, defensive renewal, cross sell and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Strategic bundle includes mixed pricing actions and at least one non-standard quote insight.\n- Bundle risk level is medium with a recommended action of mixed action plan.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:05:00Z"
+  }
+]

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "rd_001",
+    "renewalCaseId": "rcase_bluepeak",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Daniel Brooks",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_002",
+    "renewalCaseId": "rcase_bluepeak",
+    "decision": "APPROVE",
+    "reviewerName": "Maya Shah",
+    "comment": "Commercial posture looks acceptable for review-stage progression.",
+    "createdAt": "2026-04-17T10:00:00Z"
+  },
+  {
+    "id": "rd_003",
+    "renewalCaseId": "rcase_summitone",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Nina Foster",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_004",
+    "renewalCaseId": "rcase_summitone",
+    "decision": "REQUEST_REVISION",
+    "reviewerName": "Ethan Ward",
+    "comment": "Please revisit concession depth and confirm the weakest line is not carrying an unnecessary uplift.",
+    "createdAt": "2026-04-16T13:30:00Z"
+  },
+  {
+    "id": "rd_005",
+    "renewalCaseId": "rcase_orion_revenue",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Alicia Gomez",
+    "comment": "Prepared initial recommendation package for reviewer visibility.",
+    "createdAt": "2026-04-15T15:00:00Z"
+  },
+  {
+    "id": "rd_006",
+    "renewalCaseId": "rcase_northstar_telecom",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Rhea Thomas",
+    "comment": "Prepared initial recommendation package for reviewer visibility.",
+    "createdAt": "2026-04-15T15:00:00Z"
+  },
+  {
+    "id": "rd_007",
+    "renewalCaseId": "rcase_redwood_energy",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Sonia Patel",
+    "comment": "Prepared initial recommendation package for reviewer visibility.",
+    "createdAt": "2026-04-15T15:00:00Z"
+  },
+  {
+    "id": "rd_008",
+    "renewalCaseId": "rcase_horizon_util",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Evan Cole",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_009",
+    "renewalCaseId": "rcase_horizon_util",
+    "decision": "REQUEST_REVISION",
+    "reviewerName": "Sara Kim",
+    "comment": "Please revisit concession depth and confirm the weakest line is not carrying an unnecessary uplift.",
+    "createdAt": "2026-04-16T13:30:00Z"
+  },
+  {
+    "id": "rd_010",
+    "renewalCaseId": "rcase_meridian_public",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Helen Scott",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_011",
+    "renewalCaseId": "rcase_meridian_public",
+    "decision": "REQUEST_REVISION",
+    "reviewerName": "Devon Price",
+    "comment": "Validate the growth recommendation against customer readiness before final quote release.",
+    "createdAt": "2026-04-16T14:15:00Z"
+  },
+  {
+    "id": "rd_012",
+    "renewalCaseId": "rcase_aster_commerce",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Monica Hale",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_013",
+    "renewalCaseId": "rcase_aster_commerce",
+    "decision": "REQUEST_REVISION",
+    "reviewerName": "Ryan Cooper",
+    "comment": "Please revisit concession depth and confirm the weakest line is not carrying an unnecessary uplift.",
+    "createdAt": "2026-04-16T13:30:00Z"
+  },
+  {
+    "id": "rd_014",
+    "renewalCaseId": "rcase_helio_mfg",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Deepa Iyer",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_015",
+    "renewalCaseId": "rcase_helio_mfg",
+    "decision": "REQUEST_REVISION",
+    "reviewerName": "Sam Walters",
+    "comment": "Validate the growth recommendation against customer readiness before final quote release.",
+    "createdAt": "2026-04-16T14:15:00Z"
+  },
+  {
+    "id": "rd_016",
+    "renewalCaseId": "rcase_quantum_grid",
+    "decision": "SUBMIT_FOR_REVIEW",
+    "reviewerName": "Alex Rivera",
+    "comment": "Submitted bundle for commercial review based on current renewal and quote insight posture.",
+    "createdAt": "2026-04-16T09:00:00Z"
+  },
+  {
+    "id": "rd_017",
+    "renewalCaseId": "rcase_quantum_grid",
+    "decision": "REQUEST_REVISION",
+    "reviewerName": "Mina Park",
+    "comment": "Validate the growth recommendation against customer readiness before final quote release.",
+    "createdAt": "2026-04-16T14:15:00Z"
+  },
+  {
+    "id": "rd_018",
+    "renewalCaseId": "rcase_bluepeak",
+    "decision": "APPROVE",
+    "reviewerName": "Maya Shah",
+    "comment": "Approved after pricing and approval notes were validated.",
+    "createdAt": "2026-04-17T16:45:00Z"
+  },
+  {
+    "id": "rd_019",
+    "renewalCaseId": "rcase_summitone",
+    "decision": "REJECT",
+    "reviewerName": "Ethan Ward",
+    "comment": "Rejected pending a clearer retention strategy and revised discount posture.",
+    "createdAt": "2026-04-17T16:45:00Z"
+  },
+  {
+    "id": "rd_020",
+    "renewalCaseId": "rcase_aster_commerce",
+    "decision": "APPROVE",
+    "reviewerName": "Ryan Cooper",
+    "comment": "Approved after pricing and approval notes were validated.",
+    "createdAt": "2026-04-17T16:45:00Z"
+  },
+  {
+    "id": "rd_021",
+    "renewalCaseId": "rcase_quantum_grid",
+    "decision": "APPROVE",
+    "reviewerName": "Mina Park",
+    "comment": "Approved after pricing and approval notes were validated.",
+    "createdAt": "2026-04-17T16:45:00Z"
+  }
+]
