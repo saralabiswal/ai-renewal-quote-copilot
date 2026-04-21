@@ -16,6 +16,8 @@ export default function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Runtime configuration for this app. The only required integration setting is OPENAI_API_KEY."
+        purpose="Confirm runtime readiness and AI mode before users run workflow actions."
+        nextStep="Verify API key status and selected model."
       />
 
       <section className="card">

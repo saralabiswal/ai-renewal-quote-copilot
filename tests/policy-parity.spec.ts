@@ -1,39 +1,18 @@
 import { test, expect } from '@playwright/test'
-import { PrismaClient } from '@prisma/client'
 
 import {
-  buildWorkedPolicyExamples,
-  WORKED_EXAMPLE_PRODUCT_OPTIONS,
+  buildDefaultWorkedExamples,
+  buildWorkedExampleOptionsFromSeeds,
+  buildWorkedPolicyExamplesFromSeeds,
   type WorkedExampleView,
 } from '../lib/policies/worked-example'
 import { evaluateRenewalCase } from '../lib/rules/recommendation-engine'
 import type { RenewalCaseEngineInput } from '../lib/rules/types'
-import type { PricingPolicyView } from '../lib/db/policies'
-
-const prisma = new PrismaClient()
-
-function mapPoliciesForWorkedExample(rows: Awaited<ReturnType<typeof prisma.pricingPolicy.findMany>>): PricingPolicyView[] {
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    accountSegment: row.accountSegment,
-    accountSegmentLabel: row.accountSegment ?? 'All segments',
-    productFamily: row.productFamily,
-    productFamilyLabel: row.productFamily ?? 'All product families',
-    maxAutoDiscountPercent: Number(row.maxAutoDiscountPercent),
-    approvalDiscountPercent: Number(row.approvalDiscountPercent),
-    floorPricePercentOfList: Number(row.floorPricePercentOfList),
-    expansionThresholdUsagePercent:
-      row.expansionThresholdUsagePercent != null
-        ? Number(row.expansionThresholdUsagePercent)
-        : null,
-    requiresEscalationIfSev1Count:
-      row.requiresEscalationIfSev1Count != null
-        ? Number(row.requiresEscalationIfSev1Count)
-        : null,
-    isActive: row.isActive,
-  }))
-}
+import {
+  getPolicyStudioExampleSeeds,
+  getPricingPolicies,
+  type PricingPolicyView,
+} from '../lib/db/policies'
 
 function buildEngineInputFromWorkedExample(example: WorkedExampleView): RenewalCaseEngineInput {
   return {
@@ -97,15 +76,36 @@ function buildEngineInputFromWorkedExample(example: WorkedExampleView): RenewalC
   }
 }
 
-test('worked policy examples remain in parity with live recommendation engine', async () => {
-  const rows = await prisma.pricingPolicy.findMany({
-    where: { isActive: true },
-  })
-  const pricingPolicies = mapPoliciesForWorkedExample(rows)
-  const workedExamples = buildWorkedPolicyExamples(pricingPolicies)
+async function loadWorkedExamples(pricingPolicies: PricingPolicyView[]) {
+  const seeds = await getPolicyStudioExampleSeeds(6)
+  if (seeds.length > 0) {
+    return {
+      workedExamples: buildWorkedPolicyExamplesFromSeeds(pricingPolicies, seeds),
+      workedExampleOptions: buildWorkedExampleOptionsFromSeeds(seeds),
+    }
+  }
 
-  for (const option of WORKED_EXAMPLE_PRODUCT_OPTIONS) {
+  const workedExamples = buildDefaultWorkedExamples(pricingPolicies)
+  const workedExampleOptions = Object.keys(workedExamples).map((id) => ({
+    id,
+    label: id,
+  }))
+
+  return {
+    workedExamples,
+    workedExampleOptions,
+  }
+}
+
+test('worked policy examples remain in parity with live recommendation engine', async () => {
+  const pricingPolicies = await getPricingPolicies()
+  const { workedExamples, workedExampleOptions } = await loadWorkedExamples(pricingPolicies)
+
+  for (const option of workedExampleOptions) {
     const example = workedExamples[option.id]
+    expect(example, `${option.id}: example exists`).toBeDefined()
+    if (!example) continue
+
     const output = evaluateRenewalCase(buildEngineInputFromWorkedExample(example))
     const item = output.itemResults[0]
 
@@ -138,14 +138,14 @@ test('worked policy examples remain in parity with live recommendation engine', 
 })
 
 test('worked policy guardrail formulas show the true evaluated comparison', async () => {
-  const rows = await prisma.pricingPolicy.findMany({
-    where: { isActive: true },
-  })
-  const pricingPolicies = mapPoliciesForWorkedExample(rows)
-  const workedExamples = buildWorkedPolicyExamples(pricingPolicies)
+  const pricingPolicies = await getPricingPolicies()
+  const { workedExamples, workedExampleOptions } = await loadWorkedExamples(pricingPolicies)
 
-  for (const option of WORKED_EXAMPLE_PRODUCT_OPTIONS) {
+  for (const option of workedExampleOptions) {
     const example = workedExamples[option.id]
+    expect(example, `${option.id}: example exists`).toBeDefined()
+    if (!example) continue
+
     const maxAuto = example.guardrails.checks.find((check) => check.check === 'Max Auto Discount')
     const approvalThreshold = example.guardrails.checks.find(
       (check) => check.check === 'Approval Discount Threshold',
@@ -173,8 +173,4 @@ test('worked policy guardrail formulas show the true evaluated comparison', asyn
     expect(floorPrice!.formula).toContain(floorTriggered ? '<' : '>=')
     expect(sev1!.formula).toContain(sev1Triggered ? '>=' : '<')
   }
-})
-
-test.afterAll(async () => {
-  await prisma.$disconnect()
 })

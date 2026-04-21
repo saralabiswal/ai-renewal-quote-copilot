@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { QuoteDraftLinesTable } from '@/components/quotes/quote-draft-lines-table'
 import { QuoteDraftSummary } from '@/components/quotes/quote-draft-summary'
+import { QuoteDraftChangeStrip } from '@/components/quotes/quote-draft-change-strip'
 import { ReviewActions } from '@/components/renewal-cases/review-actions'
+import { WorkflowJourney } from '@/components/layout/workflow-journey'
 import { getQuoteDraftById } from '@/lib/db/quote-drafts'
 
 function isAiAddedLine(sourceType: string | null) {
@@ -33,17 +35,32 @@ export default async function QuoteDraftDetailPage({
     isAiAddedLine(line.traceability.sourceType),
   ).length
   const changedLineCount = quoteDraft.lines.length - baselineLineCount
+  const reviewComplete =
+    quoteDraft.statusLabel.toLowerCase() === 'approved' ||
+    quoteDraft.statusLabel.toLowerCase() === 'rejected'
+  const quotePurpose = 'Finalize quote-level approval using baseline-vs-current commercial evidence.'
+  const quoteNextStep = reviewComplete
+    ? 'Decision is complete. Use this page for audit review or return to case workspace.'
+    : 'Review the change strip and line deltas, then approve or reject from Decision Actions.'
 
   return (
     <div className="page">
       <section className="card quote-review-hero">
         <div className="quote-review-main">
           <div>
-            <h1 className="quote-review-title">Renewal Quote Draft Review</h1>
+            <h1 className="quote-review-title">Quote Draft Board</h1>
             <p className="quote-review-subtitle">
               Understand what changed from the baseline renewal, why lines were added or modified,
               and verify commercial impact before approval.
             </p>
+            <div className="page-header-guidance" style={{ marginTop: 10 }}>
+              <p className="page-header-purpose">
+                <strong>Purpose:</strong> {quotePurpose}
+              </p>
+              <p className="page-header-next">
+                <strong>Next:</strong> {quoteNextStep}
+              </p>
+            </div>
           </div>
 
           <div className="quote-review-context-grid">
@@ -79,8 +96,11 @@ export default async function QuoteDraftDetailPage({
             </div>
 
             <div className="quote-review-action-row">
-              <Link className="button-secondary" href={`/renewal-cases/${quoteDraft.renewalCase.id}`}>
-                Back to Renewal Workflow
+              <Link className="button-tertiary" href={`/renewal-cases/${quoteDraft.renewalCase.id}`}>
+                Open Case Decision Board
+              </Link>
+              <Link className="button-tertiary" href={`/scenario-quotes/${quoteDraft.renewalCase.id}`}>
+                Open Scenario Quotes
               </Link>
             </div>
 
@@ -93,7 +113,62 @@ export default async function QuoteDraftDetailPage({
         </div>
       </section>
 
+      <WorkflowJourney
+        title="Case Workflow Progress"
+        subtitle="This is the final approval stage after decision and scenario analysis."
+        steps={[
+          {
+            id: 'subscriptions',
+            label: 'Renewal Subscriptions',
+            description: 'Baseline subscription context reviewed.',
+            href: '/renewal-cases?view=list',
+            state: 'complete',
+          },
+          {
+            id: 'decision-workspace',
+            label: 'Case Decision Board',
+            description: 'Recommendation and AI guidance generated for this case.',
+            href: `/renewal-cases/${quoteDraft.renewalCase.id}`,
+            state: 'complete',
+          },
+          {
+            id: 'scenario-workspace',
+            label: 'Scenario Quotes',
+            description: 'Scenario alternatives are available for commercial comparison.',
+            href: `/scenario-quotes/${quoteDraft.renewalCase.id}`,
+            state: 'complete',
+          },
+          {
+            id: 'quote-review',
+            label: 'Quote Draft Board',
+            description: reviewComplete
+              ? 'Final decision is complete for this quote.'
+              : 'Validate line-level changes, then approve or reject.',
+            href: `/quote-drafts/${quoteDraft.id}`,
+            state: reviewComplete ? 'complete' : 'current',
+          },
+        ]}
+      />
+
       <QuoteDraftSummary summary={quoteDraft.summary} />
+      <QuoteDraftChangeStrip summary={quoteDraft.changeSummary} />
+
+      <section className="card quote-decision-bar">
+        <div>
+          <h3 className="panel-title">Decision Actions</h3>
+          <p className="section-subtitle">
+            Approval and rejection apply to this Quote Draft, not the Renewal Case.
+          </p>
+        </div>
+
+        <div className="quote-decision-bar-actions">
+          <div className="quote-decision-status">
+            <span className="small muted">Current Decision Status</span>
+            <Badge tone={quoteDraft.statusTone}>{quoteDraft.statusLabel}</Badge>
+          </div>
+          <ReviewActions quoteDraftId={quoteDraft.id} align="left" />
+        </div>
+      </section>
 
       <QuoteDraftLinesTable lines={quoteDraft.lines} />
     </div>

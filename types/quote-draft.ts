@@ -42,12 +42,26 @@ export type QuoteDraftLineView = {
   commercialChange: QuoteLineCommercialChangeView | null
 }
 
+export type QuoteDraftChangeSummaryView = {
+  baselineLineCount: number
+  changedLineCount: number
+  aiAddedLineCount: number
+  baselineNetAmountFormatted: string
+  currentNetAmountFormatted: string
+  netDeltaFormatted: string
+  baselineDiscountPercentFormatted: string
+  currentDiscountPercentFormatted: string
+  discountDeltaFormatted: string
+  narrative: string
+}
+
 export type QuoteDraftDetailView = {
   id: string
   quoteNumber: string
   statusLabel: string
   statusTone: Tone
   summary: QuoteDraftSummaryItem[]
+  changeSummary: QuoteDraftChangeSummaryView
   lines: QuoteDraftLineView[]
   renewalCase: {
     id: string
@@ -73,6 +87,8 @@ export type QuoteDraftListItem = {
   storyLaneOrder: number
   windowLabel: string
   lineCount: number
+  scenarioQuoteCount: number
+  scenarioNeedsRefresh: boolean
   totalNetAmountFormatted: string
   approvalRequired: boolean
   statusLabel: string

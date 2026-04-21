@@ -3,6 +3,8 @@ import { getDashboardData } from '@/lib/db/dashboard'
 import { DashboardSummaryCards } from '@/components/dashboard/dashboard-summary-cards'
 import { DashboardCaseTable } from '@/components/dashboard/dashboard-case-table'
 import { RecentReviewActivity } from '@/components/dashboard/recent-review-activity'
+import { WorkflowJourney } from '@/components/layout/workflow-journey'
+import { ActionRail } from '@/components/layout/action-rail'
 
 export default async function HomePage() {
   const dashboard = await getDashboardData()
@@ -16,17 +18,72 @@ export default async function HomePage() {
             Prioritize renewal cases, review AI recommendations, and move high-value renewal quotes
             forward with clear workflow traceability.
           </p>
+          <div className="page-header-guidance" style={{ marginTop: 10 }}>
+            <p className="page-header-purpose">
+              <strong>Purpose:</strong> Start here to triage the renewal queue and choose the right
+              workflow entry point.
+            </p>
+            <p className="page-header-next">
+              <strong>Next:</strong> Open Case Decision Board for active decision work, or open
+              Renewal Subscriptions if baseline context needs review first.
+            </p>
+          </div>
         </div>
 
-        <div className="dashboard-hero-actions">
-          <Link className="button-link" href="/renewal-cases">
-            Open Renewal Queue
-          </Link>
-          <Link className="button-secondary" href="/renewal-cases?view=list">
-            Open Renewal Subscriptions
-          </Link>
-        </div>
+        <ActionRail
+          primary={
+            <Link className="button-link" href="/renewal-cases">
+              Open Case Decision Board
+            </Link>
+          }
+          secondary={
+            <Link className="button-secondary" href="/renewal-cases?view=list">
+              Open Renewal Subscriptions
+            </Link>
+          }
+          tertiary={
+            <Link className="button-tertiary" href="/quote-drafts">
+              Open Quote Draft Board
+            </Link>
+          }
+          hint="Primary path: start in Case Decision Board unless you need baseline subscription context first."
+        />
       </section>
+
+      <WorkflowJourney
+        title="Self-Serve Workflow"
+        subtitle="New users can follow these four steps without external documentation."
+        steps={[
+          {
+            id: 'subscriptions',
+            label: 'Renewal Subscriptions',
+            description: 'Start with baseline subscription context grouped by account.',
+            href: '/renewal-cases?view=list',
+            state: 'current',
+          },
+          {
+            id: 'case-board',
+            label: 'Case Decision Board',
+            description: 'Open the highest-risk case and run the AI recommendation workflow.',
+            href: '/renewal-cases',
+            state: 'upcoming',
+          },
+          {
+            id: 'scenario-workspace',
+            label: 'Scenario Quotes',
+            description: 'Compare alternatives against the baseline quote and choose preferred.',
+            href: '/scenario-quotes',
+            state: 'upcoming',
+          },
+          {
+            id: 'quote-review',
+            label: 'Quote Draft Board',
+            description: 'Validate line-level impact and submit final approval decision.',
+            href: '/quote-drafts',
+            state: 'upcoming',
+          },
+        ]}
+      />
 
       <DashboardSummaryCards metrics={dashboard.metrics} />
 

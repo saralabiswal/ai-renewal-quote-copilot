@@ -442,7 +442,7 @@ export function AiWorkflowRunner({
               Scenario Selection
             </div>
             <div className="small muted">
-              Scenario choice applies to the automated workflow run.
+              Scenario selection is shared across AI Live and Manual controls.
             </div>
             <DemoScenarioSelector
               caseId={caseId}

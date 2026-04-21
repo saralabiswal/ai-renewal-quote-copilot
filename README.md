@@ -81,23 +81,26 @@ The **AI Renewal Quote Copilot** introduces an **AI-driven, agentic workflow** f
 
 - `Dashboard` (`/`): queue-level visibility and attention cases
 - `Renewal Subscriptions` (`/renewal-cases?view=list`): baseline subscription list grouped by account
-- `Renewal Queue` (`/renewal-cases`): actionable renewal case storyboard
-- `Renewal Case Detail` (`/renewal-cases/[caseId]`): scenario, recommendation, insights, and review
-- `Renewal Quotes` (`/quote-drafts`): generated quote drafts
-- `Quote Detail` (`/quote-drafts/[quoteDraftId]`): line-level changes and source traceability
+- `Case Decision Board` (`/renewal-cases`): actionable renewal case storyboard grouped by storyline lane
+- `Case Decision Board (Case Workspace)` (`/renewal-cases/[caseId]`): scenario selection, AI workflow run, quote insights, and review context
+- `Scenario Quotes` (`/scenario-quotes`): dedicated case index for baseline-vs-scenario comparison
+- `Scenario Quotes (Case Workspace)` (`/scenario-quotes/[caseId]`): compare read-only scenario quotes and mark preferred option
+- `Quote Draft Board` (`/quote-drafts`): baseline quote execution board with status, approval posture, and scenario-count cues
+- `Quote Draft Detail` (`/quote-drafts/[quoteDraftId]`): line-level commercial deltas and quote-level decision actions
 - `Policy Studio` (`/policies`): read-only recommendation and insight rules with worked examples
+- `Settings` (`/settings`): environment and model readiness checks
 - `README Preview` (`/readme-preview`): internal markdown preview utility for documentation checks
 
 ## End-to-end workflow
 
 ```text
-Renewal Queue
-  -> Open case
-    -> Recalculate recommendation (risk + guardrails)
-      -> Recalculate quote insights
-        -> Apply insight to quote
-          -> Review quote deltas and rationale
-            -> Approve / Reject / Request Revision
+Policy Studio (optional, reference)
+  -> Renewal Subscriptions
+    -> Case Decision Board
+      -> Run End-to-End AI workflow (or manual step-by-step mutations)
+      -> Apply selected Quote Insights to Baseline Quote
+        -> Scenario Quotes (auto-generate/regenerate, compare, mark preferred)
+          -> Quote Draft Board (review and approve/reject quote)
 ```
 
 ## Architecture
@@ -109,7 +112,7 @@ flowchart LR
   subgraph WEB["Next.js App Router"]
     PAGES["Pages + Server Components"]
     CLIENT["Client Actions\n(recalculate, regenerate, apply, review)"]
-    API["Route Handlers\n/app/api/renewal-cases/..."]
+    API["Route Handlers\n/app/api/renewal-cases/... + /app/api/quote-drafts/..."]
   end
 
   subgraph DOMAIN["Domain Layer"]
@@ -148,7 +151,7 @@ ASCII fallback:
 | Next.js App Router                            |
 | - Pages + Server Components                   |
 | - Client Actions                              |
-| - Route Handlers (/app/api/renewal-cases/...) |
+| - Route Handlers (/app/api/renewal-cases/... + /app/api/quote-drafts/...) |
 +----------------------------------------------+
           |
           v
@@ -198,6 +201,11 @@ Open:
 - `http://localhost:3000`
 - if `3000` is already used, Next.js will auto-fallback (usually `http://localhost:3001`)
 
+## User guide (with screenshots)
+
+- End-to-end walkthrough using `RC-ACCT-1016`:
+  - [`docs/user-guide-renewal-workflow.md`](docs/user-guide-renewal-workflow.md)
+
 ## Environment variables
 
 | Variable | Required | Default | Purpose |
@@ -230,7 +238,9 @@ AI execution modes:
 | `npm run db:studio` | Open Prisma Studio |
 | `npm run app:reset:run` | Validate DB setup then run app |
 | `npm run app:smoke` | Curl-based smoke checks |
-| `npm run test:e2e` | Playwright E2E test suite |
+| `npm run test:scenario:coverage` | Validate baseline + scenario generation coverage across all seeded cases |
+| `npm run test:e2e` | Playwright full E2E test suite |
+| `npm run test:e2e:contracts` | Contracts/regression subset for workflow and traceability |
 | `npm run test:e2e:ui` | Playwright interactive UI mode |
 | `npm run test:e2e:headed` | Playwright headed browser mode |
 | `npm run test:e2e:debug` | Playwright debug mode |
@@ -240,6 +250,12 @@ AI execution modes:
 ```bash
 # quick route smoke checks
 npm run app:smoke
+
+# baseline/scenario data integrity check across all seeded cases
+npm run test:scenario:coverage
+
+# contract/regression suite used as main quality gate
+npm run test:e2e:contracts
 
 # full E2E suite
 npm run test:e2e
@@ -254,13 +270,16 @@ npm run test:e2e
 
 ## API surface
 
-- `POST /api/renewal-cases/[caseId]/scenario`
+- `POST /api/quote-drafts/[quoteDraftId]/review`
+- `POST /api/renewal-cases/[caseId]/generate-ai`
+- `POST /api/renewal-cases/[caseId]/generate-quote-scenarios`
+- `POST /api/renewal-cases/[caseId]/preferred-quote-scenario`
+- `POST /api/renewal-cases/[caseId]/quote-insights/[quoteInsightId]/add-to-quote`
 - `POST /api/renewal-cases/[caseId]/recalculate`
 - `POST /api/renewal-cases/[caseId]/recalculate-quote-insights`
 - `POST /api/renewal-cases/[caseId]/regenerate-insights-ai`
-- `POST /api/renewal-cases/[caseId]/generate-ai`
 - `POST /api/renewal-cases/[caseId]/review`
-- `POST /api/renewal-cases/[caseId]/quote-insights/[quoteInsightId]/add-to-quote`
+- `POST /api/renewal-cases/[caseId]/scenario`
 
 ## Repository structure
 
@@ -288,7 +307,7 @@ Before pushing:
 
 1. Confirm local env files are not committed (`.env` is ignored).
 2. Run `npm run db:setup`.
-3. Run `npm run test:e2e` (or at minimum `npm run app:smoke`).
+3. Run `npm run test:scenario:coverage` and `npm run test:e2e:contracts` (or at minimum `npm run app:smoke`).
 4. Verify README links/routes are correct.
 5. Push with a clean root (no local artifacts).
 

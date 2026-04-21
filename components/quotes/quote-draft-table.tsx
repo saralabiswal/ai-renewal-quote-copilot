@@ -52,6 +52,20 @@ export function QuoteDraftTable({ quotes }: { quotes: QuoteDraftListItem[] }) {
                         {item.caseNumber}
                       </Link>
                       <div className="small muted">{item.windowLabel}</div>
+                      <div className="quote-scenario-link-row">
+                        <Link className="button-secondary-sm" href={`/scenario-quotes/${item.caseId}`}>
+                          Open Scenario Quotes
+                        </Link>
+                        <span className="quote-scenario-meta">
+                          {item.scenarioQuoteCount} Scenario
+                          {item.scenarioQuoteCount === 1 ? '' : 's'}
+                        </span>
+                        {item.scenarioNeedsRefresh ? (
+                          <span className="quote-scenario-meta quote-scenario-meta-warn">
+                            Refresh Needed
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
 
                     <td>{item.accountName}</td>

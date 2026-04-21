@@ -66,11 +66,23 @@ export type RenewalCaseItemView = {
   renewalDate: string
   currentArrFormatted: string
   proposedArrFormatted: string
+  arrDeltaFormatted: string
   dispositionLabel: string
   dispositionTone: Tone
   discountPercentFormatted: string
+  recommendedDiscountPercent: number | null
+  itemRiskScore: number | null
   riskLevel: string
   riskTone: Tone
+  usagePercentOfEntitlement: number | null
+  activeUserPercent: number | null
+  loginTrend30d: number | null
+  ticketCount90d: number | null
+  sev1Count90d: number | null
+  csatScore: number | null
+  paymentRiskBand: string | null
+  adoptionBand: string | null
+  signalNotes: string | null
   analysisSummary: string
 }
 

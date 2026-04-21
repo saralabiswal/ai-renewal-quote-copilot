@@ -27,6 +27,7 @@ export async function POST(
       data: {
         demoScenarioKey: scenarioKey,
         quoteInsightsNeedRefresh: true,
+        quoteScenariosNeedRefresh: true,
         lastScenarioChangedAt: new Date(),
       },
     })

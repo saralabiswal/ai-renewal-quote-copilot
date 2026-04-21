@@ -37,7 +37,7 @@ test.describe.serial('business traceability', () => {
   const insight = await prisma.quoteInsight.findFirst({
     where: {
       renewalCaseId: CASE_ID,
-      status: 'SUGGESTED',
+      status: { in: ['SUGGESTED', 'APPLIED', 'ADDED_TO_QUOTE'] },
       justificationJson: { not: null },
     },
     orderBy: { createdAt: 'desc' },
@@ -95,7 +95,7 @@ test.describe.serial('business traceability', () => {
   const insight = await prisma.quoteInsight.findFirst({
     where: {
       renewalCaseId: CASE_ID,
-      status: 'SUGGESTED',
+      status: { in: ['SUGGESTED', 'APPLIED', 'ADDED_TO_QUOTE'] },
     },
     orderBy: [{ fitScore: 'desc' }, { confidenceScore: 'desc' }, { createdAt: 'desc' }],
     select: {

@@ -1,22 +1,28 @@
-import type { PricingPolicyView } from '@/lib/db/policies'
+import type {
+  PolicyStudioExampleSeed,
+  PricingPolicyView,
+} from '@/lib/db/policies'
 
 function round2(value: number) {
   return Math.round(value * 100) / 100
 }
 
-export type WorkedExampleProductId = 'fusion_apps' | 'oci' | 'cpq'
+export type WorkedExampleProductId = string
 
-export const WORKED_EXAMPLE_PRODUCT_OPTIONS: Array<{
+export const DEFAULT_WORKED_EXAMPLE_PRODUCT_OPTIONS: Array<{
   id: WorkedExampleProductId
   label: string
 }> = [
-  { id: 'fusion_apps', label: 'Oracle Fusion Applications' },
-  { id: 'oci', label: 'Oracle Cloud Infrastructure (OCI)' },
-  { id: 'cpq', label: 'Oracle CPQ' },
+  { id: 'fusion_apps', label: 'Oracle Fusion Applications (Default)' },
+  { id: 'oci', label: 'Oracle Cloud Infrastructure (Default)' },
+  { id: 'cpq', label: 'Oracle CPQ (Default)' },
 ]
 
 type ExamplePreset = {
   id: WorkedExampleProductId
+  label: string
+  accountName: string
+  subscriptionNumber: string
   product: {
     name: string
     sku: string
@@ -39,9 +45,12 @@ type ExamplePreset = {
   }
 }
 
-const PRESETS: Record<WorkedExampleProductId, ExamplePreset> = {
+const PRESETS: Record<'fusion_apps' | 'oci' | 'cpq', ExamplePreset> = {
   fusion_apps: {
     id: 'fusion_apps',
+    label: 'Oracle Fusion Applications (Default)',
+    accountName: 'Apex Manufacturing Group',
+    subscriptionNumber: 'SUB-ACCT-1001',
     product: {
       name: 'Oracle Fusion Applications',
       sku: 'ORCL-FUSION-APPS',
@@ -65,6 +74,9 @@ const PRESETS: Record<WorkedExampleProductId, ExamplePreset> = {
   },
   oci: {
     id: 'oci',
+    label: 'Oracle Cloud Infrastructure (Default)',
+    accountName: 'Vertex Industrial Systems',
+    subscriptionNumber: 'SUB-ACCT-1004',
     product: {
       name: 'Oracle Cloud Infrastructure',
       sku: 'ORCL-OCI',
@@ -88,6 +100,9 @@ const PRESETS: Record<WorkedExampleProductId, ExamplePreset> = {
   },
   cpq: {
     id: 'cpq',
+    label: 'Oracle CPQ (Default)',
+    accountName: 'BluePeak Retail Holdings',
+    subscriptionNumber: 'SUB-ACCT-1007',
     product: {
       name: 'Oracle CPQ',
       sku: 'ORCL-CPQ',
@@ -111,6 +126,47 @@ const PRESETS: Record<WorkedExampleProductId, ExamplePreset> = {
   },
 }
 
+type WorkedExampleSnapshotPoint = {
+  snapshotDate: string
+  usagePercentOfEntitlement: number
+  activeUserPercent: number
+  loginTrend30d: number
+  ticketCount90d: number
+  sev1Count90d: number
+  csatScore: number
+  paymentRiskBand: string
+  adoptionBand: string
+  notes: string | null
+}
+
+type WorkedExampleSourceInput = {
+  id: string
+  label: string
+  accountName: string
+  subscriptionNumber: string
+  product: {
+    name: string
+    sku: string
+    productFamily: string
+    accountSegment: string
+  }
+  inputs: {
+    currentQuantity: number
+    listUnitPrice: number
+    currentDiscountPercent: number
+    currentArr: number
+    usagePercentOfEntitlement: number
+    activeUserPercent: number
+    loginTrend30d: number
+    ticketCount90d: number
+    sev1Count90d: number
+    csatScore: number
+    paymentRiskBand: string
+    adoptionBand: string
+  }
+  snapshots: WorkedExampleSnapshotPoint[]
+}
+
 export type WorkedExampleScoreStep = {
   signal: string
   observedValue: string
@@ -132,6 +188,24 @@ export type WorkedExampleView = {
     sku: string
     productFamily: string
     accountSegment: string
+  }
+  sourceContext: {
+    label: string
+    accountName: string
+    subscriptionNumber: string
+    snapshotCount: number
+    snapshotWindowLabel: string
+    latestSnapshotDate: string
+  }
+  signalTrend: {
+    trendDirection: 'IMPROVING' | 'DETERIORATING' | 'MIXED'
+    usageDelta: number
+    activeUserDelta: number
+    loginTrendDelta: number
+    ticketDelta: number
+    sev1Delta: number
+    csatDelta: number
+    timeline: WorkedExampleSnapshotPoint[]
   }
   policyContext: {
     matchedPolicyName: string
@@ -158,6 +232,7 @@ export type WorkedExampleView = {
   }
   scoring: {
     steps: WorkedExampleScoreStep[]
+    topContributors: WorkedExampleScoreStep[]
     finalRiskScore: number
     finalRiskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
   }
@@ -217,12 +292,139 @@ function mapDispositionToInsight(
   }
 }
 
-export function buildWorkedPolicyExample(
+function compareSnapshotDate(a: WorkedExampleSnapshotPoint, b: WorkedExampleSnapshotPoint) {
+  return new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+}
+
+function buildSourceFromPreset(preset: ExamplePreset): WorkedExampleSourceInput {
+  const latestSnapshot: WorkedExampleSnapshotPoint = {
+    snapshotDate: '2026-04-01',
+    usagePercentOfEntitlement: preset.inputs.usagePercentOfEntitlement,
+    activeUserPercent: preset.inputs.activeUserPercent,
+    loginTrend30d: preset.inputs.loginTrend30d,
+    ticketCount90d: preset.inputs.ticketCount90d,
+    sev1Count90d: preset.inputs.sev1Count90d,
+    csatScore: preset.inputs.csatScore,
+    paymentRiskBand: preset.inputs.paymentRiskBand,
+    adoptionBand: preset.inputs.adoptionBand,
+    notes: null,
+  }
+
+  return {
+    id: preset.id,
+    label: preset.label,
+    accountName: preset.accountName,
+    subscriptionNumber: preset.subscriptionNumber,
+    product: preset.product,
+    inputs: preset.inputs,
+    snapshots: [latestSnapshot],
+  }
+}
+
+function buildSourceFromSeed(seed: PolicyStudioExampleSeed): WorkedExampleSourceInput {
+  const timeline = [...seed.snapshots].sort(compareSnapshotDate)
+  const latest = timeline[timeline.length - 1] ?? {
+    snapshotDate: 'Unknown',
+    usagePercentOfEntitlement: 0,
+    activeUserPercent: 0,
+    loginTrend30d: 0,
+    ticketCount90d: 0,
+    sev1Count90d: 0,
+    csatScore: 0,
+    paymentRiskBand: 'LOW',
+    adoptionBand: 'MODERATE',
+    notes: null,
+  }
+
+  return {
+    id: seed.id,
+    label: seed.label,
+    accountName: seed.accountName,
+    subscriptionNumber: seed.subscriptionNumber,
+    product: seed.product,
+    inputs: {
+      currentQuantity: seed.subscription.quantity,
+      listUnitPrice: seed.subscription.listUnitPrice,
+      currentDiscountPercent: seed.subscription.discountPercent,
+      currentArr: seed.subscription.arr,
+      usagePercentOfEntitlement: latest.usagePercentOfEntitlement,
+      activeUserPercent: latest.activeUserPercent,
+      loginTrend30d: latest.loginTrend30d,
+      ticketCount90d: latest.ticketCount90d,
+      sev1Count90d: latest.sev1Count90d,
+      csatScore: latest.csatScore,
+      paymentRiskBand: latest.paymentRiskBand,
+      adoptionBand: latest.adoptionBand,
+    },
+    snapshots: timeline,
+  }
+}
+
+function computeSignalTrend(snapshots: WorkedExampleSnapshotPoint[]) {
+  const ordered = [...snapshots].sort(compareSnapshotDate)
+  const first = ordered[0]
+  const last = ordered[ordered.length - 1]
+
+  if (!first || !last) {
+    return {
+      trendDirection: 'MIXED' as const,
+      usageDelta: 0,
+      activeUserDelta: 0,
+      loginTrendDelta: 0,
+      ticketDelta: 0,
+      sev1Delta: 0,
+      csatDelta: 0,
+      timeline: ordered,
+      snapshotWindowLabel: 'No snapshot history',
+      latestSnapshotDate: 'Unknown',
+    }
+  }
+
+  const usageDelta = round2(last.usagePercentOfEntitlement - first.usagePercentOfEntitlement)
+  const activeUserDelta = round2(last.activeUserPercent - first.activeUserPercent)
+  const loginTrendDelta = round2(last.loginTrend30d - first.loginTrend30d)
+  const ticketDelta = round2(last.ticketCount90d - first.ticketCount90d)
+  const sev1Delta = round2(last.sev1Count90d - first.sev1Count90d)
+  const csatDelta = round2(last.csatScore - first.csatScore)
+
+  let directionalScore = 0
+  if (usageDelta > 0) directionalScore += 1
+  if (activeUserDelta > 0) directionalScore += 1
+  if (loginTrendDelta > 0) directionalScore += 1
+  if (ticketDelta < 0) directionalScore += 1
+  if (sev1Delta < 0) directionalScore += 1
+  if (csatDelta > 0) directionalScore += 1
+
+  if (usageDelta < 0) directionalScore -= 1
+  if (activeUserDelta < 0) directionalScore -= 1
+  if (loginTrendDelta < 0) directionalScore -= 1
+  if (ticketDelta > 0) directionalScore -= 1
+  if (sev1Delta > 0) directionalScore -= 1
+  if (csatDelta < 0) directionalScore -= 1
+
+  const trendDirection: 'IMPROVING' | 'DETERIORATING' | 'MIXED' =
+    directionalScore >= 3 ? 'IMPROVING' : directionalScore <= -3 ? 'DETERIORATING' : 'MIXED'
+
+  return {
+    trendDirection,
+    usageDelta,
+    activeUserDelta,
+    loginTrendDelta,
+    ticketDelta,
+    sev1Delta,
+    csatDelta,
+    timeline: ordered,
+    snapshotWindowLabel: `${first.snapshotDate} to ${last.snapshotDate}`,
+    latestSnapshotDate: last.snapshotDate,
+  }
+}
+
+function buildWorkedPolicyExampleFromSource(
   policies: PricingPolicyView[],
-  productId: WorkedExampleProductId,
+  source: WorkedExampleSourceInput,
 ): WorkedExampleView {
-  const preset = PRESETS[productId]
-  const { product, inputs } = preset
+  const { product, inputs } = source
+  const signalTrend = computeSignalTrend(source.snapshots)
 
   const matchedPolicy =
     policies.find(
@@ -311,21 +513,27 @@ export function buildWorkedPolicyExample(
     push('CSAT', `${inputs.csatScore.toFixed(1)}`, 0)
   }
 
-  if (inputs.paymentRiskBand === 'HIGH') {
+  if (inputs.paymentRiskBand.toUpperCase() === 'HIGH') {
     push('Payment Risk Band', 'HIGH', 15)
-  } else if (inputs.paymentRiskBand === 'MEDIUM') {
+  } else if (inputs.paymentRiskBand.toUpperCase() === 'MEDIUM') {
     push('Payment Risk Band', 'MEDIUM', 8)
   } else {
     push('Payment Risk Band', inputs.paymentRiskBand, 0)
   }
 
-  if (inputs.adoptionBand === 'WEAK' || inputs.adoptionBand === 'LOW') {
+  if (inputs.adoptionBand.toUpperCase() === 'WEAK' || inputs.adoptionBand.toUpperCase() === 'LOW') {
     push('Adoption Band', `${inputs.adoptionBand} (weak)`, 10)
-  } else if (inputs.adoptionBand === 'MODERATE' || inputs.adoptionBand === 'MEDIUM') {
+  } else if (
+    inputs.adoptionBand.toUpperCase() === 'MODERATE' ||
+    inputs.adoptionBand.toUpperCase() === 'MEDIUM'
+  ) {
     push('Adoption Band', `${inputs.adoptionBand} (moderate)`, 2)
-  } else if (inputs.adoptionBand === 'STRONG' || inputs.adoptionBand === 'HIGH') {
+  } else if (
+    inputs.adoptionBand.toUpperCase() === 'STRONG' ||
+    inputs.adoptionBand.toUpperCase() === 'HIGH'
+  ) {
     push('Adoption Band', `${inputs.adoptionBand} (strong)`, -3)
-  } else if (inputs.adoptionBand === 'VERY_STRONG') {
+  } else if (inputs.adoptionBand.toUpperCase() === 'VERY_STRONG') {
     push('Adoption Band', 'VERY_STRONG', -6)
   } else {
     push('Adoption Band', inputs.adoptionBand, 0)
@@ -342,7 +550,10 @@ export function buildWorkedPolicyExample(
   if (finalRiskScore >= 80 || inputs.sev1Count90d >= 3) {
     disposition = 'ESCALATE'
     ruleTriggered = 'Risk >= 80 OR Sev1 >= 3 -> ESCALATE.'
-    targetDiscountPercent = Math.max(inputs.currentDiscountPercent, inputs.currentDiscountPercent + 3)
+    targetDiscountPercent = Math.max(
+      inputs.currentDiscountPercent,
+      inputs.currentDiscountPercent + 3,
+    )
     proposedQuantity = Math.max(Math.round(inputs.currentQuantity * 0.9), 1)
   } else if (
     inputs.usagePercentOfEntitlement >= policyContext.expansionThresholdUsagePercent &&
@@ -358,7 +569,10 @@ export function buildWorkedPolicyExample(
   } else if (finalRiskScore >= 55) {
     disposition = 'RENEW_WITH_CONCESSION'
     ruleTriggered = 'Risk >= 55 -> renew with concession.'
-    targetDiscountPercent = Math.max(inputs.currentDiscountPercent + 5, inputs.currentDiscountPercent)
+    targetDiscountPercent = Math.max(
+      inputs.currentDiscountPercent + 5,
+      inputs.currentDiscountPercent,
+    )
     proposedQuantity = inputs.currentQuantity
   }
 
@@ -366,13 +580,12 @@ export function buildWorkedPolicyExample(
   const proposedArr = round2(proposedQuantity * proposedNetUnitPrice)
   const arrDelta = round2(proposedArr - inputs.currentArr)
   const priceAsPercentOfList =
-    inputs.listUnitPrice === 0
-      ? 0
-      : round2((proposedNetUnitPrice / inputs.listUnitPrice) * 100)
+    inputs.listUnitPrice === 0 ? 0 : round2((proposedNetUnitPrice / inputs.listUnitPrice) * 100)
 
   const checks: WorkedExampleGuardrailCheck[] = []
   let approvalRequired = false
-  let finalGuardrailResult: WorkedExampleView['guardrails']['finalGuardrailResult'] = 'WITHIN_POLICY'
+  let finalGuardrailResult: WorkedExampleView['guardrails']['finalGuardrailResult'] =
+    'WITHIN_POLICY'
 
   const exceedsMaxAutoDiscount = targetDiscountPercent > policyContext.maxAutoDiscountPercent
   if (exceedsMaxAutoDiscount) {
@@ -385,11 +598,11 @@ export function buildWorkedPolicyExample(
       exceedsMaxAutoDiscount ? '>' : '<='
     } ${policyContext.maxAutoDiscountPercent}%`,
     outcome: exceedsMaxAutoDiscount ? 'TRIGGERED' : 'PASS',
-    impact:
-      exceedsMaxAutoDiscount ? 'Approval required' : 'Within auto-approval range',
+    impact: exceedsMaxAutoDiscount ? 'Approval required' : 'Within auto-approval range',
   })
 
-  const exceedsApprovalDiscount = targetDiscountPercent >= policyContext.approvalDiscountPercent
+  const exceedsApprovalDiscount =
+    targetDiscountPercent >= policyContext.approvalDiscountPercent
   if (exceedsApprovalDiscount) {
     approvalRequired = true
     finalGuardrailResult = 'APPROVAL_REQUIRED'
@@ -441,18 +654,42 @@ export function buildWorkedPolicyExample(
       ? round2(proposedNetUnitPrice * incrementalQuantity)
       : round2(proposedArr - inputs.currentArr)
 
+  const topContributors = [...scoringSteps]
+    .filter((step) => step.points !== 0)
+    .sort((a, b) => Math.abs(b.points) - Math.abs(a.points))
+    .slice(0, 4)
+
   return {
     product: {
-      id: preset.id,
+      id: source.id,
       name: product.name,
       sku: product.sku,
       productFamily: product.productFamily,
       accountSegment: product.accountSegment,
     },
+    sourceContext: {
+      label: source.label,
+      accountName: source.accountName,
+      subscriptionNumber: source.subscriptionNumber,
+      snapshotCount: source.snapshots.length,
+      snapshotWindowLabel: signalTrend.snapshotWindowLabel,
+      latestSnapshotDate: signalTrend.latestSnapshotDate,
+    },
+    signalTrend: {
+      trendDirection: signalTrend.trendDirection,
+      usageDelta: signalTrend.usageDelta,
+      activeUserDelta: signalTrend.activeUserDelta,
+      loginTrendDelta: signalTrend.loginTrendDelta,
+      ticketDelta: signalTrend.ticketDelta,
+      sev1Delta: signalTrend.sev1Delta,
+      csatDelta: signalTrend.csatDelta,
+      timeline: signalTrend.timeline,
+    },
     policyContext,
     inputs,
     scoring: {
       steps: scoringSteps,
+      topContributors,
       finalRiskScore,
       finalRiskLevel,
     },
@@ -481,12 +718,45 @@ export function buildWorkedPolicyExample(
   }
 }
 
+export function buildWorkedPolicyExamplesFromSeeds(
+  policies: PricingPolicyView[],
+  seeds: PolicyStudioExampleSeed[],
+): Record<WorkedExampleProductId, WorkedExampleView> {
+  if (seeds.length === 0) {
+    return buildWorkedPolicyExamples(policies)
+  }
+
+  return seeds.reduce<Record<WorkedExampleProductId, WorkedExampleView>>((acc, seed) => {
+    acc[seed.id] = buildWorkedPolicyExampleFromSource(policies, buildSourceFromSeed(seed))
+    return acc
+  }, {})
+}
+
 export function buildWorkedPolicyExamples(
   policies: PricingPolicyView[],
 ): Record<WorkedExampleProductId, WorkedExampleView> {
   return {
-    fusion_apps: buildWorkedPolicyExample(policies, 'fusion_apps'),
-    oci: buildWorkedPolicyExample(policies, 'oci'),
-    cpq: buildWorkedPolicyExample(policies, 'cpq'),
+    fusion_apps: buildWorkedPolicyExampleFromSource(
+      policies,
+      buildSourceFromPreset(PRESETS.fusion_apps),
+    ),
+    oci: buildWorkedPolicyExampleFromSource(policies, buildSourceFromPreset(PRESETS.oci)),
+    cpq: buildWorkedPolicyExampleFromSource(policies, buildSourceFromPreset(PRESETS.cpq)),
   }
+}
+
+export function buildWorkedExampleOptionsFromSeeds(
+  seeds: PolicyStudioExampleSeed[],
+): Array<{ id: WorkedExampleProductId; label: string }> {
+  if (seeds.length === 0) return DEFAULT_WORKED_EXAMPLE_PRODUCT_OPTIONS
+  return seeds.map((seed) => ({
+    id: seed.id,
+    label: seed.label,
+  }))
+}
+
+export function buildDefaultWorkedExamples(
+  policies: PricingPolicyView[],
+): Record<WorkedExampleProductId, WorkedExampleView> {
+  return buildWorkedPolicyExamples(policies)
 }

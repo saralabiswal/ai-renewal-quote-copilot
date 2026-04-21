@@ -66,6 +66,12 @@ type QuoteInsightView = {
       marginDirection: string | null
       retentionRisk: string | null
     } | null
+    objectiveLens?: {
+      primaryObjective: 'RETAIN_REVENUE' | 'PROTECT_MARGIN' | 'GROW_ACCOUNT' | 'GOVERN_RISK'
+      objectiveScore: number | null
+      businessKpi: string
+      signalDrivers: string[]
+    } | null
     changeLog?: {
       fromSummary: string | null
       toSummary: string | null
@@ -117,6 +123,10 @@ export function QuoteInsightsPanel({
             Scenario or recommendation changed. Regenerate Insights to align quote actions
             with the latest recommendation.
           </div>
+          <div className="small muted" style={{ marginTop: 4 }}>
+            Next step: in Section A, click <strong>Regenerate Insights + AI Rationale</strong>, then
+            return here to apply updated quote actions.
+          </div>
         </div>
       ) : generatedAtLabel ? (
         <div className="small muted" style={{ marginBottom: 16 }}>
@@ -125,7 +135,10 @@ export function QuoteInsightsPanel({
       ) : null}
 
       {items.length === 0 ? (
-        <div className="empty-note">No quote insights are currently suggested for this case.</div>
+        <div className="empty-note">
+          No quote insights are currently suggested for this case. Next step: run Regenerate
+          Insights + AI Rationale in Section A.
+        </div>
       ) : (
         <div className="opportunity-list">
           {items.map((item, index) => {
@@ -144,6 +157,8 @@ export function QuoteInsightsPanel({
             const ruleHits = item.justification?.ruleHits ?? []
             const alternatives = item.justification?.alternativesConsidered ?? []
             const changeLog = item.justification?.changeLog ?? null
+            const objectiveLens = item.justification?.objectiveLens ?? null
+            const objectiveBand = scoreBand(objectiveLens?.objectiveScore ?? null)
             const aiNarrative = parseAiNarrativeSections(item.aiExplanation)
             const aiDecisionFallback =
               item.recommendedActionSummary == null
@@ -195,6 +210,29 @@ export function QuoteInsightsPanel({
                     <div className="small muted" style={{ marginTop: 6 }}>
                       Confidence: {confidenceBand.helpText} Fit: {fitBand.helpText}
                     </div>
+
+                    {objectiveLens ? (
+                      <div style={{ marginTop: 8 }}>
+                        <div className="quote-insight-ai-meta">
+                          <Badge tone="info">
+                            Objective: {humanizeToken(objectiveLens.primaryObjective)}
+                          </Badge>
+                          <Badge tone={objectiveBand.tone}>
+                            Objective Score: {objectiveBand.label}
+                          </Badge>
+                        </div>
+                        <div className="small muted" style={{ marginTop: 6 }}>
+                          KPI target: {objectiveLens.businessKpi}
+                        </div>
+                        {objectiveLens.signalDrivers.length > 0 ? (
+                          <ul className="quote-insight-evidence-list" style={{ marginTop: 6 }}>
+                            {objectiveLens.signalDrivers.map((driver, driverIndex) => (
+                              <li key={`${item.id}-objective-driver-${driverIndex}`}>{driver}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 

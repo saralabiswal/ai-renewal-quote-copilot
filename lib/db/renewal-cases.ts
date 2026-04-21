@@ -3,7 +3,7 @@ import { formatCurrency } from '@/lib/format/currency'
 import { formatDate } from '@/lib/format/date'
 import { formatPercent } from '@/lib/format/percent'
 import { labelize, toneForAction, toneForRisk, toneForStatus } from '@/lib/format/risk'
-import { primaryQuoteTrack, storyLaneForAction } from '@/lib/workflow/story-lanes'
+import { baselineQuoteTrack, storyLaneForAction } from '@/lib/workflow/story-lanes'
 import {
   RenewalCaseDetailView,
   RenewalCaseListItem,
@@ -101,7 +101,7 @@ export async function getRenewalCases(): Promise<RenewalCaseListItem[]> {
   const rows = await prisma.renewalCase.findMany({
     include: {
       account: true,
-      items: { select: { id: true } },
+      items: { select: { id: true, currentArr: true } },
       quoteDraft: {
         select: {
           id: true,
@@ -119,7 +119,8 @@ export async function getRenewalCases(): Promise<RenewalCaseListItem[]> {
 
   return rows.map((row) => {
     const lane = storyLaneForAction(row.recommendedAction)
-    const quoteTrack = primaryQuoteTrack()
+    const quoteTrack = baselineQuoteTrack()
+    const baselineArr = row.items.reduce((sum, item) => sum + Number(item.currentArr ?? 0), 0)
     const proposedArrFromQuote = row.quoteDraft
       ? sumLineNetAmounts(row.quoteDraft.lines)
       : null
@@ -140,7 +141,7 @@ export async function getRenewalCases(): Promise<RenewalCaseListItem[]> {
       storyLaneOrder: lane.order,
       riskLevel: labelize(row.riskLevel),
       riskTone: toneForRisk(row.riskLevel),
-      bundleCurrentArrFormatted: formatCurrency(Number(row.bundleCurrentArr ?? 0), row.account.billingCurrency),
+      bundleCurrentArrFormatted: formatCurrency(baselineArr, row.account.billingCurrency),
       bundleProposedArrFormatted: formatCurrency(proposedArr, row.account.billingCurrency),
       requiresApproval: row.requiresApproval,
       statusLabel: labelize(row.status),
@@ -204,6 +205,29 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
       account: true,
       items: {
         orderBy: { sortOrder: 'asc' },
+        include: {
+          subscription: {
+            select: {
+              metricSnapshots: {
+                orderBy: {
+                  snapshotDate: 'desc',
+                },
+                take: 1,
+                select: {
+                  usagePercentOfEntitlement: true,
+                  activeUserPercent: true,
+                  loginTrend30d: true,
+                  ticketCount90d: true,
+                  sev1Count90d: true,
+                  csatScore: true,
+                  paymentRiskBand: true,
+                  adoptionBand: true,
+                  notes: true,
+                },
+              },
+            },
+          },
+        },
       },
       analyses: {
         orderBy: { analysisVersion: 'desc' },
@@ -291,23 +315,53 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
     createdAt: formatDate(decision.createdAt),
   }))
 
-  const items: RenewalCaseItemView[] = row.items.map((item) => ({
-    id: item.id,
-    productName: item.productNameSnapshot,
-    subscriptionNumber: item.subscriptionNumberSnapshot,
-    renewalDate: formatDate(item.renewalDate),
-    currentArrFormatted: formatCurrency(Number(item.currentArr), row.account.billingCurrency),
-    proposedArrFormatted: formatCurrency(Number(item.proposedArr), row.account.billingCurrency),
-    dispositionLabel: labelize(item.recommendedDisposition),
-    dispositionTone: toneForAction(item.recommendedDisposition),
-    discountPercentFormatted: formatPercent(Number(item.recommendedDiscountPercent)),
-    riskLevel: labelize(item.itemRiskLevel),
-    riskTone: toneForRisk(item.itemRiskLevel),
-    analysisSummary: item.analysisSummary ?? 'No item analysis summary available.',
-  }))
+  const items: RenewalCaseItemView[] = row.items.map((item) => {
+    const metric = item.subscription.metricSnapshots[0]
+    const currentArr = Number(item.currentArr ?? 0)
+    const proposedArr = Number(item.proposedArr ?? item.currentArr ?? 0)
+    const arrDelta = proposedArr - currentArr
+    const recommendedDiscountPercent =
+      item.recommendedDiscountPercent != null
+        ? Number(item.recommendedDiscountPercent)
+        : null
+
+    return {
+      id: item.id,
+      productName: item.productNameSnapshot,
+      subscriptionNumber: item.subscriptionNumberSnapshot,
+      renewalDate: formatDate(item.renewalDate),
+      currentArrFormatted: formatCurrency(currentArr, row.account.billingCurrency),
+      proposedArrFormatted: formatCurrency(proposedArr, row.account.billingCurrency),
+      arrDeltaFormatted: formatCurrency(arrDelta, row.account.billingCurrency),
+      dispositionLabel: labelize(item.recommendedDisposition),
+      dispositionTone: toneForAction(item.recommendedDisposition),
+      discountPercentFormatted:
+        recommendedDiscountPercent != null
+          ? formatPercent(recommendedDiscountPercent)
+          : '—',
+      recommendedDiscountPercent,
+      itemRiskScore: item.itemRiskScore ?? null,
+      riskLevel: labelize(item.itemRiskLevel),
+      riskTone: toneForRisk(item.itemRiskLevel),
+      usagePercentOfEntitlement:
+        metric?.usagePercentOfEntitlement != null
+          ? Number(metric.usagePercentOfEntitlement)
+          : null,
+      activeUserPercent:
+        metric?.activeUserPercent != null ? Number(metric.activeUserPercent) : null,
+      loginTrend30d: metric?.loginTrend30d != null ? Number(metric.loginTrend30d) : null,
+      ticketCount90d: metric?.ticketCount90d ?? null,
+      sev1Count90d: metric?.sev1Count90d ?? null,
+      csatScore: metric?.csatScore != null ? Number(metric.csatScore) : null,
+      paymentRiskBand: metric?.paymentRiskBand ?? null,
+      adoptionBand: metric?.adoptionBand ?? null,
+      signalNotes: metric?.notes ?? null,
+      analysisSummary: item.analysisSummary ?? 'No item analysis summary available.',
+    }
+  })
 
   const quoteDraftRow = row.quoteDraft
-  const baselineArr = Number(row.bundleCurrentArr ?? 0)
+  const baselineArr = row.items.reduce((sum, item) => sum + Number(item.currentArr ?? 0), 0)
   const proposedArrFromQuote = quoteDraftRow
     ? sumLineNetAmounts(quoteDraftRow.lines)
     : null

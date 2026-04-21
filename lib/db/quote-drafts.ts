@@ -3,7 +3,7 @@ import { formatCurrency } from '@/lib/format/currency'
 import { formatDate } from '@/lib/format/date'
 import { formatPercent } from '@/lib/format/percent'
 import { labelize, toneForAction, toneForStatus } from '@/lib/format/risk'
-import { primaryQuoteTrack, storyLaneForAction } from '@/lib/workflow/story-lanes'
+import { baselineQuoteTrack, storyLaneForAction } from '@/lib/workflow/story-lanes'
 import { QuoteDraftDetailView, QuoteDraftListItem } from '@/types/quote-draft'
 
 function formatCurrencyDelta(value: number, currencyCode: string) {
@@ -20,12 +20,42 @@ function windowLabel(start: Date, end: Date) {
   return `${formatDate(start)} – ${formatDate(end)}`
 }
 
+function isAiAddedLine(sourceType: string | null) {
+  return sourceType === 'AI_SUGGESTED'
+}
+
+function isBaselineRenewalLine(sourceType: string | null, sourceQuoteInsightId: string | null) {
+  return sourceType === 'RENEWAL' && !sourceQuoteInsightId && !isAiAddedLine(sourceType)
+}
+
+function commercialNarrative(netDelta: number, discountDelta: number) {
+  if (netDelta > 0 && discountDelta <= 0) {
+    return 'Net increased with stable or tighter discount posture versus baseline.'
+  }
+  if (netDelta > 0 && discountDelta > 0) {
+    return 'Net increased, but at a deeper discount posture versus baseline.'
+  }
+  if (netDelta < 0 && discountDelta > 0) {
+    return 'Net decreased with deeper discounting to protect retention.'
+  }
+  if (netDelta < 0 && discountDelta <= 0) {
+    return 'Net decreased despite stable or tighter discount posture.'
+  }
+
+  return 'Commercially neutral versus baseline with limited net/discount movement.'
+}
+
 export async function getQuoteDrafts(): Promise<QuoteDraftListItem[]> {
   const rows = await prisma.quoteDraft.findMany({
     include: {
       renewalCase: {
         include: {
           account: true,
+          quoteScenarios: {
+            select: {
+              id: true,
+            },
+          },
         },
       },
       lines: {
@@ -45,7 +75,7 @@ export async function getQuoteDrafts(): Promise<QuoteDraftListItem[]> {
     )
     const approvalRequired = row.renewalCase.requiresApproval
     const lane = storyLaneForAction(row.renewalCase.recommendedAction)
-    const quoteTrack = primaryQuoteTrack()
+    const quoteTrack = baselineQuoteTrack()
 
     return {
       id: row.id,
@@ -64,6 +94,8 @@ export async function getQuoteDrafts(): Promise<QuoteDraftListItem[]> {
       storyLaneOrder: lane.order,
       windowLabel: windowLabel(row.renewalCase.windowStartDate, row.renewalCase.windowEndDate),
       lineCount: row.lines.length,
+      scenarioQuoteCount: row.renewalCase.quoteScenarios.length,
+      scenarioNeedsRefresh: row.renewalCase.quoteScenariosNeedRefresh,
       totalNetAmountFormatted: formatCurrency(liveTotalNetAmount, row.currencyCode),
       approvalRequired,
       statusLabel: labelize(row.status),
@@ -78,7 +110,16 @@ export async function getQuoteDraftById(quoteDraftId: string): Promise<QuoteDraf
     where: { id: quoteDraftId },
     include: {
       renewalCase: {
-        include: { account: true },
+        include: {
+          account: true,
+          items: {
+            select: {
+              currentQuantity: true,
+              currentListUnitPrice: true,
+              currentArr: true,
+            },
+          },
+        },
       },
       lines: {
         include: {
@@ -102,11 +143,31 @@ export async function getQuoteDraftById(quoteDraftId: string): Promise<QuoteDraf
   )
 
   const rawLiveTotalDiscountPercent =
-  liveTotalListAmount > 0
-    ? ((liveTotalListAmount - liveTotalNetAmount) / liveTotalListAmount) * 100
-    : 0
+    liveTotalListAmount > 0
+      ? ((liveTotalListAmount - liveTotalNetAmount) / liveTotalListAmount) * 100
+      : 0
 
   const liveTotalDiscountPercent = Number(rawLiveTotalDiscountPercent.toFixed(2))
+  const baselineTotalListAmount = row.renewalCase.items.reduce(
+    (sum, item) => sum + Number(item.currentListUnitPrice) * item.currentQuantity,
+    0,
+  )
+  const baselineTotalNetAmount = row.renewalCase.items.reduce(
+    (sum, item) => sum + Number(item.currentArr),
+    0,
+  )
+  const rawBaselineDiscountPercent =
+    baselineTotalListAmount > 0
+      ? ((baselineTotalListAmount - baselineTotalNetAmount) / baselineTotalListAmount) * 100
+      : 0
+  const baselineDiscountPercent = Number(rawBaselineDiscountPercent.toFixed(2))
+  const netDelta = liveTotalNetAmount - baselineTotalNetAmount
+  const discountDelta = liveTotalDiscountPercent - baselineDiscountPercent
+  const baselineDraftLineCount = row.lines.filter((line) =>
+    isBaselineRenewalLine(line.sourceType, line.sourceQuoteInsightId),
+  ).length
+  const aiAddedLineCount = row.lines.filter((line) => isAiAddedLine(line.sourceType)).length
+  const changedLineCount = row.lines.length - baselineDraftLineCount
   const approvalRequired = row.renewalCase.requiresApproval
 
   return {
@@ -131,6 +192,18 @@ export async function getQuoteDraftById(quoteDraftId: string): Promise<QuoteDraf
       },
       { label: 'Approval Required', value: approvalRequired ? 'Yes' : 'No' },
     ],
+    changeSummary: {
+      baselineLineCount: row.renewalCase.items.length,
+      changedLineCount,
+      aiAddedLineCount,
+      baselineNetAmountFormatted: formatCurrency(baselineTotalNetAmount, row.currencyCode),
+      currentNetAmountFormatted: formatCurrency(liveTotalNetAmount, row.currencyCode),
+      netDeltaFormatted: formatCurrencyDelta(netDelta, row.currencyCode),
+      baselineDiscountPercentFormatted: formatPercent(baselineDiscountPercent),
+      currentDiscountPercentFormatted: formatPercent(liveTotalDiscountPercent),
+      discountDeltaFormatted: formatPercentDelta(discountDelta),
+      narrative: commercialNarrative(netDelta, discountDelta),
+    },
     lines: row.lines.map((line) => {
       const before = line.renewalCaseItem
       const beforeNet = before ? Number(before.currentNetUnitPrice) : null

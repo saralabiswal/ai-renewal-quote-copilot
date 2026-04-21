@@ -84,6 +84,13 @@ export type QuoteInsightChangeLogView = {
   changedAt: string | null
 }
 
+export type QuoteInsightObjectiveView = {
+  primaryObjective: 'RETAIN_REVENUE' | 'PROTECT_MARGIN' | 'GROW_ACCOUNT' | 'GOVERN_RISK'
+  objectiveScore: number | null
+  businessKpi: string
+  signalDrivers: string[]
+}
+
 export type QuoteInsightJustificationView = {
   version: 'v1' | 'v2'
   sourceType: string
@@ -98,6 +105,7 @@ export type QuoteInsightJustificationView = {
   alternativesConsidered?: QuoteInsightAlternativeView[]
   expectedImpact?: QuoteInsightExpectedImpactView | null
   changeLog?: QuoteInsightChangeLogView | null
+  objectiveLens?: QuoteInsightObjectiveView | null
 }
 
 const SKU_TO_PRODUCT_ID: Record<string, string> = {
@@ -145,6 +153,28 @@ function decimal(value: Prisma.Decimal | number | string | null | undefined) {
 
 function clampScore(value: number) {
   return Math.max(50, Math.min(95, Math.round(value)))
+}
+
+function clampObjectiveScore(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return null
+  return Math.max(50, Math.min(95, Math.round(value)))
+}
+
+function normalizeObjective(
+  raw: unknown,
+): QuoteInsightObjectiveView['primaryObjective'] {
+  if (typeof raw !== 'string') return 'RETAIN_REVENUE'
+  switch (raw.toUpperCase()) {
+    case 'PROTECT_MARGIN':
+      return 'PROTECT_MARGIN'
+    case 'GROW_ACCOUNT':
+      return 'GROW_ACCOUNT'
+    case 'GOVERN_RISK':
+      return 'GOVERN_RISK'
+    case 'RETAIN_REVENUE':
+    default:
+      return 'RETAIN_REVENUE'
+  }
 }
 
 function toEvidenceNumber(
@@ -281,6 +311,22 @@ function parseQuoteInsightJustification(
       }
     }
 
+    let objectiveLens: QuoteInsightObjectiveView | null = null
+    if (parsed.objectiveLens && typeof parsed.objectiveLens === 'object') {
+      const rec = parsed.objectiveLens as Record<string, unknown>
+      objectiveLens = {
+        primaryObjective: normalizeObjective(rec.primaryObjective),
+        objectiveScore: clampObjectiveScore(toEvidenceNumber(rec.objectiveScore as number | null)),
+        businessKpi:
+          typeof rec.businessKpi === 'string' && rec.businessKpi.trim().length > 0
+            ? rec.businessKpi
+            : 'Renewal outcome quality',
+        signalDrivers: Array.isArray(rec.signalDrivers)
+          ? rec.signalDrivers.map((item) => String(item)).filter(Boolean)
+          : [],
+      }
+    }
+
     return {
       version: parsed.version === 'v2' ? 'v2' : 'v1',
       sourceType: typeof parsed.sourceType === 'string' ? parsed.sourceType : 'UNKNOWN',
@@ -297,6 +343,7 @@ function parseQuoteInsightJustification(
       alternativesConsidered,
       expectedImpact,
       changeLog,
+      objectiveLens,
     }
   } catch {
     return null
@@ -305,6 +352,138 @@ function parseQuoteInsightJustification(
 
 function buildJustificationJson(payload: QuoteInsightJustificationView): string {
   return JSON.stringify(payload)
+}
+
+function fallbackRetentionRisk(confidenceScore: number | null, fitScore: number | null): string {
+  const score = Math.round(((confidenceScore ?? 60) + (fitScore ?? 60)) / 2)
+  if (score >= 85) return 'LOW'
+  if (score >= 70) return 'MEDIUM'
+  return 'HIGH'
+}
+
+function buildFallbackQuoteInsightJustification(args: {
+  sourceType: string
+  insightType: string
+  title: string
+  insightSummary: string
+  recommendedActionSummary: string | null
+  confidenceScore: number | null
+  fitScore: number | null
+  recommendedQuantity: number | null
+  recommendedUnitPrice: Prisma.Decimal | null
+  recommendedDiscountPercent: Prisma.Decimal | null
+  estimatedArrImpact: Prisma.Decimal | null
+  createdAt: Date
+}): QuoteInsightJustificationView {
+  const {
+    sourceType,
+    insightType,
+    title,
+    insightSummary,
+    recommendedActionSummary,
+    confidenceScore,
+    fitScore,
+    recommendedQuantity,
+    recommendedUnitPrice,
+    recommendedDiscountPercent,
+    estimatedArrImpact,
+    createdAt,
+  } = args
+
+  const arrDelta = toEvidenceNumber(estimatedArrImpact)
+  const reasonCodes = lineReasonCodes(insightType)
+  const primaryObjective = primaryObjectiveForInsight({
+    insightType,
+    normalizedDisposition: insightType,
+  })
+  const objectiveScore = objectiveScoreForInsight({
+    primaryObjective,
+    confidenceScore: confidenceScore ?? 60,
+    fitScore: fitScore ?? 60,
+    itemRiskScore: null,
+    arrDelta,
+    quantityDelta: null,
+    scenarioKey: null,
+  })
+
+  return {
+    version: 'v2',
+    sourceType,
+    insightType,
+    scenarioKey: null,
+    reasoning: [
+      insightSummary,
+      recommendedActionSummary ?? `Recommended action aligns to ${humanizeInsightToken(insightType)} posture.`,
+      `Fallback structured evidence generated because seed insight "${title}" has no persisted justification payload.`,
+    ],
+    signals: [
+      { label: 'Confidence Score', value: confidenceScore },
+      { label: 'Fit Score', value: fitScore },
+      { label: 'Recommended Quantity', value: recommendedQuantity },
+      { label: 'Recommended Unit Price', value: toEvidenceNumber(recommendedUnitPrice) },
+      {
+        label: 'Recommended Discount Percent',
+        value: toEvidenceNumber(recommendedDiscountPercent),
+      },
+      { label: 'Estimated ARR Impact', value: arrDelta },
+    ],
+    commercialDelta: {
+      currentQuantity: null,
+      proposedQuantity: recommendedQuantity,
+      quantityDelta: null,
+      currentArr: null,
+      proposedArr: arrDelta,
+      arrDelta,
+      currentUnitPrice: null,
+      proposedUnitPrice: toEvidenceNumber(recommendedUnitPrice),
+      recommendedDiscountPercent: toEvidenceNumber(recommendedDiscountPercent),
+    },
+    decisionMeta: {
+      decisionRunId: null,
+      generatedAt: createdAt.toISOString(),
+      actor: 'SEED_FALLBACK',
+      engineVersion: DECISION_ENGINE_VERSION,
+      policyVersion: POLICY_VERSION,
+      scenarioVersion: SCENARIO_VERSION,
+      sourceRecordVersion: null,
+    },
+    reasonCodes,
+    ruleHits: [
+      {
+        ruleId: `FALLBACK_${insightType}`,
+        reasonCode: reasonCodes[0] ?? 'SEED_FALLBACK',
+        outcome: 'INFERRED',
+        weight: 60,
+        detail: 'Fallback structured evidence inferred from seeded quote insight fields.',
+      },
+    ],
+    alternativesConsidered: defaultAlternatives(insightType),
+    expectedImpact: {
+      arrDelta,
+      marginDirection: marginDirectionFromArrDelta(arrDelta),
+      retentionRisk: fallbackRetentionRisk(confidenceScore, fitScore),
+    },
+    changeLog: null,
+    objectiveLens: {
+      primaryObjective,
+      objectiveScore,
+      businessKpi: businessKpiForObjective(primaryObjective),
+      signalDrivers: [
+        'Fallback mode: structured seed fields used because no native justification payload was stored.',
+        `Insight mapped to objective ${primaryObjective.replaceAll('_', ' ')}.`,
+        `Confidence ${formatSignalNumber(confidenceScore)} and fit ${formatSignalNumber(fitScore)} were used to compute objective score.`,
+      ],
+    },
+  }
+}
+
+function humanizeInsightToken(value: string) {
+  return value
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 function getSkuForProductName(productName: string) {
@@ -366,6 +545,195 @@ function marginDirectionFromArrDelta(arrDelta: number | null): string {
   if (arrDelta > 0) return 'UP'
   if (arrDelta < 0) return 'DOWN'
   return 'FLAT'
+}
+
+function primaryObjectiveForInsight(args: {
+  insightType: string
+  normalizedDisposition: string
+}): QuoteInsightObjectiveView['primaryObjective'] {
+  const insightType = args.insightType.toUpperCase()
+  const normalizedDisposition = args.normalizedDisposition.toUpperCase()
+
+  if (normalizedDisposition === 'ESCALATE' || insightType === 'DEFENSIVE_RENEWAL') {
+    return 'GOVERN_RISK'
+  }
+
+  if (insightType === 'MARGIN_RECOVERY' || insightType === 'CONTROLLED_UPLIFT') {
+    return 'PROTECT_MARGIN'
+  }
+
+  if (
+    insightType === 'EXPANSION' ||
+    insightType === 'CROSS_SELL' ||
+    insightType === 'HYBRID_DEPLOYMENT_FIT' ||
+    insightType === 'DATA_MODERNIZATION'
+  ) {
+    return 'GROW_ACCOUNT'
+  }
+
+  return 'RETAIN_REVENUE'
+}
+
+function businessKpiForObjective(
+  objective: QuoteInsightObjectiveView['primaryObjective'],
+): string {
+  switch (objective) {
+    case 'PROTECT_MARGIN':
+      return 'Gross margin improvement and discount normalization'
+    case 'GROW_ACCOUNT':
+      return 'Net-new ARR and attach rate'
+    case 'GOVERN_RISK':
+      return 'Policy compliance and escalation SLA adherence'
+    case 'RETAIN_REVENUE':
+    default:
+      return 'Renewal ARR retention and churn-risk reduction'
+  }
+}
+
+function formatSignalNumber(value: number | null, suffix = '') {
+  if (value == null || !Number.isFinite(value)) return 'N/A'
+  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value)}${suffix}`
+}
+
+function formatSignedSignal(value: number | null, suffix = '') {
+  if (value == null || !Number.isFinite(value)) return 'N/A'
+  const prefix = value >= 0 ? '+' : ''
+  return `${prefix}${new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 1,
+  }).format(value)}${suffix}`
+}
+
+function objectiveScoreForInsight(args: {
+  primaryObjective: QuoteInsightObjectiveView['primaryObjective']
+  confidenceScore: number
+  fitScore: number
+  itemRiskScore: number | null
+  arrDelta: number | null
+  quantityDelta: number | null
+  scenarioKey: string | null
+}): number {
+  const {
+    primaryObjective,
+    confidenceScore,
+    fitScore,
+    itemRiskScore,
+    arrDelta,
+    quantityDelta,
+    scenarioKey,
+  } = args
+
+  let score = Math.round((confidenceScore + fitScore) / 2)
+
+  if (primaryObjective === 'RETAIN_REVENUE') {
+    if ((itemRiskScore ?? 0) >= 70) score += 8
+    else if ((itemRiskScore ?? 0) >= 40) score += 4
+    else score -= 2
+  }
+
+  if (primaryObjective === 'PROTECT_MARGIN') {
+    if ((arrDelta ?? 0) > 0) score += 6
+    else if ((arrDelta ?? 0) === 0) score += 2
+    else score -= 6
+  }
+
+  if (primaryObjective === 'GROW_ACCOUNT') {
+    if ((quantityDelta ?? 0) > 0 || (arrDelta ?? 0) > 0) score += 6
+    else score -= 5
+    if (scenarioKey === 'EXPANSION_UPSIDE') score += 3
+  }
+
+  if (primaryObjective === 'GOVERN_RISK') {
+    if ((itemRiskScore ?? 0) >= 80) score += 10
+    else if ((itemRiskScore ?? 0) >= 55) score += 6
+    else score += 2
+  }
+
+  return clampObjectiveScore(score) ?? 50
+}
+
+function buildLineObjectiveDrivers(args: {
+  primaryObjective: QuoteInsightObjectiveView['primaryObjective']
+  scenarioKey: string | null
+  itemRiskScore: number | null
+  usagePercentOfEntitlement: number | null
+  activeUserPercent: number | null
+  loginTrend30d: number | null
+  ticketCount90d: number | null
+  sev1Count90d: number | null
+  paymentRiskBand: string | null
+  arrDelta: number | null
+  quantityDelta: number | null
+  recommendedDiscountPercent: number | null
+}): string[] {
+  const {
+    primaryObjective,
+    scenarioKey,
+    itemRiskScore,
+    usagePercentOfEntitlement,
+    activeUserPercent,
+    loginTrend30d,
+    ticketCount90d,
+    sev1Count90d,
+    paymentRiskBand,
+    arrDelta,
+    quantityDelta,
+    recommendedDiscountPercent,
+  } = args
+
+  const drivers = [`Scenario context: ${scenarioKey ?? 'BASE_CASE'}.`]
+
+  if (primaryObjective === 'RETAIN_REVENUE') {
+    drivers.push(
+      `Risk score ${formatSignalNumber(itemRiskScore)} with login trend ${formatSignedSignal(loginTrend30d, '%')} informs churn-protection posture.`,
+    )
+    drivers.push(
+      `Customer health signals: usage ${formatSignalNumber(usagePercentOfEntitlement, '%')}, active users ${formatSignalNumber(activeUserPercent, '%')}, payment risk ${paymentRiskBand ?? 'UNKNOWN'}.`,
+    )
+  }
+
+  if (primaryObjective === 'PROTECT_MARGIN') {
+    drivers.push(
+      `Commercial protection signals: ARR delta ${formatSignedSignal(arrDelta)} and recommended discount ${formatSignalNumber(recommendedDiscountPercent, '%')}.`,
+    )
+    drivers.push(
+      `Support burden check: tickets ${formatSignalNumber(ticketCount90d)} and sev1 ${formatSignalNumber(sev1Count90d)} to avoid margin actions on unstable lines.`,
+    )
+  }
+
+  if (primaryObjective === 'GROW_ACCOUNT') {
+    drivers.push(
+      `Expansion signals: usage ${formatSignalNumber(usagePercentOfEntitlement, '%')} and active users ${formatSignalNumber(activeUserPercent, '%')}.`,
+    )
+    drivers.push(
+      `Commercial growth signal: quantity delta ${formatSignedSignal(quantityDelta)} with ARR delta ${formatSignedSignal(arrDelta)}.`,
+    )
+  }
+
+  if (primaryObjective === 'GOVERN_RISK') {
+    drivers.push(
+      `Risk controls: risk score ${formatSignalNumber(itemRiskScore)}, sev1 incidents ${formatSignalNumber(sev1Count90d)}, tickets ${formatSignalNumber(ticketCount90d)}.`,
+    )
+    drivers.push(
+      `Operational trend signal: login trend ${formatSignedSignal(loginTrend30d, '%')} and payment risk ${paymentRiskBand ?? 'UNKNOWN'}.`,
+    )
+  }
+
+  return drivers.slice(0, 3)
+}
+
+function buildAdditiveObjectiveDrivers(args: {
+  scenarioKey: string | null
+  accountIndustry: string | null
+  accountSegment: string | null
+  confidenceScore: number
+  fitScore: number
+}): string[] {
+  const { scenarioKey, accountIndustry, accountSegment, confidenceScore, fitScore } = args
+  return [
+    `Scenario context: ${scenarioKey ?? 'BASE_CASE'} with account segment ${accountSegment ?? 'Unknown'}.`,
+    `Industry profile ${accountIndustry ?? 'Unknown'} is eligible for adjacent portfolio motion.`,
+    `Expansion confidence ${formatSignalNumber(confidenceScore)} and fit ${formatSignalNumber(fitScore)} support growth objective prioritization.`,
+  ]
 }
 
 function lineReasonCodes(normalizedDisposition: string): string[] {
@@ -464,6 +832,15 @@ function buildLineInsightJustification(args: {
   proposedNetUnitPrice: Prisma.Decimal
   recommendedDiscountPercent: Prisma.Decimal | null
   analysisSummary: string | null
+  usagePercentOfEntitlement: number | null
+  activeUserPercent: number | null
+  loginTrend30d: number | null
+  ticketCount90d: number | null
+  sev1Count90d: number | null
+  csatScore: number | null
+  paymentRiskBand: string | null
+  adoptionBand: string | null
+  signalSnapshotDate: string | null
 }): string {
   const {
     insightType,
@@ -483,6 +860,15 @@ function buildLineInsightJustification(args: {
     proposedNetUnitPrice,
     recommendedDiscountPercent,
     analysisSummary,
+    usagePercentOfEntitlement,
+    activeUserPercent,
+    loginTrend30d,
+    ticketCount90d,
+    sev1Count90d,
+    csatScore,
+    paymentRiskBand,
+    adoptionBand,
+    signalSnapshotDate,
   } = args
 
   const quantityDelta = proposedQuantity - currentQuantity
@@ -509,9 +895,18 @@ function buildLineInsightJustification(args: {
   ]
 
   const signals: QuoteInsightEvidenceSignalView[] = [
+    { label: 'Signal Snapshot Date', value: signalSnapshotDate },
     { label: 'Scenario', value: scenarioKey ?? 'BASE_CASE' },
     { label: 'Disposition', value: normalizedDisposition },
     { label: 'Risk Score', value: itemRiskScore },
+    { label: 'Usage Percent of Entitlement', value: usagePercentOfEntitlement },
+    { label: 'Active User Percent', value: activeUserPercent },
+    { label: 'Login Trend 30d', value: loginTrend30d },
+    { label: 'Ticket Count 90d', value: ticketCount90d },
+    { label: 'Sev1 Count 90d', value: sev1Count90d },
+    { label: 'CSAT', value: csatScore },
+    { label: 'Payment Risk Band', value: paymentRiskBand },
+    { label: 'Adoption Band', value: adoptionBand },
     { label: 'Confidence Score', value: confidenceScore },
     { label: 'Fit Score', value: fitScore },
     { label: 'Current Quantity', value: currentQuantity },
@@ -533,6 +928,19 @@ function buildLineInsightJustification(args: {
     normalizedDisposition,
     insightType,
     itemRiskScore,
+  })
+  const primaryObjective = primaryObjectiveForInsight({
+    insightType,
+    normalizedDisposition,
+  })
+  const objectiveScore = objectiveScoreForInsight({
+    primaryObjective,
+    confidenceScore,
+    fitScore,
+    itemRiskScore,
+    arrDelta,
+    quantityDelta,
+    scenarioKey,
   })
   const expectedImpact: QuoteInsightExpectedImpactView = {
     arrDelta,
@@ -572,6 +980,25 @@ function buildLineInsightJustification(args: {
     alternativesConsidered: defaultAlternatives(insightType),
     expectedImpact,
     changeLog: null,
+    objectiveLens: {
+      primaryObjective,
+      objectiveScore,
+      businessKpi: businessKpiForObjective(primaryObjective),
+      signalDrivers: buildLineObjectiveDrivers({
+        primaryObjective,
+        scenarioKey,
+        itemRiskScore,
+        usagePercentOfEntitlement,
+        activeUserPercent,
+        loginTrend30d,
+        ticketCount90d,
+        sev1Count90d,
+        paymentRiskBand,
+        arrDelta,
+        quantityDelta,
+        recommendedDiscountPercent: toEvidenceNumber(recommendedDiscountPercent),
+      }),
+    },
   })
 }
 
@@ -588,6 +1015,8 @@ function buildAdditiveInsightJustification(args: {
   recommendedUnitPrice: Prisma.Decimal
   estimatedArrImpact: Prisma.Decimal
   recommendedDiscountPercent: Prisma.Decimal | null
+  confidenceScore: number
+  fitScore: number
 }): string {
   const {
     insightType,
@@ -602,9 +1031,24 @@ function buildAdditiveInsightJustification(args: {
     recommendedUnitPrice,
     estimatedArrImpact,
     recommendedDiscountPercent,
+    confidenceScore,
+    fitScore,
   } = args
 
   const arrDelta = toEvidenceNumber(estimatedArrImpact)
+  const primaryObjective = primaryObjectiveForInsight({
+    insightType,
+    normalizedDisposition: insightType,
+  })
+  const objectiveScore = objectiveScoreForInsight({
+    primaryObjective,
+    confidenceScore,
+    fitScore,
+    itemRiskScore: null,
+    arrDelta,
+    quantityDelta: recommendedQuantity,
+    scenarioKey,
+  })
   const reasonCodes =
     insightType === 'HYBRID_DEPLOYMENT_FIT'
       ? ['HYBRID_DEPLOYMENT_FIT', 'STRATEGIC_ADJACENCY']
@@ -622,6 +1066,8 @@ function buildAdditiveInsightJustification(args: {
       { label: 'Scenario', value: scenarioKey ?? 'BASE_CASE' },
       { label: 'Account Segment', value: accountSegment ?? 'Unknown' },
       { label: 'Account Industry', value: accountIndustry ?? 'Unknown' },
+      { label: 'Confidence Score', value: confidenceScore },
+      { label: 'Fit Score', value: fitScore },
       ...signals,
     ],
     commercialDelta: {
@@ -671,6 +1117,18 @@ function buildAdditiveInsightJustification(args: {
       retentionRisk: 'LOW',
     },
     changeLog: null,
+    objectiveLens: {
+      primaryObjective,
+      objectiveScore,
+      businessKpi: businessKpiForObjective(primaryObjective),
+      signalDrivers: buildAdditiveObjectiveDrivers({
+        scenarioKey,
+        accountIndustry,
+        accountSegment,
+        confidenceScore,
+        fitScore,
+      }),
+    },
   })
 }
 
@@ -693,6 +1151,15 @@ function buildLineInsight(args: {
   itemRiskScore: number | null
   analysisSummary: string | null
   sourceRecordVersion: string | null
+  usagePercentOfEntitlement: number | null
+  activeUserPercent: number | null
+  loginTrend30d: number | null
+  ticketCount90d: number | null
+  sev1Count90d: number | null
+  csatScore: number | null
+  paymentRiskBand: string | null
+  adoptionBand: string | null
+  signalSnapshotDate: string | null
 }) {
   const {
     caseId,
@@ -713,6 +1180,15 @@ function buildLineInsight(args: {
     itemRiskScore,
     analysisSummary,
     sourceRecordVersion,
+    usagePercentOfEntitlement,
+    activeUserPercent,
+    loginTrend30d,
+    ticketCount90d,
+    sev1Count90d,
+    csatScore,
+    paymentRiskBand,
+    adoptionBand,
+    signalSnapshotDate,
   } = args
 
   const normalizedDisposition = recommendedDisposition ?? 'RENEW'
@@ -822,6 +1298,15 @@ function buildLineInsight(args: {
     proposedNetUnitPrice: decimal(proposedNetUnitPrice),
     recommendedDiscountPercent,
     analysisSummary,
+    usagePercentOfEntitlement,
+    activeUserPercent,
+    loginTrend30d,
+    ticketCount90d,
+    sev1Count90d,
+    csatScore,
+    paymentRiskBand,
+    adoptionBand,
+    signalSnapshotDate,
   })
 
   return {
@@ -943,6 +1428,8 @@ function buildAdditiveInsights(args: {
         recommendedUnitPrice,
         estimatedArrImpact,
         recommendedDiscountPercent,
+        confidenceScore: isExpansionScenario ? 78 : 70,
+        fitScore: isExpansionScenario ? 84 : 78,
       }),
       addedQuoteDraftId: null,
       addedQuoteDraftLineId: null,
@@ -1026,6 +1513,8 @@ function buildAdditiveInsights(args: {
         recommendedUnitPrice,
         estimatedArrImpact,
         recommendedDiscountPercent,
+        confidenceScore: isExpansionScenario ? 82 : 76,
+        fitScore: isExpansionScenario ? 87 : 82,
       }),
       addedQuoteDraftId: null,
       addedQuoteDraftLineId: null,
@@ -1106,7 +1595,19 @@ export async function recalculateQuoteInsights(caseId: string) {
     where: { id: caseId },
     include: {
       account: true,
-      items: { orderBy: { sortOrder: 'asc' } },
+      items: {
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          subscription: {
+            select: {
+              metricSnapshots: {
+                orderBy: { snapshotDate: 'desc' },
+                take: 1,
+              },
+            },
+          },
+        },
+      },
       quoteInsights: true,
     },
   })
@@ -1132,6 +1633,7 @@ export async function recalculateQuoteInsights(caseId: string) {
   const lineInsights = renewalCase.items
     .map((item) => {
       const productSkuSnapshot = getSkuForProductName(item.productNameSnapshot)
+      const latestSnapshot = item.subscription.metricSnapshots[0] ?? null
       return buildLineInsight({
         caseId,
         scenarioKey,
@@ -1154,6 +1656,15 @@ export async function recalculateQuoteInsights(caseId: string) {
         itemRiskScore: item.itemRiskScore,
         analysisSummary: item.analysisSummary,
         sourceRecordVersion: item.updatedAt ? new Date(item.updatedAt).toISOString() : null,
+        usagePercentOfEntitlement: toEvidenceNumber(latestSnapshot?.usagePercentOfEntitlement),
+        activeUserPercent: toEvidenceNumber(latestSnapshot?.activeUserPercent),
+        loginTrend30d: toEvidenceNumber(latestSnapshot?.loginTrend30d),
+        ticketCount90d: latestSnapshot?.ticketCount90d ?? null,
+        sev1Count90d: latestSnapshot?.sev1Count90d ?? null,
+        csatScore: toEvidenceNumber(latestSnapshot?.csatScore),
+        paymentRiskBand: latestSnapshot?.paymentRiskBand ?? null,
+        adoptionBand: latestSnapshot?.adoptionBand ?? null,
+        signalSnapshotDate: latestSnapshot ? latestSnapshot.snapshotDate.toISOString() : null,
       })
     })
     .filter(Boolean)
@@ -1330,6 +1841,7 @@ export async function recalculateQuoteInsights(caseId: string) {
       data: {
         quoteInsightsNeedRefresh: false,
         quoteInsightsGeneratedAt: new Date(),
+        quoteScenariosNeedRefresh: true,
         lastInsightDiffJson: JSON.stringify({
           added,
           removed,
@@ -1436,7 +1948,23 @@ export async function getQuoteInsightsByRenewalCaseId(
     items: renewalCase.quoteInsights.map((item) => {
       const isAddedToQuote = item.status === 'ADDED_TO_QUOTE'
       const narrative = narrativeMap.get(`QUOTE_INSIGHT_${item.id}`)
-      const justification = parseQuoteInsightJustification(item.justificationJson)
+      const parsedJustification = parseQuoteInsightJustification(item.justificationJson)
+      const justification =
+        parsedJustification ??
+        buildFallbackQuoteInsightJustification({
+          sourceType: item.sourceType,
+          insightType: item.insightType,
+          title: item.title,
+          insightSummary: item.insightSummary,
+          recommendedActionSummary: item.recommendedActionSummary,
+          confidenceScore: item.confidenceScore,
+          fitScore: item.fitScore,
+          recommendedQuantity: item.recommendedQuantity,
+          recommendedUnitPrice: item.recommendedUnitPrice,
+          recommendedDiscountPercent: item.recommendedDiscountPercent,
+          estimatedArrImpact: item.estimatedArrImpact,
+          createdAt: item.createdAt,
+        })
 
       return {
         id: item.id,

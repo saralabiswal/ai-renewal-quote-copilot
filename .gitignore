@@ -36,5 +36,11 @@ test-results/
 playwright-report/
 
 # docs
-docs/
-
+docs/*
+!docs/user-guide-renewal-workflow.md
+!docs/demo-recording-runbook-rc-acct-1016.md
+!docs/assets/
+docs/assets/*
+!docs/assets/user-guide/
+docs/assets/user-guide/*
+!docs/assets/user-guide/*.png

@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { QuoteDraftLineView } from '@/types/quote-draft'
 
@@ -72,10 +74,33 @@ function detailSectionLabel(line: QuoteDraftLineView) {
   return 'Commercial Change'
 }
 
+type LineFilter = 'all' | 'focus' | 'baseline'
+type ExpandMode = 'smart' | 'all' | 'collapsed'
+
 export function QuoteDraftLinesTable({ lines }: { lines: QuoteDraftLineView[] }) {
+  const [lineFilter, setLineFilter] = useState<LineFilter>('all')
+  const [expandMode, setExpandMode] = useState<ExpandMode>('smart')
   const baselineLineCount = lines.filter(isBaselineRenewalLine).length
   const aiAddedLineCount = lines.filter(isAiAddedLine).length
   const changedLineCount = lines.length - baselineLineCount
+
+  const visibleLines = useMemo(() => {
+    if (lineFilter === 'focus') {
+      return lines.filter((line) => !isBaselineRenewalLine(line))
+    }
+
+    if (lineFilter === 'baseline') {
+      return lines.filter(isBaselineRenewalLine)
+    }
+
+    return lines
+  }, [lineFilter, lines])
+
+  function defaultOpenForLine(line: QuoteDraftLineView) {
+    if (expandMode === 'all') return true
+    if (expandMode === 'collapsed') return false
+    return shouldExpandByDefault(line)
+  }
 
   return (
     <div className="card table-wrapper">
@@ -115,6 +140,62 @@ export function QuoteDraftLinesTable({ lines }: { lines: QuoteDraftLineView[] })
         </div>
       </div>
 
+      <div className="quote-line-controls">
+        <div className="quote-line-control-group">
+          <span className="small muted">Line View</span>
+          <button
+            type="button"
+            className={`quote-line-control ${lineFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setLineFilter('all')}
+          >
+            All Lines
+          </button>
+          <button
+            type="button"
+            className={`quote-line-control ${lineFilter === 'focus' ? 'active' : ''}`}
+            onClick={() => setLineFilter('focus')}
+          >
+            Changed + AI
+          </button>
+          <button
+            type="button"
+            className={`quote-line-control ${lineFilter === 'baseline' ? 'active' : ''}`}
+            onClick={() => setLineFilter('baseline')}
+          >
+            Baseline Only
+          </button>
+        </div>
+
+        <div className="quote-line-control-group">
+          <span className="small muted">Detail Expansion</span>
+          <button
+            type="button"
+            className={`quote-line-control ${expandMode === 'smart' ? 'active' : ''}`}
+            onClick={() => setExpandMode('smart')}
+          >
+            Smart Default
+          </button>
+          <button
+            type="button"
+            className={`quote-line-control ${expandMode === 'all' ? 'active' : ''}`}
+            onClick={() => setExpandMode('all')}
+          >
+            Expand All
+          </button>
+          <button
+            type="button"
+            className={`quote-line-control ${expandMode === 'collapsed' ? 'active' : ''}`}
+            onClick={() => setExpandMode('collapsed')}
+          >
+            Collapse All
+          </button>
+        </div>
+      </div>
+
+      <div className="small muted" style={{ marginBottom: 12 }}>
+        Showing {visibleLines.length} of {lines.length} lines.
+      </div>
+
       <table className="table">
         <thead>
           <tr>
@@ -130,16 +211,24 @@ export function QuoteDraftLinesTable({ lines }: { lines: QuoteDraftLineView[] })
         </thead>
 
         <tbody>
-          {lines.map((line) => {
+          {visibleLines.map((line) => {
             const sourceTypeLabel = labelize(line.traceability.sourceType)
             const insightTypeLabel = labelize(line.traceability.sourceInsightType)
             const additiveChange = isAdditiveCommercialChange(line)
-            const defaultOpen = shouldExpandByDefault(line)
+            const defaultOpen = defaultOpenForLine(line)
             const sectionLabel = detailSectionLabel(line)
 
             return (
               <React.Fragment key={line.id}>
-                <tr>
+                <tr
+                  className={
+                    isBaselineRenewalLine(line)
+                      ? 'quote-line-row-baseline'
+                      : isAiAddedLine(line)
+                        ? 'quote-line-row-ai'
+                        : 'quote-line-row-changed'
+                  }
+                >
                   <td>{line.lineNumber}</td>
 
                   <td>
@@ -164,7 +253,7 @@ export function QuoteDraftLinesTable({ lines }: { lines: QuoteDraftLineView[] })
 
                 <tr>
                   <td colSpan={8}>
-                    <details open={defaultOpen}>
+                    <details open={defaultOpen} key={`${line.id}-${expandMode}`}>
                       <summary
                         style={{
                           cursor: 'pointer',

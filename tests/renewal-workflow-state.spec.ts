@@ -1,6 +1,28 @@
 import { test, expect, APIRequestContext } from '@playwright/test'
 import { waitForPageStable } from './helpers'
 
+const GENERATED_SCENARIO_CASE_IDS = [
+  'rcase_aster_commerce',
+  'rcase_helio_mfg',
+  'rcase_lumina_commerce',
+  'rcase_summitone',
+]
+
+const SUPPRESSED_SCENARIO_CASE_IDS = [
+  'rcase_apex_mfg',
+  'rcase_vertex_industrial',
+  'rcase_bluepeak',
+  'rcase_orion_revenue',
+]
+
+type ScenarioGenerationResponse = {
+  ok: boolean
+  caseId: string
+  generatedCount: number
+  suppressedReason: string | null
+  scenarioKeys: string[]
+}
+
 async function postJson(
   request: APIRequestContext,
   path: string,
@@ -15,6 +37,40 @@ async function postJson(
     throw new Error(`POST ${path} failed (${response.status()}): ${errorText}`)
   }
   return response.json()
+}
+
+async function generateScenariosForCase(
+  request: APIRequestContext,
+  caseId: string,
+): Promise<ScenarioGenerationResponse> {
+  await postJson(request, `/api/renewal-cases/${caseId}/recalculate-quote-insights`)
+  const generation = await postJson(request, `/api/renewal-cases/${caseId}/generate-quote-scenarios`)
+  return generation as ScenarioGenerationResponse
+}
+
+async function findCaseByScenarioExpectation(
+  request: APIRequestContext,
+  caseIds: string[],
+  expectation: 'generated' | 'suppressed',
+) {
+  for (const caseId of caseIds) {
+    const generation = await generateScenariosForCase(request, caseId)
+    const matches =
+      expectation === 'generated'
+        ? generation.generatedCount > 0
+        : generation.generatedCount === 0 && Boolean(generation.suppressedReason)
+
+    if (matches) {
+      return {
+        caseId,
+        generation,
+      }
+    }
+  }
+
+  throw new Error(
+    `No case found for expectation "${expectation}" in candidates: ${caseIds.join(', ')}`,
+  )
 }
 
 test('recalculate endpoint returns structured recommendation payload', async ({ request }) => {
@@ -40,9 +96,11 @@ test('recalculate recommendation sets case under review and marks insights stale
   await page.goto('/renewal-cases')
   await waitForPageStable(page)
 
-  const row = page.locator('tr').filter({ hasText: 'RC-ACCT-1001' })
+  const row = page.locator('tr').filter({
+    has: page.locator('a[href="/renewal-cases/rcase_apex_mfg"]'),
+  })
   await expect(row).toHaveCount(1)
-  await expect(row).toContainText('UNDER REVIEW')
+  await expect(row).toContainText(/Under Review/i)
 
   await page.goto('/renewal-cases/rcase_apex_mfg')
   await waitForPageStable(page)
@@ -120,9 +178,11 @@ test('quote review decision updates quote status and review history', async ({ p
   await page.goto('/quote-drafts')
   await waitForPageStable(page)
 
-  const row = page.locator('tr').filter({ hasText: 'Q-ACCT-1011' })
+  const row = page.locator('tr').filter({
+    has: page.locator('a[href="/quote-drafts/qd_harbor_fin"]'),
+  })
   await expect(row).toHaveCount(1)
-  await expect(row).toContainText('APPROVED')
+  await expect(row).toContainText(/Approved/i)
 
   await page.goto('/renewal-cases/rcase_harbor_fin')
   await waitForPageStable(page)
@@ -155,5 +215,196 @@ test('reapplying the same quote insight is idempotent and does not duplicate quo
 
   await page.goto('/quote-drafts/qd_crestview_health')
   await waitForPageStable(page)
-  await expect(page.getByText('Source Quote Insight: qi_017')).toHaveCount(1)
+  await expect(page.getByText(/Source Quote Insight:\s*qi_017/i)).toHaveCount(1)
+})
+
+test('quote scenario generation is deterministic and idempotent', async ({ request, page }) => {
+  const caseId = 'rcase_lumina_commerce'
+  await postJson(request, `/api/renewal-cases/${caseId}/recalculate-quote-insights`)
+
+  const first = await postJson(request, `/api/renewal-cases/${caseId}/generate-quote-scenarios`)
+  const second = await postJson(request, `/api/renewal-cases/${caseId}/generate-quote-scenarios`)
+
+  expect(first.caseId).toBe(caseId)
+  expect(second.caseId).toBe(caseId)
+  expect(second.generatedCount).toBe(first.generatedCount)
+  expect(second.scenarioKeys).toEqual(first.scenarioKeys)
+
+  await page.goto(`/scenario-quotes/${caseId}`)
+  await waitForPageStable(page)
+  const scenarioPanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+  })
+  await expect(scenarioPanel).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Phase 3 AI Personalization Coach/i })).toBeVisible()
+
+  if (first.generatedCount > 0) {
+    await expect(scenarioPanel.getByText(/Scenario Quote Navigator/i)).toBeVisible()
+    await expect(scenarioPanel.getByText(/Read-only/i).first()).toBeVisible()
+  } else {
+    await expect(scenarioPanel.getByText(/No scenarios generated/i)).toBeVisible()
+  }
+})
+
+test('quote scenario comparison supports preferred scenario workflow', async ({ request, page }) => {
+  const caseId = 'rcase_lumina_commerce'
+  await postJson(request, `/api/renewal-cases/${caseId}/recalculate-quote-insights`)
+  const generation = await postJson(request, `/api/renewal-cases/${caseId}/generate-quote-scenarios`)
+
+  await page.goto(`/scenario-quotes/${caseId}`)
+  await waitForPageStable(page)
+
+  const scenarioPanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+  })
+  await expect(scenarioPanel).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Phase 3 AI Personalization Coach/i })).toBeVisible()
+
+  if (generation.generatedCount === 0) {
+    await expect(scenarioPanel.getByText(/No scenarios generated/i)).toBeVisible()
+    return
+  }
+
+  const firstScenarioButton = scenarioPanel.locator('button', { hasText: '#1' }).first()
+  await firstScenarioButton.click()
+
+  await expect(scenarioPanel.getByText(/Compare vs Baseline/i)).toBeVisible()
+  await expect(scenarioPanel.getByText(/What Changed Commercially/i)).toBeVisible()
+  await expect(scenarioPanel.getByText(/Line-Level Comparison/i)).toBeVisible()
+
+  const markPreferredButton = scenarioPanel
+    .getByRole('button', { name: /Mark as Preferred Scenario/i })
+    .first()
+  if (await markPreferredButton.isVisible()) {
+    await markPreferredButton.click()
+    await waitForPageStable(page)
+  }
+
+  await expect(
+    scenarioPanel.getByRole('button', { name: /Preferred Scenario|Baseline is Preferred/i }).first(),
+  ).toBeVisible()
+})
+
+test('baseline scenario indicator reflects generated count and suppressed runs', async ({
+  page,
+  request,
+}) => {
+  const generated = await findCaseByScenarioExpectation(
+    request,
+    GENERATED_SCENARIO_CASE_IDS,
+    'generated',
+  )
+  await page.goto(`/scenario-quotes/${generated.caseId}`)
+  await waitForPageStable(page)
+
+  const generatedPanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+  })
+  await expect(generatedPanel).toBeVisible()
+  const generatedBaselineButton = generatedPanel
+    .locator('button', { hasText: 'Baseline Quote' })
+    .first()
+  await expect(generatedBaselineButton).toContainText(
+    `System generated scenarios: ${generated.generation.generatedCount}`,
+  )
+
+  const suppressed = await findCaseByScenarioExpectation(
+    request,
+    SUPPRESSED_SCENARIO_CASE_IDS,
+    'suppressed',
+  )
+  await page.goto(`/scenario-quotes/${suppressed.caseId}`)
+  await waitForPageStable(page)
+
+  const suppressedPanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+  })
+  await expect(suppressedPanel).toBeVisible()
+  const suppressedBaselineButton = suppressedPanel
+    .locator('button', { hasText: 'Baseline Quote' })
+    .first()
+  await expect(suppressedBaselineButton).toContainText('System generated scenarios: 0')
+  await expect(suppressedPanel.getByText(/No scenarios generated yet\./i)).toBeVisible()
+  await expect(suppressedPanel.getByText(/^No scenarios generated:/i)).toBeVisible()
+
+  const baselineMetrics = suppressedPanel
+    .locator('.opportunity-metrics-grid')
+    .filter({ hasText: 'Generated Scenarios' })
+    .first()
+  await expect(baselineMetrics).toContainText('Generated Scenarios')
+  await expect(baselineMetrics).toContainText('0')
+  await expect(baselineMetrics).toContainText('Suppression')
+  await expect(baselineMetrics).toContainText('Yes')
+})
+
+test('scenario workspace auto-regenerates when marked stale', async ({ page, request }) => {
+  const generated = await findCaseByScenarioExpectation(
+    request,
+    GENERATED_SCENARIO_CASE_IDS,
+    'generated',
+  )
+  const caseId = generated.caseId
+
+  const staleResponse = await postJson(request, `/api/renewal-cases/${caseId}/scenario`, {
+    scenarioKey: 'ADOPTION_DECLINE',
+  })
+  expect(staleResponse.ok).toBe(true)
+
+  await page.goto(`/scenario-quotes/${caseId}`)
+  await waitForPageStable(page)
+
+  const scenarioPanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+  })
+  await expect(scenarioPanel).toBeVisible()
+  await expect(scenarioPanel.getByText(/Quote scenarios may be outdated/i)).toHaveCount(0)
+  await expect(scenarioPanel.getByText(/Last generated:/i)).toBeVisible()
+  await expect(
+    scenarioPanel.locator('button', { hasText: 'Baseline Quote' }).first(),
+  ).toContainText(/System generated scenarios:\s*\d+/i)
+})
+
+test('preferred scenario remains coherent after regeneration', async ({ page, request }) => {
+  const generated = await findCaseByScenarioExpectation(
+    request,
+    GENERATED_SCENARIO_CASE_IDS,
+    'generated',
+  )
+  const caseId = generated.caseId
+  const initialPreferredKey = generated.generation.scenarioKeys[0]
+
+  expect(initialPreferredKey).toBeTruthy()
+  const setPreferredResponse = await postJson(
+    request,
+    `/api/renewal-cases/${caseId}/preferred-quote-scenario`,
+    { scenarioKey: initialPreferredKey },
+  )
+  expect(setPreferredResponse.ok).toBe(true)
+
+  const regenerated = (await postJson(
+    request,
+    `/api/renewal-cases/${caseId}/generate-quote-scenarios`,
+  )) as ScenarioGenerationResponse
+  await page.goto(`/scenario-quotes/${caseId}`)
+  await waitForPageStable(page)
+
+  const scenarioPanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+  })
+  await expect(scenarioPanel).toBeVisible()
+  const preferredSummary = scenarioPanel.locator('.scenario-preferred-summary')
+  await expect(preferredSummary).toBeVisible()
+
+  if (regenerated.generatedCount > 0 && regenerated.scenarioKeys.includes(initialPreferredKey)) {
+    await expect(preferredSummary).not.toContainText('Baseline Quote')
+    await expect(
+      scenarioPanel.getByRole('button', { name: /Preferred Scenario/i }).first(),
+    ).toBeVisible()
+    return
+  }
+
+  await expect(preferredSummary).toContainText('Baseline Quote')
+  await expect(
+    scenarioPanel.getByRole('button', { name: /Baseline is Preferred/i }).first(),
+  ).toBeVisible()
 })

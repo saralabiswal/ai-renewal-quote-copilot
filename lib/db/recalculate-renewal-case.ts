@@ -259,6 +259,7 @@ export async function recalculateRenewalCaseById(caseId: string) {
           : null,
         status: 'UNDER_REVIEW',
         quoteInsightsNeedRefresh: true,
+        quoteScenariosNeedRefresh: true,
         lastRecommendationJson: JSON.stringify(recommendationDiff),
         lastScenarioChangedAt: new Date(),
       },

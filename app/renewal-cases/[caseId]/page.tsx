@@ -13,6 +13,8 @@ import { DemoScenarioSelector } from '@/components/renewal-cases/demo-scenario-s
 import { WhatChangedSummary } from '@/components/renewal-cases/what-changed-summary'
 import { RegenerateInsightsAiButton } from '@/components/renewal-cases/regenerate-insights-ai-button'
 import { AiWorkflowRunner } from '@/components/renewal-cases/ai-workflow-runner'
+import { WorkflowJourney } from '@/components/layout/workflow-journey'
+import { ActionRail } from '@/components/layout/action-rail'
 
 export default async function RenewalCaseDetailPage({
   params,
@@ -30,17 +32,34 @@ export default async function RenewalCaseDetailPage({
     notFound()
   }
 
+  const quoteStatusKey = renewalCase.quoteDraft?.status.toLowerCase() ?? ''
+  const hasQuoteDraft = Boolean(renewalCase.quoteDraft)
+  const quoteDecisionComplete = quoteStatusKey === 'approved' || quoteStatusKey === 'rejected'
+  const casePurpose =
+    'Run the end-to-end case workflow and decide which quote actions should feed the Baseline Quote.'
+  const caseNextStep = quoteInsights.needsRefresh
+    ? 'In Section A, click Regenerate Insights + AI Rationale, then apply refreshed actions in Section C.'
+    : 'Apply top quote insights in Section C, then open Scenario Quotes for comparison.'
+
   return (
     <div className="page">
       <section className="card renewal-workspace-hero">
         <div className="renewal-workspace-main">
           <div className="renewal-workspace-title-row">
             <div>
-              <h1 className="renewal-workspace-title">Renewal Quote Decision Workspace</h1>
+              <h1 className="renewal-workspace-title">Case Decision Board</h1>
               <p className="renewal-workspace-subtitle">
                 Compare subscription baseline with AI outputs, regenerate insights, and apply the
                 right quote actions with clear traceability.
               </p>
+              <div className="page-header-guidance" style={{ marginTop: 10 }}>
+                <p className="page-header-purpose">
+                  <strong>Purpose:</strong> {casePurpose}
+                </p>
+                <p className="page-header-next">
+                  <strong>Next:</strong> {caseNextStep}
+                </p>
+              </div>
             </div>
 
             <div className="renewal-header-badges">
@@ -87,54 +106,81 @@ export default async function RenewalCaseDetailPage({
                   </div>
                 </div>
                 <Link className="button-link" href={`/quote-drafts/${renewalCase.quoteDraft.id}`}>
-                  View Renewal Quote
+                  Open Baseline Quote Draft
                 </Link>
               </div>
             ) : (
-              <div className="small muted">No quote draft linked yet.</div>
+              <div className="small muted">
+                No baseline quote draft linked yet. Apply quote insights in Section C to create one.
+              </div>
             )}
 
             {renewalCase.quoteDraft ? (
               <ReviewActions quoteDraftId={renewalCase.quoteDraft.id} align="left" />
             ) : (
               <div className="small muted">
-                Quote review actions appear after a renewal quote is linked.
+                Quote review actions appear after a baseline quote draft is linked.
               </div>
             )}
           </div>
         </div>
       </section>
 
+      <WorkflowJourney
+        title="Case Workflow Progress"
+        subtitle="Use this path to move from case decisioning to a final quote outcome."
+        steps={[
+          {
+            id: 'subscriptions',
+            label: 'Renewal Subscriptions',
+            description: 'Baseline subscription and entitlement context reviewed.',
+            href: '/renewal-cases?view=list',
+            state: 'complete',
+          },
+          {
+            id: 'decision-workspace',
+            label: 'Case Decision Board',
+            description: 'Run recommendation, regenerate insights, and review AI guidance.',
+            href: `/renewal-cases/${renewalCase.id}`,
+            state: 'current',
+          },
+          {
+            id: 'scenario-workspace',
+            label: 'Scenario Quotes',
+            description: hasQuoteDraft
+              ? 'Compare alternative scenario quotes against baseline.'
+              : 'Link or generate a baseline quote to enable scenario comparison.',
+            href: `/scenario-quotes/${renewalCase.id}`,
+            state: 'upcoming',
+          },
+          {
+            id: 'quote-review',
+            label: 'Quote Draft Board',
+            description: hasQuoteDraft
+              ? quoteDecisionComplete
+                ? 'Final quote decision has been submitted.'
+                : 'Open the linked quote and complete approval review.'
+              : 'Quote review is available after a baseline quote is linked.',
+            href: hasQuoteDraft ? `/quote-drafts/${renewalCase.quoteDraft?.id}` : undefined,
+            state: quoteDecisionComplete ? 'complete' : 'upcoming',
+          },
+        ]}
+      />
+
       <RenewalCaseSummaryCards summary={renewalCase.summaryCards} />
-      <div className="card">
-        <div className="section-header" style={{ marginBottom: 12 }}>
-          <div>
-            <h3 className="panel-title">Regeneration Quote Workflow</h3>
-            <p className="section-subtitle">
-              Set scenario, regenerate recommendation and insights, generate AI review guidance,
-              then review what changed.
-            </p>
-          </div>
+      <section className="card case-workflow-section">
+        <div className="case-workflow-header">
+          <div className="case-workflow-kicker">Section A</div>
+          <h3 className="panel-title">Scenario + Run Workflow</h3>
+          <p className="section-subtitle">
+            Select scenario, then run the workflow. AI Live is the primary path for end-to-end
+            execution. Manual controls are available for step-by-step walkthroughs.
+          </p>
         </div>
 
-        <div className="workflow-guide-strip">
-          <div className="small muted" style={{ fontWeight: 700 }}>
-            How to Use This Workflow
-          </div>
-          <div className="workflow-guide-row">
-            <div className="workflow-guide-item">
-              <span>1</span>
-              <p>Choose scenario.</p>
-            </div>
-            <div className="workflow-guide-item">
-              <span>2</span>
-              <p>Regenerate recommendation and insights.</p>
-            </div>
-            <div className="workflow-guide-item">
-              <span>3</span>
-              <p>Review What Changed, then apply quote actions.</p>
-            </div>
-          </div>
+        <div className="case-workflow-mode-note">
+          <strong>Primary path:</strong> Run <strong>AI Live</strong> first for fastest updates.
+          Use manual controls only when you need to demonstrate each mutation independently.
         </div>
 
         <AiWorkflowRunner
@@ -142,11 +188,12 @@ export default async function RenewalCaseDetailPage({
           selectedScenarioKey={renewalCase.demoScenarioKey ?? 'BASE_CASE'}
         />
 
-        <details className="manual-workflow-shell">
-          <summary className="manual-workflow-summary">Manual Workflow Actions</summary>
+        <details className="manual-workflow-shell case-manual-secondary">
+          <summary className="manual-workflow-summary">Manual Workflow Actions (Optional)</summary>
 
           <p className="manual-workflow-subtitle">
-            Use manual controls to run each step one by one during walkthroughs.
+            Use these controls to run one mutation at a time when you want detailed walkthrough
+            pacing.
           </p>
 
           <div className="manual-scenario-shell">
@@ -154,7 +201,8 @@ export default async function RenewalCaseDetailPage({
               Scenario Selection
             </div>
             <div className="small muted">
-              Scenario choice applies to the manual step-by-step workflow.
+              Scenario selection is shared across AI Live and Manual actions. Choose it in either
+              panel.
             </div>
             <DemoScenarioSelector
               caseId={renewalCase.id}
@@ -168,7 +216,10 @@ export default async function RenewalCaseDetailPage({
               <div className="small muted" style={{ marginBottom: 4 }}>
                 Step 1
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 10 }}>Recommendation</div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Recommendation</div>
+              <p className="workflow-mutation-helper">
+                Updates risk, action, and approval posture. Marks quote insights as stale.
+              </p>
               <RecalculateButton
                 caseId={renewalCase.id}
                 label="Regenerate Recommendation"
@@ -181,7 +232,10 @@ export default async function RenewalCaseDetailPage({
               <div className="small muted" style={{ marginBottom: 4 }}>
                 Step 2
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 10 }}>Insights + AI</div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Insights + AI</div>
+              <p className="workflow-mutation-helper">
+                Regenerates quote insights and AI rationale so quote actions match latest recommendation.
+              </p>
               <RegenerateInsightsAiButton
                 caseId={renewalCase.id}
                 label="Regenerate Insights + AI Rationale"
@@ -194,7 +248,10 @@ export default async function RenewalCaseDetailPage({
               <div className="small muted" style={{ marginBottom: 4 }}>
                 Step 3
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 10 }}>Full AI Guidance (Optional)</div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>Full AI Guidance (Optional)</div>
+              <p className="workflow-mutation-helper">
+                Generates executive summary, reviewer rationale, and approval brief when required.
+              </p>
               <GenerateAiButton
                 caseId={renewalCase.id}
                 label="Generate Full AI Review Guidance"
@@ -204,13 +261,56 @@ export default async function RenewalCaseDetailPage({
             </div>
           </div>
         </details>
+      </section>
+
+      <section className="card case-workflow-section">
+        <div className="case-workflow-header">
+          <div className="case-workflow-kicker">Section B</div>
+          <h3 className="panel-title">What Changed</h3>
+          <p className="section-subtitle">
+            Review recommendation and quote-insight deltas from the latest workflow run before
+            applying actions.
+          </p>
+        </div>
 
         <WhatChangedSummary
           recommendation={renewalCase.whatChanged?.recommendation ?? null}
           insights={renewalCase.whatChanged?.insights ?? null}
           embedded
         />
-      </div>
+      </section>
+
+      <section className="card case-workflow-section">
+        <div className="case-workflow-header">
+          <div className="case-workflow-kicker">Section C</div>
+          <h3 className="panel-title">Quote Insights (Apply Actions)</h3>
+          <p className="section-subtitle">
+            Apply selected quote insights to the Baseline Quote. Use Scenario Workspace first if you
+            need alternate commercial comparisons.
+          </p>
+        </div>
+
+        <ActionRail
+          primary={
+            <Link className="button-link" href={`/scenario-quotes/${renewalCase.id}`}>
+              Open Scenario Quotes
+            </Link>
+          }
+          secondary={
+            renewalCase.quoteDraft ? (
+              <Link className="button-secondary" href={`/quote-drafts/${renewalCase.quoteDraft.id}`}>
+                Open Baseline Quote Draft
+              </Link>
+            ) : undefined
+          }
+          tertiary={
+            <Link className="button-tertiary" href="/quote-drafts">
+              Open Quote Draft Board
+            </Link>
+          }
+          hint="Scenario comparison is read-only. Baseline Quote remains the editable source."
+        />
+      </section>
 
       <QuoteInsightsPanel
         caseId={quoteInsights.caseId}
@@ -219,6 +319,17 @@ export default async function RenewalCaseDetailPage({
         needsRefresh={quoteInsights.needsRefresh}
         generatedAtLabel={quoteInsights.generatedAtLabel}
       />
+
+      <section className="card case-workflow-section">
+        <div className="case-workflow-header">
+          <div className="case-workflow-kicker">Section D</div>
+          <h3 className="panel-title">Review + Rationale Workspace</h3>
+          <p className="section-subtitle">
+            Validate bundle analysis, review AI guidance, and inspect decision history before final
+            quote approval.
+          </p>
+        </div>
+      </section>
 
       <RenewalCaseReviewWorkspace
         analysis={renewalCase.analysis}

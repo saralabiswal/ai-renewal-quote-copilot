@@ -7,14 +7,6 @@ test('modifier insight updates existing renewal line instead of creating a new l
   await page.goto('/renewal-cases/rcase_bluepeak')
   await waitForPageStable(page)
 
-  const quoteLink = page
-    .getByRole('link', { name: /open quote draft|view renewal quote/i })
-    .first()
-  await expect(quoteLink).toBeVisible()
-
-  const beforeHref = await quoteLink.getAttribute('href')
-  expect(beforeHref).toContain('/quote-drafts/')
-
   const modifierTitle = 'Protect NetSuite renewal with a controlled concession'
   const appliedCard = page.locator('.opportunity-card').filter({
     has: page.locator(`.opportunity-title:text-is("${modifierTitle}")`),

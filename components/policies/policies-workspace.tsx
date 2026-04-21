@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
-import type { PricingPolicyView } from '@/lib/db/policies'
-import type { RulebookSection } from '@/lib/policies/rule-reference'
+import type { PolicyStudioSeedProfile, PricingPolicyView } from '@/lib/db/policies'
+import type { RuleFlowStep, RulebookSection } from '@/lib/policies/rule-reference'
 import type {
   WorkedExampleProductId,
   WorkedExampleView,
 } from '@/lib/policies/worked-example'
 
-type TabId = 'recommendation' | 'insight' | 'example'
+type TabId = 'recommendation' | 'insight' | 'example' | 'journey'
 
 function formatPercent(value: number | null) {
   if (value === null) return '—'
@@ -34,6 +34,31 @@ function countRows(sections: RulebookSection[]) {
 function formatSignedCurrency(value: number) {
   const prefix = value > 0 ? '+' : ''
   return `${prefix}${formatCurrency(value)}`
+}
+
+function formatSignedNumber(value: number) {
+  const prefix = value > 0 ? '+' : ''
+  return `${prefix}${value.toLocaleString('en-US', {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+    maximumFractionDigits: 1,
+  })}`
+}
+
+function formatSignedPercent(value: number) {
+  return `${formatSignedNumber(value)}%`
+}
+
+function getRiskTone(level: WorkedExampleView['scoring']['finalRiskLevel']) {
+  if (level === 'LOW') return 'success'
+  if (level === 'MEDIUM') return 'warn'
+  return 'danger'
+}
+
+function getDispositionTone(disposition: WorkedExampleView['recommendation']['disposition']) {
+  if (disposition === 'EXPAND') return 'info'
+  if (disposition === 'ESCALATE') return 'danger'
+  if (disposition === 'RENEW_WITH_CONCESSION') return 'warn'
+  return 'default'
 }
 
 function toBusinessSignalLabel(example: WorkedExampleView) {
@@ -68,6 +93,12 @@ function buildBusinessInterpretation(example: WorkedExampleView) {
   const usage = example.inputs.usagePercentOfEntitlement
   const activeUsers = example.inputs.activeUserPercent
   const loginTrend = example.inputs.loginTrend30d
+  const trendDirectionLabel =
+    example.signalTrend.trendDirection === 'IMPROVING'
+      ? 'improving'
+      : example.signalTrend.trendDirection === 'DETERIORATING'
+        ? 'deteriorating'
+        : 'mixed'
   const riskLabel = example.scoring.finalRiskLevel.toLowerCase()
   const signalLabel = toBusinessSignalLabel(example)
   const moveLabel = toBusinessMoveLabel(example)
@@ -78,12 +109,14 @@ function buildBusinessInterpretation(example: WorkedExampleView) {
       : usage >= 55
         ? `Adoption is mixed (${formatPercent(usage)} usage, ${formatPercent(activeUsers)} active users), so growth potential exists but needs focus.`
         : `Adoption is weak (${formatPercent(usage)} usage, ${formatPercent(activeUsers)} active users), which raises renewal risk.`
-  const trendStory =
+  const loginStory =
     loginTrend >= 8
       ? `Engagement trend is improving (${formatPercent(loginTrend)} over 30 days).`
       : loginTrend <= -10
         ? `Engagement trend is declining (${formatPercent(loginTrend)} over 30 days).`
         : `Engagement trend is relatively steady (${formatPercent(loginTrend)} over 30 days).`
+
+  const trajectoryStory = `Across ${example.sourceContext.snapshotWindowLabel}, usage moved ${formatSignedPercent(example.signalTrend.usageDelta)}, active users moved ${formatSignedPercent(example.signalTrend.activeUserDelta)}, and CSAT moved ${formatSignedNumber(example.signalTrend.csatDelta)} (${trendDirectionLabel} trajectory).`
 
   const recommendationStory =
     example.recommendation.disposition === 'EXPAND'
@@ -99,8 +132,10 @@ function buildBusinessInterpretation(example: WorkedExampleView) {
     : 'Policy check outcome: this stays within standard policy thresholds and can proceed without extra approval.'
 
   const talkTrack = [
+    `Source context: ${example.sourceContext.accountName} / ${example.sourceContext.subscriptionNumber}.`,
     `Business signal: ${signalLabel}.`,
     `Recommended move: ${moveLabel}.`,
+    `Signal trajectory over ${example.sourceContext.snapshotWindowLabel}: ${trendDirectionLabel}.`,
     `Commercial impact in this scenario: ${arrDeltaLabel} ARR.`,
     approvalStory,
   ]
@@ -108,7 +143,7 @@ function buildBusinessInterpretation(example: WorkedExampleView) {
   return {
     headline: `${example.product.name}: ${signalLabel}`,
     statusLine: `Overall risk is ${riskLabel}. Suggested motion is ${moveLabel.toLowerCase()}.`,
-    situation: `${usageStory} ${trendStory}`,
+    situation: `${usageStory} ${loginStory} ${trajectoryStory}`,
     recommendation: recommendationStory,
     impact: `If applied, the projected ARR change is ${arrDeltaLabel} (from ${formatCurrency(example.inputs.currentArr)} to ${formatCurrency(example.recommendation.proposedArr)}).`,
     approval: approvalStory,
@@ -156,35 +191,77 @@ function RuleSectionAccordion({
   )
 }
 
+function RuleFlowMap({
+  title,
+  subtitle,
+  steps,
+}: {
+  title: string
+  subtitle: string
+  steps: RuleFlowStep[]
+}) {
+  return (
+    <section className="policy-flow-map" aria-label={title}>
+      <div className="policy-flow-head">
+        <h3 className="panel-title">{title}</h3>
+        <p className="section-subtitle">{subtitle}</p>
+      </div>
+      <ol className="policy-flow-list">
+        {steps.map((step) => (
+          <li key={step.id} className="policy-flow-step">
+            <div className="policy-flow-step-head">
+              <span className="policy-flow-id">{step.id}</span>
+              <h4>{step.title}</h4>
+            </div>
+            <p>{step.detail}</p>
+            <div className="policy-flow-outcome">
+              <span className="small muted">Outcome</span>
+              <strong>{step.outcome}</strong>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 export function PoliciesWorkspace({
   pricingPolicies,
   recommendationSections,
   recommendationSources,
+  recommendationFlowSteps,
   insightSections,
   insightSources,
+  insightFlowSteps,
   workedExamples,
   workedExampleOptions,
+  seedProfile,
 }: {
   pricingPolicies: PricingPolicyView[]
   recommendationSections: RulebookSection[]
   recommendationSources: readonly string[]
+  recommendationFlowSteps: RuleFlowStep[]
   insightSections: RulebookSection[]
   insightSources: readonly string[]
+  insightFlowSteps: RuleFlowStep[]
   workedExamples: Record<WorkedExampleProductId, WorkedExampleView>
   workedExampleOptions: Array<{
     id: WorkedExampleProductId
     label: string
   }>
+  seedProfile: PolicyStudioSeedProfile
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('example')
   const [selectedProductId, setSelectedProductId] = useState<WorkedExampleProductId>(
     workedExampleOptions[0]?.id ?? 'fusion_apps',
   )
 
+  const fallbackWorkedExample = workedExamples[workedExampleOptions[0]?.id ?? 'fusion_apps']
   const workedExample =
-    workedExamples[selectedProductId] ??
-    workedExamples[workedExampleOptions[0]?.id ?? 'fusion_apps']
-  const businessInterpretation = buildBusinessInterpretation(workedExample)
+    workedExamples[selectedProductId] ?? fallbackWorkedExample ?? Object.values(workedExamples)[0]
+  const businessInterpretation = workedExample
+    ? buildBusinessInterpretation(workedExample)
+    : null
   const workedExampleBusinessRows = workedExampleOptions
     .map((option) => {
       const example = workedExamples[option.id]
@@ -218,6 +295,8 @@ export function PoliciesWorkspace({
     }),
     [pricingPolicies, recommendationSections, insightSections],
   )
+
+  if (!workedExample || !businessInterpretation) return null
 
   return (
     <section className="card policy-workspace-shell">
@@ -256,6 +335,14 @@ export function PoliciesWorkspace({
         </button>
         <button
           type="button"
+          className={`policy-tab ${activeTab === 'journey' ? 'active' : ''}`}
+          onClick={() => setActiveTab('journey')}
+          aria-pressed={activeTab === 'journey'}
+        >
+          End-to-End Visual Flow
+        </button>
+        <button
+          type="button"
           className={`policy-tab ${activeTab === 'recommendation' ? 'active' : ''}`}
           onClick={() => setActiveTab('recommendation')}
           aria-pressed={activeTab === 'recommendation'}
@@ -275,6 +362,11 @@ export function PoliciesWorkspace({
       {activeTab === 'recommendation' ? (
         <div className="policy-tab-layout">
           <div className="policy-tab-main">
+            <RuleFlowMap
+              title="Recommendation Engine Flow"
+              subtitle="Mind-map sequence showing how subscription signals convert into a final recommendation."
+              steps={recommendationFlowSteps}
+            />
             <RuleSectionAccordion sections={recommendationSections} />
           </div>
 
@@ -331,6 +423,11 @@ export function PoliciesWorkspace({
       {activeTab === 'insight' ? (
         <div className="policy-tab-layout">
           <div className="policy-tab-main">
+            <RuleFlowMap
+              title="Quote Insight Flow"
+              subtitle="Mind-map sequence showing how recommendation outputs become actionable quote insights."
+              steps={insightFlowSteps}
+            />
             <RuleSectionAccordion sections={insightSections} />
           </div>
 
@@ -363,6 +460,207 @@ export function PoliciesWorkspace({
         </div>
       ) : null}
 
+      {activeTab === 'journey' ? (
+        <div className="policy-example-stack">
+          <section className="policy-example-hero">
+            <div>
+              <h3 className="panel-title" style={{ marginBottom: 6 }}>
+                End-to-End Flow: {workedExample.product.name}
+              </h3>
+              <p className="section-subtitle" style={{ marginTop: 0 }}>
+                One self-explanatory path from subscription signals to quote insight output and
+                reviewer action.
+              </p>
+            </div>
+            <div className="policy-example-controls">
+              <label className="policy-select-label" htmlFor="worked-policy-product-journey">
+                Example Subscription
+              </label>
+              <select
+                id="worked-policy-product-journey"
+                className="policy-select"
+                value={selectedProductId}
+                onChange={(event) =>
+                  setSelectedProductId(event.target.value as WorkedExampleProductId)
+                }
+              >
+                {workedExampleOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="policy-example-badges">
+              <Badge tone={getRiskTone(workedExample.scoring.finalRiskLevel)}>
+                Risk {workedExample.scoring.finalRiskLevel} ({workedExample.scoring.finalRiskScore})
+              </Badge>
+              <Badge tone={getDispositionTone(workedExample.recommendation.disposition)}>
+                {workedExample.recommendation.disposition}
+              </Badge>
+              <Badge tone={workedExample.guardrails.approvalRequired ? 'warn' : 'success'}>
+                {workedExample.guardrails.approvalRequired ? 'Approval Required' : 'Within Policy'}
+              </Badge>
+              <Badge tone="info">Insight {workedExample.quoteInsight.insightType}</Badge>
+            </div>
+          </section>
+
+          <ol className="policy-journey-list">
+            <li className="policy-journey-step">
+              <div className="policy-journey-head">
+                <span>1</span>
+                <h4>Subscription Signals Ingested</h4>
+              </div>
+              <p>
+                Latest snapshot from {workedExample.sourceContext.latestSnapshotDate} for{' '}
+                {workedExample.sourceContext.accountName} /{' '}
+                {workedExample.sourceContext.subscriptionNumber}.
+              </p>
+              <div className="policy-journey-grid">
+                <div className="policy-journey-item">
+                  <div className="small muted">Usage</div>
+                  <strong>{formatPercent(workedExample.inputs.usagePercentOfEntitlement)}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Active Users</div>
+                  <strong>{formatPercent(workedExample.inputs.activeUserPercent)}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Login Trend</div>
+                  <strong>{formatPercent(workedExample.inputs.loginTrend30d)}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Tickets (90d)</div>
+                  <strong>{workedExample.inputs.ticketCount90d}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Sev1 (90d)</div>
+                  <strong>{workedExample.inputs.sev1Count90d}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">CSAT</div>
+                  <strong>{workedExample.inputs.csatScore.toFixed(1)}</strong>
+                </div>
+              </div>
+            </li>
+
+            <li className="policy-journey-step">
+              <div className="policy-journey-head">
+                <span>2</span>
+                <h4>Risk Scoring Rules Applied</h4>
+              </div>
+              <p>
+                Signal thresholds were scored into risk {workedExample.scoring.finalRiskScore} (
+                {workedExample.scoring.finalRiskLevel}).
+              </p>
+              <div className="policy-journey-tag-row">
+                {workedExample.scoring.topContributors.slice(0, 4).map((step) => (
+                  <span key={`${step.signal}-${step.points}`} className="policy-journey-tag">
+                    {step.signal}: {step.points >= 0 ? '+' : ''}
+                    {step.points}
+                  </span>
+                ))}
+              </div>
+            </li>
+
+            <li className="policy-journey-step">
+              <div className="policy-journey-head">
+                <span>3</span>
+                <h4>Recommendation Rule Selected</h4>
+              </div>
+              <p>{workedExample.recommendation.ruleTriggered}</p>
+              <div className="policy-journey-grid">
+                <div className="policy-journey-item">
+                  <div className="small muted">Disposition</div>
+                  <strong>{workedExample.recommendation.disposition}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Target Discount</div>
+                  <strong>{formatPercent(workedExample.recommendation.targetDiscountPercent)}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Proposed Quantity</div>
+                  <strong>{workedExample.recommendation.proposedQuantity}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">ARR Delta</div>
+                  <strong>{formatSignedCurrency(workedExample.recommendation.arrDelta)}</strong>
+                </div>
+              </div>
+            </li>
+
+            <li className="policy-journey-step">
+              <div className="policy-journey-head">
+                <span>4</span>
+                <h4>Guardrails Checked</h4>
+              </div>
+              <div className="policy-journey-checks">
+                {workedExample.guardrails.checks.map((check) => (
+                  <div key={check.check} className="policy-journey-check">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{check.check}</div>
+                      <div className="small muted">{check.formula}</div>
+                    </div>
+                    <Badge tone={check.outcome === 'TRIGGERED' ? 'warn' : 'success'}>
+                      {check.outcome}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </li>
+
+            <li className="policy-journey-step">
+              <div className="policy-journey-head">
+                <span>5</span>
+                <h4>Quote Insight Generated</h4>
+              </div>
+              <p>{workedExample.quoteInsight.mappingRule}</p>
+              <div className="policy-journey-grid">
+                <div className="policy-journey-item">
+                  <div className="small muted">Insight Type</div>
+                  <strong>{workedExample.quoteInsight.insightType}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Confidence</div>
+                  <strong>{workedExample.quoteInsight.confidenceScore}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Fit Score</div>
+                  <strong>{workedExample.quoteInsight.fitScore}</strong>
+                </div>
+                <div className="policy-journey-item">
+                  <div className="small muted">Estimated ARR Impact</div>
+                  <strong>{formatSignedCurrency(workedExample.quoteInsight.estimatedArrImpact)}</strong>
+                </div>
+              </div>
+            </li>
+
+            <li className="policy-journey-step">
+              <div className="policy-journey-head">
+                <span>6</span>
+                <h4>Reviewer Action Outcome</h4>
+              </div>
+              <p>
+                {workedExample.guardrails.approvalRequired
+                  ? 'Outcome: route this recommendation for manager/deal-desk approval before final quote submission.'
+                  : 'Outcome: recommendation is within policy and can move directly to quote drafting/review.'}
+              </p>
+              <div className="policy-journey-tag-row">
+                <span className="policy-journey-tag">
+                  Policy: {workedExample.policyContext.matchedPolicyName}
+                </span>
+                <span className="policy-journey-tag">
+                  Final Guardrail: {workedExample.guardrails.finalGuardrailResult}
+                </span>
+                <span className="policy-journey-tag">
+                  Quote Motion: {workedExample.quoteInsight.insightType}
+                </span>
+              </div>
+            </li>
+          </ol>
+        </div>
+      ) : null}
+
       {activeTab === 'example' ? (
         <div className="policy-example-stack">
           <section className="policy-example-hero">
@@ -371,13 +669,13 @@ export function PoliciesWorkspace({
                 Example: {workedExample.product.name} ({workedExample.product.sku})
               </h3>
               <p className="section-subtitle" style={{ marginTop: 0 }}>
-                Business-first walkthrough: what the AI is suggesting, why it matters, and what
-                decision to make.
+                Business-first walkthrough using seeded production-like data, then an optional
+                technical drill-down of exactly how the policy engine produced the result.
               </p>
             </div>
             <div className="policy-example-controls">
               <label className="policy-select-label" htmlFor="worked-policy-product">
-                Example Product
+                Example Subscription
               </label>
               <select
                 id="worked-policy-product"
@@ -395,16 +693,60 @@ export function PoliciesWorkspace({
               </select>
             </div>
             <div className="policy-example-badges">
-              <Badge tone={workedExample.scoring.finalRiskLevel === 'LOW' ? 'success' : workedExample.scoring.finalRiskLevel === 'MEDIUM' ? 'warn' : 'danger'}>
+              <Badge tone={getRiskTone(workedExample.scoring.finalRiskLevel)}>
                 Risk {workedExample.scoring.finalRiskLevel} ({workedExample.scoring.finalRiskScore})
               </Badge>
-              <Badge tone={workedExample.recommendation.disposition === 'EXPAND' ? 'info' : workedExample.recommendation.disposition === 'ESCALATE' ? 'danger' : 'default'}>
+              <Badge tone={getDispositionTone(workedExample.recommendation.disposition)}>
                 {workedExample.recommendation.disposition}
               </Badge>
               <Badge tone={workedExample.guardrails.approvalRequired ? 'warn' : 'success'}>
                 {workedExample.guardrails.approvalRequired ? 'Approval Required' : 'Within Policy'}
               </Badge>
               <Badge tone="info">Insight {workedExample.quoteInsight.insightType}</Badge>
+              <Badge tone="default">
+                {workedExample.sourceContext.accountName} · {workedExample.sourceContext.subscriptionNumber}
+              </Badge>
+            </div>
+          </section>
+
+          <section className="policy-step-card">
+            <div className="policy-step-head">
+              <span>S</span>
+              <h4>Seed Data Context</h4>
+            </div>
+            <div className="policy-example-grid">
+              <div className="policy-example-item">
+                <div className="small muted">Subscriptions Loaded</div>
+                <div>{seedProfile.subscriptionCount}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Signal Snapshots</div>
+                <div>{seedProfile.snapshotCount}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Avg Snapshots / Subscription</div>
+                <div>{seedProfile.averageSnapshotsPerSubscription}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Snapshot Window</div>
+                <div>{seedProfile.snapshotWindowLabel}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Login Trend Improving</div>
+                <div>{seedProfile.improvingLoginTrendCount}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Login Trend Declining</div>
+                <div>{seedProfile.decliningLoginTrendCount}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">High Payment Risk</div>
+                <div>{seedProfile.highPaymentRiskCount}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Example Snapshot Count</div>
+                <div>{workedExample.sourceContext.snapshotCount}</div>
+              </div>
             </div>
           </section>
 
@@ -445,15 +787,40 @@ export function PoliciesWorkspace({
                 ))}
               </ul>
             </div>
+
+            <div className="policy-business-talktrack">
+              <div className="small muted" style={{ fontWeight: 700 }}>
+                How the engine works under the hood (business view)
+              </div>
+              <ul>
+                <li>
+                  Uses latest subscription signals from{' '}
+                  {workedExample.sourceContext.latestSnapshotDate}, plus trend context from{' '}
+                  {workedExample.sourceContext.snapshotWindowLabel}.
+                </li>
+                <li>
+                  Converts signal thresholds into a risk score ({workedExample.scoring.finalRiskScore}
+                  ) and maps that score to a disposition (
+                  {workedExample.recommendation.disposition}).
+                </li>
+                <li>
+                  Applies pricing guardrails from{' '}
+                  {workedExample.policyContext.matchedPolicyName} before final approval status.
+                </li>
+                <li>
+                  Emits insight type {workedExample.quoteInsight.insightType} for quote execution.
+                </li>
+              </ul>
+            </div>
           </section>
 
           <section className="policy-step-card">
             <div className="policy-step-head">
               <span>A</span>
-              <h4>All 3 Products At a Glance</h4>
+              <h4>Example Portfolio At a Glance</h4>
             </div>
             <p className="section-subtitle" style={{ marginTop: 0, marginBottom: 10 }}>
-              Use this as a quick business summary before reviewing detailed step-by-step logic.
+              Quick business summary of the currently loaded seeded examples.
             </p>
             <div className="table-wrapper">
               <table className="table">
@@ -474,6 +841,80 @@ export function PoliciesWorkspace({
                       <td>{row.moveLabel}</td>
                       <td>{row.arrDelta}</td>
                       <td>{row.approvalLabel}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="policy-step-card">
+            <div className="policy-step-head">
+              <span>B</span>
+              <h4>Signal Trajectory (Based on Seed History)</h4>
+            </div>
+            <p className="section-subtitle" style={{ marginTop: 0, marginBottom: 10 }}>
+              This helps business users understand whether the recommendation is based on improving,
+              deteriorating, or mixed product health.
+            </p>
+            <div className="policy-example-grid">
+              <div className="policy-example-item">
+                <div className="small muted">Trend Direction</div>
+                <div>{workedExample.signalTrend.trendDirection}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Usage Delta</div>
+                <div>{formatSignedPercent(workedExample.signalTrend.usageDelta)}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Active Users Delta</div>
+                <div>{formatSignedPercent(workedExample.signalTrend.activeUserDelta)}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Login Trend Delta</div>
+                <div>{formatSignedPercent(workedExample.signalTrend.loginTrendDelta)}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Ticket Delta</div>
+                <div>{formatSignedNumber(workedExample.signalTrend.ticketDelta)}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">Sev1 Delta</div>
+                <div>{formatSignedNumber(workedExample.signalTrend.sev1Delta)}</div>
+              </div>
+              <div className="policy-example-item">
+                <div className="small muted">CSAT Delta</div>
+                <div>{formatSignedNumber(workedExample.signalTrend.csatDelta)}</div>
+              </div>
+            </div>
+
+            <div className="table-wrapper" style={{ marginTop: 12 }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Snapshot Date</th>
+                    <th>Usage</th>
+                    <th>Active Users</th>
+                    <th>Login Trend 30d</th>
+                    <th>Tickets (90d)</th>
+                    <th>Sev1 (90d)</th>
+                    <th>CSAT</th>
+                    <th>Payment Risk</th>
+                    <th>Adoption Band</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workedExample.signalTrend.timeline.map((point) => (
+                    <tr key={`${workedExample.product.id}-${point.snapshotDate}`}>
+                      <td>{point.snapshotDate}</td>
+                      <td>{formatPercent(point.usagePercentOfEntitlement)}</td>
+                      <td>{formatPercent(point.activeUserPercent)}</td>
+                      <td>{formatPercent(point.loginTrend30d)}</td>
+                      <td>{point.ticketCount90d}</td>
+                      <td>{point.sev1Count90d}</td>
+                      <td>{point.csatScore.toFixed(1)}</td>
+                      <td>{point.paymentRiskBand}</td>
+                      <td>{point.adoptionBand}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -552,6 +993,18 @@ export function PoliciesWorkspace({
                     </tbody>
                   </table>
                 </div>
+                {workedExample.scoring.topContributors.length > 0 ? (
+                  <div className="policy-example-footnote" style={{ marginTop: 10 }}>
+                    <div className="small muted" style={{ fontWeight: 700 }}>
+                      Largest contributors
+                    </div>
+                    <div className="small muted">
+                      {workedExample.scoring.topContributors
+                        .map((step) => `${step.signal}: ${step.points >= 0 ? '+' : ''}${step.points}`)
+                        .join(' · ')}
+                    </div>
+                  </div>
+                ) : null}
               </section>
 
               <section className="policy-step-card">

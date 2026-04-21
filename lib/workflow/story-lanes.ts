@@ -75,15 +75,15 @@ export function storyLaneForAction(action: string | null | undefined): StoryLane
 }
 
 export type QuoteTrack = {
-  key: 'PRIMARY_RENEW_AS_IS'
+  key: 'BASELINE_RENEW_AS_IS'
   label: string
   description: string
 }
 
-export function primaryQuoteTrack(): QuoteTrack {
+export function baselineQuoteTrack(): QuoteTrack {
   return {
-    key: 'PRIMARY_RENEW_AS_IS',
-    label: 'Primary Quote',
+    key: 'BASELINE_RENEW_AS_IS',
+    label: 'Baseline Quote',
     description: 'Renew-as-is baseline quote for this renewal case.',
   }
 }

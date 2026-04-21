@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { generateQuoteInsightNarrativesForRenewalCase } from '@/lib/db/generate-ai-content'
 import { recalculateQuoteInsights } from '@/lib/db/quote-insights'
+import { generateQuoteScenariosForRenewalCase } from '@/lib/db/quote-scenarios'
 
 type Context = {
   params: Promise<{
@@ -13,12 +14,14 @@ export async function POST(_request: Request, context: Context) {
     const { caseId } = await context.params
     const insightResult = await recalculateQuoteInsights(caseId)
     const aiResult = await generateQuoteInsightNarrativesForRenewalCase(caseId)
+    const scenarioResult = await generateQuoteScenariosForRenewalCase(caseId)
 
     return NextResponse.json({
       ok: true,
       caseId,
       quoteInsights: insightResult,
       ai: aiResult.generated,
+      quoteScenarios: scenarioResult,
     })
   } catch (error) {
     console.error('Failed to regenerate quote insights with AI rationale', error)

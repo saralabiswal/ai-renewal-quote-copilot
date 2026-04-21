@@ -235,7 +235,7 @@
     "renewalCaseId": "rcase_quantum_grid",
     "renewalCaseItemId": null,
     "narrativeType": "RATIONALE",
-    "content": "Quantum Enterprise Grid is currently assessed as medium risk with a recommended action of mixed action plan. The bundle spans 4 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Expansion: Strategic commercial growth and very strong adoption justify an expansion of the CPQ line.\n- Defensive Renewal: One data line is showing weaker engagement and should not be used for monetization this cycle.\n- Cross Sell: The account\u2019s broad infrastructure and application footprint supports a new AI Data Platform line.\n- Approval is required because Strategic bundle includes mixed pricing actions and at least one non-standard quote insight..",
+    "content": "Quantum Enterprise Grid is currently assessed as medium risk with a recommended action of mixed action plan. The bundle spans 4 quote insights across the renewal motion and should be handled through a review-led renewal workflow.\n\nKey drivers:\n- Expansion: Strategic commercial growth and very strong adoption justify an expansion of the CPQ line.\n- Defensive Renewal: One data line is showing weaker engagement and should not be used for monetization this cycle.\n- Cross Sell: The account’s broad infrastructure and application footprint supports a new AI Data Platform line.\n- Approval is required because Strategic bundle includes mixed pricing actions and at least one non-standard quote insight..",
     "modelLabel": "fallback-no-api-key",
     "createdAt": "2026-04-17T10:00:00Z"
   },
@@ -248,5 +248,345 @@
     "content": "Quantum Enterprise Grid requires approval review because the renewal bundle includes expansion, defensive renewal, cross sell and the current commercial posture triggers an exception. The proposed quote should protect retention where needed while preserving margin discipline on healthier lines.\n\nWhy approval is needed:\n- Strategic bundle includes mixed pricing actions and at least one non-standard quote insight.\n- Bundle risk level is medium with a recommended action of mixed action plan.\n- Reviewer should confirm that discounts, flat-pricing holds, or added lines align to the underlying subscription signals.\n\nRecommended reviewer posture:\n- Validate that each quote action is traceable to a quote insight.\n- Approve only if the proposed commercial posture is consistent with the account's churn and financial signals.",
     "modelLabel": "fallback-no-api-key",
     "createdAt": "2026-04-17T10:05:00Z"
+  },
+  {
+    "id": "rn_qi_001",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_apex_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_001",
+    "content": "Renew Fusion at current commercial posture.\nStable usage and low renewal risk support a standard renewal on the Fusion line.\nRecommended action: Keep the Fusion line unchanged in the quote and preserve current pricing posture.\n\nCommercial readout:\n- Product: Oracle Fusion Applications (ORCL-FUSION-APPS)\n- Confidence/Fit: 74/72\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_002",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_vertex_industrial",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_002",
+    "content": "Apply controlled uplift to OCI commitment.\nHealthy infrastructure adoption and low churn risk support a modest uplift on the OCI renewal line.\nRecommended action: Renew OCI with a controlled uplift and no exception approval.\n\nCommercial readout:\n- Product: Oracle Cloud Infrastructure (ORCL-OCI)\n- Confidence/Fit: 69/70\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_003",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_bluepeak",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_003",
+    "content": "Protect NetSuite renewal with a controlled concession.\nCommercial sensitivity and moderate churn risk justify a retention-oriented concession on the core NetSuite line.\nRecommended action: Renew NetSuite with a controlled discount that requires approval if the exception exceeds policy tolerance.\n\nCommercial readout:\n- Product: Oracle NetSuite (ORCL-NETSUITE)\n- Confidence/Fit: 82/78\n- Recommended quantity: 1\n- Recommended unit price: $64,800\n- Recommended discount: 10%\n- Estimated ARR impact: $-7,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_004",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_bluepeak",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_004",
+    "content": "Hold Subscription Management flat to preserve retention.\nThe secondary revenue-operations line should support retention rather than absorb price recovery this cycle.\nRecommended action: Renew Subscription Management at flat pricing with no additional uplift.\n\nCommercial readout:\n- Product: Oracle Subscription Management (ORCL-SUBSCRIPTION-MGMT)\n- Confidence/Fit: 71/68\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_005",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_summitone",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_005",
+    "content": "Concede selectively on CPQ to protect the account.\nElevated support burden and weak recent adoption on the CPQ line support a selective concession rather than a price increase.\nRecommended action: Renew CPQ with a controlled concession and escalate for approval.\n\nCommercial readout:\n- Product: Oracle CPQ (ORCL-CPQ)\n- Confidence/Fit: 80/73\n- Recommended quantity: 180\n- Recommended unit price: $248.4\n- Recommended discount: 10%\n- Estimated ARR impact: $-4,968\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_006",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_summitone",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_006",
+    "content": "Keep Fusion commercially stable while protecting the bundle.\nThe core Fusion line should remain commercially stable while the weaker line absorbs the concession pressure.\nRecommended action: Renew Fusion without additional concession and hold bundle posture for approval review.\n\nCommercial readout:\n- Product: Oracle Fusion Applications (ORCL-FUSION-APPS)\n- Confidence/Fit: 66/64\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_007",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_orion_revenue",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_007",
+    "content": "Normalize discounting on Subscription Management.\nLow churn risk and severe margin erosion support a firmer pricing posture on the Subscription Management line.\nRecommended action: Reduce discount depth on renewal and move the line closer to standard policy.\n\nCommercial readout:\n- Product: Oracle Subscription Management (ORCL-SUBSCRIPTION-MGMT)\n- Confidence/Fit: 87/84\n- Recommended quantity: 1\n- Recommended unit price: $70,720\n- Recommended discount: 4%\n- Estimated ARR impact: $2,720\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_008",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_northstar_telecom",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_008",
+    "content": "Recover margin on the Subscription Management renewal.\nHistoric over-discounting is not supported by current churn posture, making this a good candidate for discount reduction.\nRecommended action: Renew with a tighter discount and improved net price.\n\nCommercial readout:\n- Product: Oracle Subscription Management (ORCL-SUBSCRIPTION-MGMT)\n- Confidence/Fit: 85/82\n- Recommended quantity: 1\n- Recommended unit price: $66,120\n- Recommended discount: 8%\n- Estimated ARR impact: $6,120\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_009",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_redwood_energy",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_009",
+    "content": "Hold OCI pricing flat because usage is deteriorating.\nDeclining utilization and moderate churn risk suggest a defensive renewal posture on the OCI line.\nRecommended action: Renew the OCI line at flat pricing with no aggressive uplift.\n\nCommercial readout:\n- Product: Oracle Cloud Infrastructure (ORCL-OCI)\n- Confidence/Fit: 79/77\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_010",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_horizon_util",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_010",
+    "content": "Restrain uplift on the subscription line.\nUsage decline and increasing service burden indicate that uplift should be restrained on this renewal.\nRecommended action: Renew the line at flat pricing and avoid monetization pressure.\n\nCommercial readout:\n- Product: Oracle Subscription Management (ORCL-SUBSCRIPTION-MGMT)\n- Confidence/Fit: 81/75\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_011",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_lumina_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_011",
+    "content": "Expand CPQ capacity for active quoting teams.\nCPQ is operating near entitlement capacity with strong active adoption and a healthy support profile.\nRecommended action: Add 95 incremental units of CPQ to the quote while retaining the recommended pricing posture.\n\nCommercial readout:\n- Product: Oracle CPQ (ORCL-CPQ)\n- Confidence/Fit: 92/94\n- Recommended quantity: 95\n- Recommended unit price: $276\n- Recommended discount: 8%\n- Estimated ARR impact: $26,220\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_012",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_arclight_saas",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_012",
+    "content": "Expand OCI commitment for growing workload demand.\nInfrastructure usage and workload growth justify an expansion of the OCI commitment.\nRecommended action: Add 1 incremental units of Cloud Infrastructure to the quote while retaining the recommended pricing posture.\n\nCommercial readout:\n- Product: Oracle Cloud Infrastructure (ORCL-OCI)\n- Confidence/Fit: 88/90\n- Recommended quantity: 1\n- Recommended unit price: $154,000\n- Recommended discount: 5%\n- Estimated ARR impact: $154,000\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_013",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_arclight_saas",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_013",
+    "content": "Add AI Data Platform to support governed AI workloads.\nThe account shows strong infrastructure and database adoption but lacks a data foundation product for governed AI use cases.\nRecommended action: Add Oracle AI Data Platform as a new cross-sell line on the quote.\n\nCommercial readout:\n- Product: Oracle AI Data Platform (ORCL-AI-DATA-PLATFORM)\n- Confidence/Fit: 78/83\n- Recommended quantity: 1\n- Recommended unit price: $91,200\n- Recommended discount: 5%\n- Estimated ARR impact: $91,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_014",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_harbor_fin",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_014",
+    "content": "Add AI Data Platform for governed data and analytics.\nThe account has a healthy Fusion and CPQ footprint and a clear whitespace opportunity for AI-ready data capabilities.\nRecommended action: Create a new AI Data Platform line in the quote.\n\nCommercial readout:\n- Product: Oracle AI Data Platform (ORCL-AI-DATA-PLATFORM)\n- Confidence/Fit: 77/82\n- Recommended quantity: 1\n- Recommended unit price: $91,200\n- Recommended discount: 5%\n- Estimated ARR impact: $91,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_015",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_harbor_fin",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_015",
+    "content": "Position Cloud@Customer for deployment-sensitive workloads.\nThe account combines healthy adoption with data residency sensitivity, making hybrid deployment a credible adjacent motion.\nRecommended action: Recommend Cloud@Customer as an additional quote line or a follow-on option.\n\nCommercial readout:\n- Product: Oracle Cloud@Customer (ORCL-CLOUD-AT-CUSTOMER)\n- Confidence/Fit: 66/74\n- Recommended quantity: 1\n- Recommended unit price: $134,900\n- Recommended discount: 5%\n- Estimated ARR impact: $134,900\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_016",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_crestview_health",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_016",
+    "content": "Add AI Data Platform to modernize healthcare analytics.\nThe installed healthcare and enterprise application footprint suggests a strong fit for governed AI and analytics modernization.\nRecommended action: Add AI Data Platform as a strategic quote line.\n\nCommercial readout:\n- Product: Oracle AI Data Platform (ORCL-AI-DATA-PLATFORM)\n- Confidence/Fit: 80/84\n- Recommended quantity: 1\n- Recommended unit price: $91,200\n- Recommended discount: 5%\n- Estimated ARR impact: $91,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_017",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_crestview_health",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_017",
+    "content": "Add Cloud@Customer for regulated healthcare deployment.\nCompliance-sensitive operations make Cloud@Customer a strong deployment option for this renewal relationship.\nRecommended action: Add Cloud@Customer as a new line to support controlled deployment.\n\nCommercial readout:\n- Product: Oracle Cloud@Customer (ORCL-CLOUD-AT-CUSTOMER)\n- Confidence/Fit: 72/79\n- Recommended quantity: 1\n- Recommended unit price: $134,900\n- Recommended discount: 5%\n- Estimated ARR impact: $134,900\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_018",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_meridian_public",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_018",
+    "content": "Recommend Cloud@Customer for public-sector deployment control.\nStrong platform fit combined with sovereignty constraints supports a Cloud@Customer motion.\nRecommended action: Add Cloud@Customer to the quote and route for strategic approval.\n\nCommercial readout:\n- Product: Oracle Cloud@Customer (ORCL-CLOUD-AT-CUSTOMER)\n- Confidence/Fit: 79/83\n- Recommended quantity: 1\n- Recommended unit price: $134,900\n- Recommended discount: 4%\n- Estimated ARR impact: $134,900\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_019",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_meridian_public",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_019",
+    "content": "Position Exadata Cloud@Customer for regulated data workloads.\nThe customer profile supports a performance-sensitive hybrid database deployment expansion.\nRecommended action: Add Exadata Cloud@Customer as a premium strategic line or hold for reviewer selection.\n\nCommercial readout:\n- Product: Oracle Exadata Cloud@Customer (ORCL-EXADATA-CAC)\n- Confidence/Fit: 63/71\n- Recommended quantity: 1\n- Recommended unit price: $201,600\n- Recommended discount: 4%\n- Estimated ARR impact: $201,600\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_020",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_novacare",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_020",
+    "content": "Add Autonomous AI Database for healthcare analytics modernization.\nData growth and a strong core healthcare footprint make Autonomous AI Database a credible modernization step.\nRecommended action: Add Autonomous AI Database as a new quote line.\n\nCommercial readout:\n- Product: Oracle Autonomous AI Database (ORCL-AUTONOMOUS-AI-DB)\n- Confidence/Fit: 76/81\n- Recommended quantity: 1\n- Recommended unit price: $121,600\n- Recommended discount: 5%\n- Estimated ARR impact: $121,600\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_021",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_novacare",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_021",
+    "content": "Attach AI Data Platform to unify data for AI use cases.\nThe account lacks an AI-ready data layer despite a healthy application and infrastructure base.\nRecommended action: Add AI Data Platform as a complementary line on the quote.\n\nCommercial readout:\n- Product: Oracle AI Data Platform (ORCL-AI-DATA-PLATFORM)\n- Confidence/Fit: 74/79\n- Recommended quantity: 1\n- Recommended unit price: $91,200\n- Recommended discount: 5%\n- Estimated ARR impact: $91,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_022",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_skyline_multi",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_022",
+    "content": "Add Database@Azure for multicloud alignment.\nThe customer has a strong Oracle infrastructure footprint and a clear fit for multicloud database deployment.\nRecommended action: Add Database@Azure as a new multicloud line item.\n\nCommercial readout:\n- Product: Oracle Database@Azure (ORCL-DATABASE-AZURE)\n- Confidence/Fit: 75/80\n- Recommended quantity: 1\n- Recommended unit price: $112,100\n- Recommended discount: 5%\n- Estimated ARR impact: $112,100\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_023",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_skyline_multi",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_023",
+    "content": "Expand Autonomous AI Database commitment.\nGrowing data workloads support an expansion of the Autonomous AI Database commitment.\nRecommended action: Add 1 incremental units of Autonomous AI Database to the quote while retaining the recommended pricing posture.\n\nCommercial readout:\n- Product: Oracle Autonomous AI Database (ORCL-AUTONOMOUS-AI-DB)\n- Confidence/Fit: 83/86\n- Recommended quantity: 1\n- Recommended unit price: $134,400\n- Recommended discount: 4%\n- Estimated ARR impact: $134,400\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_024",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_aster_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_024",
+    "content": "Recover margin on the subscription operations line.\nOne revenue-operations line remains over-discounted relative to churn posture and should absorb price normalization.\nRecommended action: Reduce discount on the Subscription Management line in the quote.\n\nCommercial readout:\n- Product: Oracle Subscription Management (ORCL-SUBSCRIPTION-MGMT)\n- Confidence/Fit: 84/80\n- Recommended quantity: 1\n- Recommended unit price: $70,720\n- Recommended discount: 4%\n- Estimated ARR impact: $2,720\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_025",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_aster_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_025",
+    "content": "Use a controlled concession on the weaker infrastructure line.\nA weaker adoption signal on the infrastructure line justifies a limited concession to preserve the overall bundle.\nRecommended action: Renew OCI with a controlled concession and keep the bundle under review.\n\nCommercial readout:\n- Product: Oracle Cloud Infrastructure (ORCL-OCI)\n- Confidence/Fit: 74/69\n- Recommended quantity: 1\n- Recommended unit price: $131,600\n- Recommended discount: 6%\n- Estimated ARR impact: $-8,400\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_026",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_aster_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_026",
+    "content": "Expand CPQ seats for strong commercial adoption.\nOne CPQ line shows strong usage and is a clear candidate for expansion in the same renewal motion.\nRecommended action: Add 80 incremental units of CPQ to the quote while retaining the recommended pricing posture.\n\nCommercial readout:\n- Product: Oracle CPQ (ORCL-CPQ)\n- Confidence/Fit: 90/92\n- Recommended quantity: 80\n- Recommended unit price: $276\n- Recommended discount: 8%\n- Estimated ARR impact: $22,080\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_027",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_aster_commerce",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_027",
+    "content": "Add AI Data Platform to extend the commercial platform.\nThe account has a broad footprint but no governed AI/data layer, creating a strong adjacent cross-sell opportunity.\nRecommended action: Add AI Data Platform as a new quote line.\n\nCommercial readout:\n- Product: Oracle AI Data Platform (ORCL-AI-DATA-PLATFORM)\n- Confidence/Fit: 78/82\n- Recommended quantity: 1\n- Recommended unit price: $91,200\n- Recommended discount: 5%\n- Estimated ARR impact: $91,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_028",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_helio_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_028",
+    "content": "Concede selectively on CPQ to protect renewal momentum.\nA weaker commercial line in the bundle needs a targeted concession to preserve the broader renewal.\nRecommended action: Renew CPQ with a controlled concession and require reviewer validation.\n\nCommercial readout:\n- Product: Oracle CPQ (ORCL-CPQ)\n- Confidence/Fit: 73/70\n- Recommended quantity: 220\n- Recommended unit price: $259.44\n- Recommended discount: 6%\n- Estimated ARR impact: $-3,432\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_029",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_helio_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_029",
+    "content": "Normalize pricing on Subscription Management.\nLow churn and acceptable adoption support discount reduction on the subscription operations line.\nRecommended action: Renew with tighter discounting and improved margin posture.\n\nCommercial readout:\n- Product: Oracle Subscription Management (ORCL-SUBSCRIPTION-MGMT)\n- Confidence/Fit: 81/78\n- Recommended quantity: 1\n- Recommended unit price: $69,400\n- Recommended discount: 5%\n- Estimated ARR impact: $3,400\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_030",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_helio_mfg",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_030",
+    "content": "Add Industry Applications as a vertical-fit extension.\nThe account profile suggests a credible fit for industry-specific functionality that is not currently owned.\nRecommended action: Add Oracle Industry Applications as a new quote line.\n\nCommercial readout:\n- Product: Oracle Industry Applications (ORCL-INDUSTRY-APPS)\n- Confidence/Fit: 71/76\n- Recommended quantity: 1\n- Recommended unit price: $83,600\n- Recommended discount: 5%\n- Estimated ARR impact: $83,600\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_031",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_quantum_grid",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_031",
+    "content": "Expand CPQ for strategic quoting growth.\nStrategic commercial growth and very strong adoption justify an expansion of the CPQ line.\nRecommended action: Add 310 incremental units of CPQ to the quote while retaining the recommended pricing posture.\n\nCommercial readout:\n- Product: Oracle CPQ (ORCL-CPQ)\n- Confidence/Fit: 91/93\n- Recommended quantity: 310\n- Recommended unit price: $276\n- Recommended discount: 8%\n- Estimated ARR impact: $85,560\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_032",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_quantum_grid",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_032",
+    "content": "Hold pricing flat on the declining database line.\nOne data line is showing weaker engagement and should not be used for monetization this cycle.\nRecommended action: Renew the database line at flat pricing with no uplift.\n\nCommercial readout:\n- Product: Oracle Autonomous AI Database (ORCL-AUTONOMOUS-AI-DB)\n- Confidence/Fit: 72/68\n- Recommended quantity: No quantity override.\n- Recommended unit price: No unit price override.\n- Recommended discount: No discount override.\n- Estimated ARR impact: Not explicitly modeled in this seed record.\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_033",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_quantum_grid",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_033",
+    "content": "Add AI Data Platform as the governed data layer.\nThe account’s broad infrastructure and application footprint supports a new AI Data Platform line.\nRecommended action: Add AI Data Platform to the strategic quote.\n\nCommercial readout:\n- Product: Oracle AI Data Platform (ORCL-AI-DATA-PLATFORM)\n- Confidence/Fit: 77/83\n- Recommended quantity: 1\n- Recommended unit price: $91,200\n- Recommended discount: 5%\n- Estimated ARR impact: $91,200\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
+  },
+  {
+    "id": "rn_qi_034",
+    "scopeType": "CASE",
+    "renewalCaseId": "rcase_quantum_grid",
+    "renewalCaseItemId": null,
+    "narrativeType": "QUOTE_INSIGHT_qi_034",
+    "content": "Position Cloud@Customer for strategic deployment flexibility.\nThe strategic customer profile suggests a credible hybrid deployment motion alongside the base renewal.\nRecommended action: Add Cloud@Customer as an optional strategic line and route for approval.\n\nCommercial readout:\n- Product: Oracle Cloud@Customer (ORCL-CLOUD-AT-CUSTOMER)\n- Confidence/Fit: 65/73\n- Recommended quantity: 1\n- Recommended unit price: $134,900\n- Recommended discount: 4%\n- Estimated ARR impact: $134,900\n\nThis narrative is pre-seeded so demos show AI context immediately before any manual regeneration.",
+    "modelLabel": "fallback-no-api-key",
+    "createdAt": "2026-04-17T10:30:00Z"
   }
 ]
