@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useActionFeedback } from '@/components/ui/use-action-feedback'
 
 type Props = {
   caseId: string
@@ -13,6 +14,7 @@ export function AddOpportunityToQuoteButton({ caseId, opportunityId, isAddedToQu
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { didSucceed, flashSuccess } = useActionFeedback()
 
   async function handleClick() {
     try {
@@ -29,6 +31,7 @@ export function AddOpportunityToQuoteButton({ caseId, opportunityId, isAddedToQu
         throw new Error(body?.error ?? 'Failed to add opportunity to quote.')
       }
 
+      flashSuccess()
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error.')
@@ -45,9 +48,12 @@ export function AddOpportunityToQuoteButton({ caseId, opportunityId, isAddedToQu
     <div className="opportunity-action-stack">
       <button
         type="button"
-        className="button-link"
+        className={`button-link action-feedback-button${isLoading ? ' is-loading' : ''}${
+          didSucceed ? ' is-success' : ''
+        }`}
         onClick={handleClick}
         disabled={isLoading}
+        aria-busy={isLoading}
       >
         {isLoading ? 'Adding…' : 'Add to Quote'}
       </button>

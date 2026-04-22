@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useActionFeedback } from '@/components/ui/use-action-feedback'
 
 export function RecalculateButton({
   caseId,
@@ -17,6 +18,7 @@ export function RecalculateButton({
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { didSucceed, flashSuccess } = useActionFeedback()
 
   async function handleClick() {
     try {
@@ -32,6 +34,7 @@ export function RecalculateButton({
         throw new Error(body?.error ?? 'Failed to regenerate recommendation.')
       }
 
+      flashSuccess()
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error.')
@@ -46,7 +49,10 @@ export function RecalculateButton({
         type="button"
         onClick={handleClick}
         disabled={isLoading}
-        className={buttonClassName}
+        aria-busy={isLoading}
+        className={`${buttonClassName} action-feedback-button${isLoading ? ' is-loading' : ''}${
+          didSucceed ? ' is-success' : ''
+        }`}
         style={{ width: '100%', justifyContent: 'center' }}
       >
         {isLoading ? loadingLabel : label}

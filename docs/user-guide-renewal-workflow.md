@@ -1,19 +1,19 @@
-# User Guide: End-to-End Flow (RC-ACCT-1016)
+# User Guide: End-to-End Workflow (RC-ACCT-1016)
 
-This guide walks through the complete self-serve flow using the seeded example:
+This guide documents the complete workflow using the seeded reference case:
 
 - Renewal Case Number: `RC-ACCT-1016`
 - Renewal Case ID: `rcase_aster_commerce`
 - Baseline Quote Number: `Q-ACCT-1016`
 - Baseline Quote Draft ID: `qd_aster_commerce`
 
-For a narrated, step-by-step recording flow, use:
+For a narrated walkthrough, use:
 
 - `docs/demo-recording-runbook-rc-acct-1016.md`
 
-## 1. Start the app
+## 1. Start the Application
 
-From repo root:
+From the repository root:
 
 ```bash
 npm install
@@ -25,17 +25,21 @@ Open `http://localhost:3000` (or the fallback port shown in terminal).
 
 ![Dashboard](assets/user-guide/01-dashboard.png)
 
-## 2. Step 0 (Recommended): Policy Studio
+## 2. Step 0: Policy Studio (Reference)
 
 Go to `Policy Studio` from the sidebar (`/policies`).
 
-What to review:
+Review:
 
 1. `Seed Data Context` for snapshot coverage and trend mix.
 2. `Example Subscription` selector to switch among seeded subscriptions.
 3. `Business Interpretation` plus `How the engine works under the hood (business view)`.
 4. `Signal Trajectory` to see historical shifts across snapshot dates.
-5. `Technical calculation breakdown (optional)` for full formula-level traceability.
+5. `Technical calculation breakdown` (optional) for formula-level traceability.
+6. `Prompt Governance` tab:
+   - `Current LLM Prompts`
+   - exact `System Prompt`
+   - current `Input Sent To LLM` template for each AI stage
 
 ![Policy Studio](assets/user-guide/07-policy-studio.png)
 
@@ -43,7 +47,7 @@ What to review:
 
 Go to `Renewal Subscriptions` from the sidebar (`/renewal-cases?view=list`).
 
-What to do:
+Actions:
 
 1. Find Aster Commerce account rows.
 2. Expand an account to review baseline subscription lines.
@@ -55,7 +59,7 @@ What to do:
 
 Go to `Case Decision Board` (`/renewal-cases`).
 
-What to do:
+Actions:
 
 1. Expand relevant storyboard lanes.
 2. Find case `RC-ACCT-1016`.
@@ -63,11 +67,11 @@ What to do:
 
 ![Case Decision Board](assets/user-guide/03-case-decision-board.png)
 
-## 5. Run case workflow for RC-ACCT-1016
+## 5. Run the Case Workflow for RC-ACCT-1016
 
 Open: `/renewal-cases/rcase_aster_commerce`
 
-What to do in Section A:
+In Section A:
 
 1. Keep scenario selection at `BASE_CASE` for first run.
 2. Click `Run End-to-End AI Workflow`.
@@ -75,12 +79,16 @@ What to do in Section A:
    - typed streaming reasoning
    - step-by-step progress
    - workflow summary
+4. For any AI step, click `View Prompt Used` to inspect the exact current prompt text.
 
-Then review:
+Then complete:
 
 1. Section B `What Changed`.
 2. Section C `Quote Insights` and apply selected actions to the Baseline Quote.
-3. If needed, click `Regenerate Insights + AI Rationale` to refresh narratives for the latest run.
+3. If required, click `Regenerate Insights + AI Rationale` to refresh narratives for the latest run.
+4. In each Quote Insight card, open `View Prompt Used` to see:
+   - exact quote-insight `System Prompt`
+   - exact `Input Sent To LLM` generated for that insight
 
 ![Case Decision Workspace](assets/user-guide/04-case-decision-workspace.png)
 
@@ -88,9 +96,9 @@ Then review:
 
 Open: `/scenario-quotes/rcase_aster_commerce`
 
-What to do:
+Actions:
 
-1. Let the page auto-generate scenarios on load (default behavior when baseline and insights are ready).
+1. Allow the page to auto-generate scenarios on load (default behavior when baseline and insights are ready).
 2. Click `Regenerate Quote Scenarios` only if scenarios are stale or you want a fresh run.
 3. Select a scenario in `Scenario Quote Navigator`.
 4. Review:
@@ -98,7 +106,7 @@ What to do:
    - line-level comparison vs baseline
 5. Click `Mark as Preferred Scenario` if appropriate.
 
-Note:
+Notes:
 
 - Scenario quotes are read-only compare artifacts.
 - Baseline Quote remains the editable quote source.
@@ -109,7 +117,7 @@ Note:
 
 Open board: `/quote-drafts`
 
-What to do:
+Actions:
 
 1. Find `Q-ACCT-1016` and review the row-level scenario cues next to `Open Scenario Quotes`:
    - `N Scenarios` (generated count)
@@ -125,7 +133,7 @@ Important:
 
 ![Quote Draft Board](assets/user-guide/06-quote-draft-review.png)
 
-## 8. Verify completion
+## 8. Verify Completion
 
 After decision:
 

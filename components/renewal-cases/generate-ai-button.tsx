@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useActionFeedback } from '@/components/ui/use-action-feedback'
 
 export function GenerateAiButton({
   caseId,
@@ -17,6 +18,7 @@ export function GenerateAiButton({
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { didSucceed, flashSuccess } = useActionFeedback()
 
   async function handleClick() {
     try {
@@ -32,6 +34,7 @@ export function GenerateAiButton({
         throw new Error(body?.error ?? 'Failed to generate AI guidance.')
       }
 
+      flashSuccess()
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error.')
@@ -44,9 +47,12 @@ export function GenerateAiButton({
     <div className="flex flex-col items-stretch gap-2">
       <button
         type="button"
-        className={buttonClassName}
+        className={`${buttonClassName} action-feedback-button${isLoading ? ' is-loading' : ''}${
+          didSucceed ? ' is-success' : ''
+        }`}
         onClick={handleClick}
         disabled={isLoading}
+        aria-busy={isLoading}
         style={{ width: '100%', justifyContent: 'center' }}
       >
         {isLoading ? loadingLabel : label}

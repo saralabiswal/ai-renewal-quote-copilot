@@ -41,19 +41,25 @@ export function DemoScenarioSelector({
   }
 
   const selector = (
-    <select
-      value={value}
-      onChange={(e) => handleChange(e.target.value as DemoScenarioKey)}
-      disabled={isSaving}
-      className="input"
-      style={embedded ? { width: '100%' } : { minWidth: 260 }}
-    >
-      {SCENARIOS.map((scenario) => (
-        <option key={scenario.key} value={scenario.key}>
-          {scenario.label}
-        </option>
-      ))}
-    </select>
+    <div className={`scenario-selector-shell${isSaving ? ' is-saving' : ''}`}>
+      <select
+        value={value}
+        onChange={(e) => handleChange(e.target.value as DemoScenarioKey)}
+        disabled={isSaving}
+        aria-busy={isSaving}
+        className={`input scenario-selector-input${isSaving ? ' is-saving' : ''}`}
+        style={embedded ? { width: '100%' } : { minWidth: 260 }}
+      >
+        {SCENARIOS.map((scenario) => (
+          <option key={scenario.key} value={scenario.key}>
+            {scenario.label}
+          </option>
+        ))}
+      </select>
+      <span className={`scenario-selector-state${isSaving ? ' is-visible' : ''}`}>
+        {isSaving ? 'Saving scenario...' : 'Scenario ready'}
+      </span>
+    </div>
   )
 
   if (embedded) {

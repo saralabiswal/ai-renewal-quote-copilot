@@ -41,7 +41,7 @@ export default async function QuoteDraftDetailPage({
   const quotePurpose = 'Finalize quote-level approval using baseline-vs-current commercial evidence.'
   const quoteNextStep = reviewComplete
     ? 'Decision is complete. Use this page for audit review or return to case workspace.'
-    : 'Review the change strip and line deltas, then approve or reject from Decision Actions.'
+    : 'Review the change strip and line deltas, then use Quote Review Actions to approve or reject.'
 
   return (
     <div className="page">
@@ -152,23 +152,6 @@ export default async function QuoteDraftDetailPage({
 
       <QuoteDraftSummary summary={quoteDraft.summary} />
       <QuoteDraftChangeStrip summary={quoteDraft.changeSummary} />
-
-      <section className="card quote-decision-bar">
-        <div>
-          <h3 className="panel-title">Decision Actions</h3>
-          <p className="section-subtitle">
-            Approval and rejection apply to this Quote Draft, not the Renewal Case.
-          </p>
-        </div>
-
-        <div className="quote-decision-bar-actions">
-          <div className="quote-decision-status">
-            <span className="small muted">Current Decision Status</span>
-            <Badge tone={quoteDraft.statusTone}>{quoteDraft.statusLabel}</Badge>
-          </div>
-          <ReviewActions quoteDraftId={quoteDraft.id} align="left" />
-        </div>
-      </section>
 
       <QuoteDraftLinesTable lines={quoteDraft.lines} />
     </div>

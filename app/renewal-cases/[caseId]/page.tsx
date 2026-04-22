@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { RenewalCaseSummaryCards } from '@/components/renewal-cases/renewal-case-summary-cards'
 import { RecalculateButton } from '@/components/renewal-cases/recalculate-button'
 import { GenerateAiButton } from '@/components/renewal-cases/generate-ai-button'
-import { ReviewActions } from '@/components/renewal-cases/review-actions'
 import { QuoteInsightsPanel } from '@/components/renewal-cases/quote-insights-panel'
 import { RenewalCaseReviewWorkspace } from '@/components/renewal-cases/review-workspace'
 import { getRenewalCaseById } from '@/lib/db/renewal-cases'
@@ -115,13 +114,9 @@ export default async function RenewalCaseDetailPage({
               </div>
             )}
 
-            {renewalCase.quoteDraft ? (
-              <ReviewActions quoteDraftId={renewalCase.quoteDraft.id} align="left" />
-            ) : (
-              <div className="small muted">
-                Quote review actions appear after a baseline quote draft is linked.
-              </div>
-            )}
+            <div className="small muted">
+              Final Approve/Reject/Request Revision actions are available in Quote Draft Board.
+            </div>
           </div>
         </div>
       </section>
@@ -190,74 +185,77 @@ export default async function RenewalCaseDetailPage({
 
         <details className="manual-workflow-shell case-manual-secondary">
           <summary className="manual-workflow-summary">Manual Workflow Actions (Optional)</summary>
-
-          <p className="manual-workflow-subtitle">
-            Use these controls to run one mutation at a time when you want detailed walkthrough
-            pacing.
-          </p>
-
-          <div className="manual-scenario-shell">
-            <div className="small muted" style={{ fontWeight: 700 }}>
-              Scenario Selection
-            </div>
-            <div className="small muted">
-              Scenario selection is shared across AI Live and Manual actions. Choose it in either
-              panel.
-            </div>
-            <DemoScenarioSelector
-              caseId={renewalCase.id}
-              selectedScenarioKey={renewalCase.demoScenarioKey ?? 'BASE_CASE'}
-              embedded
-            />
-          </div>
-
-          <div className="manual-workflow-grid" style={{ marginTop: 10 }}>
-            <div className="manual-workflow-step-card">
-              <div className="small muted" style={{ marginBottom: 4 }}>
-                Step 1
-              </div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Recommendation</div>
-              <p className="workflow-mutation-helper">
-                Updates risk, action, and approval posture. Marks quote insights as stale.
+          <div className="manual-workflow-content">
+            <div className="manual-workflow-content-inner">
+              <p className="manual-workflow-subtitle">
+                Use these controls to run one mutation at a time when you want detailed walkthrough
+                pacing.
               </p>
-              <RecalculateButton
-                caseId={renewalCase.id}
-                label="Regenerate Recommendation"
-                loadingLabel="Regenerating Recommendation..."
-                buttonClassName="button-link"
-              />
-            </div>
 
-            <div className="manual-workflow-step-card">
-              <div className="small muted" style={{ marginBottom: 4 }}>
-                Step 2
+              <div className="manual-scenario-shell">
+                <div className="small muted" style={{ fontWeight: 700 }}>
+                  Scenario Selection
+                </div>
+                <div className="small muted">
+                  Scenario selection is shared across AI Live and Manual actions. Choose it in either
+                  panel.
+                </div>
+                <DemoScenarioSelector
+                  caseId={renewalCase.id}
+                  selectedScenarioKey={renewalCase.demoScenarioKey ?? 'BASE_CASE'}
+                  embedded
+                />
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Insights + AI</div>
-              <p className="workflow-mutation-helper">
-                Regenerates quote insights and AI rationale so quote actions match latest recommendation.
-              </p>
-              <RegenerateInsightsAiButton
-                caseId={renewalCase.id}
-                label="Regenerate Insights + AI Rationale"
-                loadingLabel="Regenerating Insights + AI Rationale..."
-                buttonClassName="button-link"
-              />
-            </div>
 
-            <div className="manual-workflow-step-card">
-              <div className="small muted" style={{ marginBottom: 4 }}>
-                Step 3
+              <div className="manual-workflow-grid" style={{ marginTop: 10 }}>
+                <div className="manual-workflow-step-card">
+                  <div className="small muted" style={{ marginBottom: 4 }}>
+                    Step 1
+                  </div>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Recommendation</div>
+                  <p className="workflow-mutation-helper">
+                    Updates risk, action, and approval posture. Marks quote insights as stale.
+                  </p>
+                  <RecalculateButton
+                    caseId={renewalCase.id}
+                    label="Regenerate Recommendation"
+                    loadingLabel="Regenerating Recommendation..."
+                    buttonClassName="button-link"
+                  />
+                </div>
+
+                <div className="manual-workflow-step-card">
+                  <div className="small muted" style={{ marginBottom: 4 }}>
+                    Step 2
+                  </div>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Insights + AI</div>
+                  <p className="workflow-mutation-helper">
+                    Regenerates quote insights and AI rationale so quote actions match latest recommendation.
+                  </p>
+                  <RegenerateInsightsAiButton
+                    caseId={renewalCase.id}
+                    label="Regenerate Insights + AI Rationale"
+                    loadingLabel="Regenerating Insights + AI Rationale..."
+                    buttonClassName="button-link"
+                  />
+                </div>
+
+                <div className="manual-workflow-step-card">
+                  <div className="small muted" style={{ marginBottom: 4 }}>
+                    Step 3
+                  </div>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>Full AI Guidance (Optional)</div>
+                  <p className="workflow-mutation-helper">
+                    Generates executive summary, reviewer rationale, and approval brief when required.
+                  </p>
+                  <GenerateAiButton
+                    caseId={renewalCase.id}
+                    label="Generate Full AI Review Guidance"
+                    loadingLabel="Generating Full AI Review Guidance..."
+                    buttonClassName="button-secondary"
+                  />
+                </div>
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Full AI Guidance (Optional)</div>
-              <p className="workflow-mutation-helper">
-                Generates executive summary, reviewer rationale, and approval brief when required.
-              </p>
-              <GenerateAiButton
-                caseId={renewalCase.id}
-                label="Generate Full AI Review Guidance"
-                loadingLabel="Generating Full AI Review Guidance..."
-                buttonClassName="button-secondary"
-              />
             </div>
           </div>
         </details>
@@ -314,6 +312,7 @@ export default async function RenewalCaseDetailPage({
 
       <QuoteInsightsPanel
         caseId={quoteInsights.caseId}
+        accountName={renewalCase.account.name}
         items={quoteInsights.items}
         currencyCode={quoteInsights.currencyCode}
         needsRefresh={quoteInsights.needsRefresh}

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import type { QuoteScenarioWorkspaceView } from '@/lib/db/quote-scenarios'
+import { useActionFeedback } from '@/components/ui/use-action-feedback'
 
 type BaselineLine = NonNullable<QuoteScenarioWorkspaceView['baselineQuote']>['lines'][number]
 type ScenarioLine = NonNullable<
@@ -174,6 +175,7 @@ export function QuoteScenariosNavigator({
   const [isSavingPreferred, setIsSavingPreferred] = useState(false)
   const [preferredError, setPreferredError] = useState<string | null>(null)
   const [showOnlyChanges, setShowOnlyChanges] = useState(true)
+  const { didSucceed, flashSuccess } = useActionFeedback()
 
   const selectedScenario = useMemo(
     () => workspace.scenarios.find((scenario) => scenario.id === selectedKey) ?? null,
@@ -229,6 +231,7 @@ export function QuoteScenariosNavigator({
         throw new Error(body?.error ?? 'Failed to save preferred scenario.')
       }
 
+      flashSuccess()
       router.refresh()
     } catch (error) {
       setPreferredError(error instanceof Error ? error.message : 'Failed to save preferred scenario.')
@@ -381,14 +384,17 @@ export function QuoteScenariosNavigator({
             <div className="scenario-preference-row">
               <button
                 type="button"
-                className={
+                className={`${
                   workspace.preferredScenarioKey === selectedScenario.scenarioKey
                     ? 'button-secondary'
                     : 'button-link'
-                }
+                } action-feedback-button${isSavingPreferred ? ' is-loading' : ''}${
+                  didSucceed ? ' is-success' : ''
+                }`}
                 disabled={
                   isSavingPreferred || workspace.preferredScenarioKey === selectedScenario.scenarioKey
                 }
+                aria-busy={isSavingPreferred}
                 onClick={() => updatePreferredScenario(selectedScenario.scenarioKey)}
               >
                 {workspace.preferredScenarioKey === selectedScenario.scenarioKey
@@ -622,8 +628,13 @@ export function QuoteScenariosNavigator({
             <div className="scenario-preference-row">
               <button
                 type="button"
-                className={!workspace.preferredScenarioKey ? 'button-secondary' : 'button-link'}
+                className={`${
+                  !workspace.preferredScenarioKey ? 'button-secondary' : 'button-link'
+                } action-feedback-button${isSavingPreferred ? ' is-loading' : ''}${
+                  didSucceed ? ' is-success' : ''
+                }`}
                 disabled={isSavingPreferred || !workspace.preferredScenarioKey}
+                aria-busy={isSavingPreferred}
                 onClick={() => updatePreferredScenario(null)}
               >
                 {!workspace.preferredScenarioKey

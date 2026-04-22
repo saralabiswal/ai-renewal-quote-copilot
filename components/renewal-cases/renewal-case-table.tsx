@@ -30,11 +30,14 @@ export function RenewalCaseTable({ cases }: { cases: RenewalCaseListItem[] }) {
               <span className="story-lane-chip">{lane.openCount} Active</span>
             </div>
           </summary>
+          <div className="story-lane-body">
+            <div className="story-lane-body-inner">
+              <SourceLegend />
 
-          <SourceLegend />
-
-          <div className="table-wrapper">
-            <RenewalCaseDataTable items={lane.items} />
+              <div className="table-wrapper">
+                <RenewalCaseDataTable items={lane.items} />
+              </div>
+            </div>
           </div>
         </details>
       ))}

@@ -3,13 +3,20 @@
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import type { PolicyStudioSeedProfile, PricingPolicyView } from '@/lib/db/policies'
+import {
+  getPromptGovernanceCatalog,
+  getPromptStageMeta,
+  promptGovernanceSources,
+  type PromptStageId,
+} from '@/lib/policies/prompt-governance'
 import type { RuleFlowStep, RulebookSection } from '@/lib/policies/rule-reference'
 import type {
   WorkedExampleProductId,
   WorkedExampleView,
 } from '@/lib/policies/worked-example'
 
-type TabId = 'recommendation' | 'insight' | 'example' | 'journey'
+type TabId = 'recommendation' | 'insight' | 'example' | 'journey' | 'prompts'
+const PROMPT_STAGES: PromptStageId[] = ['recalculate', 'insights_ai', 'full_ai']
 
 function formatPercent(value: number | null) {
   if (value === null) return '—'
@@ -255,6 +262,16 @@ export function PoliciesWorkspace({
   const [selectedProductId, setSelectedProductId] = useState<WorkedExampleProductId>(
     workedExampleOptions[0]?.id ?? 'fusion_apps',
   )
+  const promptCatalog = useMemo(() => getPromptGovernanceCatalog(), [])
+  const promptArtifactsByStage = useMemo(
+    () =>
+      PROMPT_STAGES.map((stage) => ({
+        stage,
+        stageMeta: getPromptStageMeta(stage),
+        artifacts: promptCatalog.filter((artifact) => artifact.stage === stage),
+      })),
+    [promptCatalog],
+  )
 
   const fallbackWorkedExample = workedExamples[workedExampleOptions[0]?.id ?? 'fusion_apps']
   const workedExample =
@@ -292,8 +309,9 @@ export function PoliciesWorkspace({
       activePolicies: pricingPolicies.filter((item) => item.isActive).length,
       recommendationRules: countRows(recommendationSections),
       insightRules: countRows(insightSections),
+      promptArtifacts: promptCatalog.length,
     }),
-    [pricingPolicies, recommendationSections, insightSections],
+    [pricingPolicies, recommendationSections, insightSections, promptCatalog.length],
   )
 
   if (!workedExample || !businessInterpretation) return null
@@ -320,6 +338,10 @@ export function PoliciesWorkspace({
           <div className="policy-stat">
             <div className="small muted">Insight Rules</div>
             <div className="policy-stat-value">{summary.insightRules}</div>
+          </div>
+          <div className="policy-stat">
+            <div className="small muted">Prompt Packs</div>
+            <div className="policy-stat-value">{summary.promptArtifacts}</div>
           </div>
         </div>
       </div>
@@ -356,6 +378,14 @@ export function PoliciesWorkspace({
           aria-pressed={activeTab === 'insight'}
         >
           Quote Insight Rules
+        </button>
+        <button
+          type="button"
+          className={`policy-tab ${activeTab === 'prompts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('prompts')}
+          aria-pressed={activeTab === 'prompts'}
+        >
+          Prompt Governance
         </button>
       </div>
 
@@ -454,6 +484,116 @@ export function PoliciesWorkspace({
                 <span className="policy-chip">ESCALATE -&gt; DEFENSIVE_RENEWAL</span>
                 <span className="policy-chip">UPLIFT -&gt; CONTROLLED_UPLIFT</span>
                 <span className="policy-chip">Fallback -&gt; RENEW_AS_IS</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {activeTab === 'prompts' ? (
+        <div className="policy-tab-layout">
+          <div className="policy-tab-main">
+            <section className="policy-prompt-overview">
+              <div>
+                <h3 className="panel-title" style={{ marginBottom: 6 }}>
+                  Current LLM Prompts
+                </h3>
+                <p className="section-subtitle" style={{ marginTop: 0 }}>
+                  Exact current prompt text used by each AI workflow stage.
+                </p>
+              </div>
+            </section>
+
+            {promptArtifactsByStage.map(({ stage, stageMeta, artifacts }) => (
+              <section key={stage} className="policy-prompt-stage">
+                <div className="policy-prompt-stage-head">
+                  <h4>{stageMeta.label}</h4>
+                  <p>{stageMeta.subtitle}</p>
+                </div>
+
+                <div className="policy-prompt-grid">
+                  {artifacts.map((artifact) => (
+                    <article key={artifact.id} className="policy-prompt-card">
+                      <div className="policy-prompt-card-head">
+                        <div>
+                          <h5>{artifact.name}</h5>
+                          <p>{artifact.purpose}</p>
+                        </div>
+                        <div className="policy-prompt-badges">
+                          <Badge tone="info">{artifact.version.toUpperCase()}</Badge>
+                          <Badge tone="default">{artifact.fingerprint}</Badge>
+                        </div>
+                      </div>
+
+                      <div className="policy-prompt-meta-grid">
+                        <div>
+                          <span>Owner</span>
+                          <strong>{artifact.owner}</strong>
+                        </div>
+                        <div>
+                          <span>Model</span>
+                          <strong>{artifact.modelLabel}</strong>
+                        </div>
+                        <div>
+                          <span>Temperature</span>
+                          <strong>{artifact.temperature}</strong>
+                        </div>
+                        <div>
+                          <span>Last Updated</span>
+                          <strong>{artifact.lastUpdated}</strong>
+                        </div>
+                      </div>
+
+                      <div className="policy-prompt-technical">
+                        <div>
+                          <div className="small muted" style={{ fontWeight: 700, marginBottom: 6 }}>
+                            System Prompt (Exact)
+                          </div>
+                          <pre className="policy-prompt-code">{artifact.systemPrompt}</pre>
+                        </div>
+                        <div>
+                          <div className="small muted" style={{ fontWeight: 700, marginBottom: 6 }}>
+                            Input Sent To LLM (Current Template)
+                          </div>
+                          <pre className="policy-prompt-code">{artifact.inputTemplate}</pre>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <aside className="policy-tab-side">
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Prompt Sources
+              </div>
+              <div className="policy-source-list">
+                {promptGovernanceSources.map((source) => (
+                  <code key={source}>{source}</code>
+                ))}
+              </div>
+            </div>
+
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Access & Guardrails
+              </div>
+              <div className="policy-guardrail-list">
+                {promptCatalog.map((artifact) => (
+                  <div key={`${artifact.id}-guardrail`} className="policy-guardrail-row">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{artifact.name}</div>
+                      <div className="small muted">{artifact.visibilityNote}</div>
+                    </div>
+                    <div className="policy-guardrail-right">
+                      <Badge tone="info">{artifact.version.toUpperCase()}</Badge>
+                      <div className="small muted">{artifact.redactionNote}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </aside>

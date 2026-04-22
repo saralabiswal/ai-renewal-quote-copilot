@@ -1,13 +1,13 @@
 # Demo Recording Runbook: RC-ACCT-1016
 
-Use this for a clean, repeatable, step-by-step video recording that supplements the user guide.
+Use this runbook for a consistent, repeatable, step-by-step recording that supplements the user guide.
 
 - Renewal Case Number: `RC-ACCT-1016`
 - Renewal Case ID: `rcase_aster_commerce`
 - Baseline Quote Draft ID: `qd_aster_commerce`
-- Target runtime: `6-9 minutes`
+- Target runtime: `6 to 9 minutes`
 
-## 1. Recording Prep (2-3 min)
+## 1. Recording Preparation (2 to 3 minutes)
 
 Run from repo root:
 
@@ -21,15 +21,15 @@ Open app at:
 
 - `http://localhost:3000`
 
-Recording hygiene checklist:
+Recording quality checklist:
 
 1. Use one browser tab only.
 2. Use desktop viewport (at least 1440 px wide).
 3. Hide bookmarks/extensions and enable Do Not Disturb.
 4. Keep zoom at 100%.
-5. Pause 1 second after each navigation before speaking.
+5. Pause one second after each navigation before speaking.
 
-## 2. Suggested Video Structure (Timestamped)
+## 2. Suggested Recording Structure (Timestamped)
 
 ## 0:00-0:30 Intro
 
@@ -41,7 +41,7 @@ Talk track:
 
 1. “This demo walks a full renewal decision lifecycle for case RC-ACCT-1016 from baseline subscriptions to final quote decision.”
 
-## 0:30-1:30 Step 0: Policy Studio (How it works under the hood)
+## 0:30-1:30 Step 0: Policy Studio (Logic Transparency)
 
 Screen:
 
@@ -50,11 +50,12 @@ Screen:
 3. Show `How the engine works under the hood (business view)`.
 4. Show `Signal Trajectory`.
 5. Change `Example Subscription` once to prove dynamic context.
+6. Open `Prompt Governance` and show `Current LLM Prompts`.
 
 Talk track:
 
-1. “Policy Studio explains why recommendations are made using real seeded signals.”
-2. “We can see trend direction, risk contribution, and guardrail impact before touching a quote.”
+1. “Policy Studio explains why recommendations are produced using seeded business signals.”
+2. “We can review trend direction, risk contribution, guardrail impact, and the exact current LLM prompt.”
 
 ## 1:30-2:15 Step 1: Renewal Subscriptions
 
@@ -77,7 +78,7 @@ Screen:
 
 Talk track:
 
-1. “Now we move from portfolio view to case-level decision workspace.”
+1. “This transitions from portfolio context to case-level decision execution.”
 
 ## 3:00-4:30 Step 3: Run AI Workflow
 
@@ -90,8 +91,8 @@ Screen:
 
 Talk track:
 
-1. “This is the AI moment: live workflow steps and typed reasoning as the case is recalculated.”
-2. “The run refreshes recommendation posture, quote insights, and narratives.”
+1. “This is the live AI execution sequence, with typed streaming output as each workflow step runs.”
+2. “The run refreshes recommendation posture, quote insights, and review narratives.”
 
 ## 4:30-5:30 Step 4: Review What Changed + Apply Insights
 
@@ -99,11 +100,14 @@ Screen:
 
 1. In Section B, show `What Changed`.
 2. In Section C, open top quote insights and show `Decision`, `Why`, and `AI Added Context`.
-3. Apply one insight to quote (if not already applied).
+3. In a Quote Insight card, click `View Prompt Used` and show:
+   - exact `System Prompt`
+   - exact `Input Sent To LLM`
+4. Apply one insight to quote (if not already applied).
 
 Talk track:
 
-1. “This section makes decision traceability explicit, including commercial change and rationale.”
+1. “This section makes decision traceability explicit, including commercial change, rationale, and exact prompt context.”
 
 ## 5:30-6:30 Step 5: Scenario Workspace
 
@@ -130,7 +134,7 @@ Screen:
 
 Talk track:
 
-1. “Final governance is quote-scoped, with full traceability back to insights.”
+1. “Final governance is quote-scoped, with traceability back to the applied insights.”
 
 ## 7:30-8:00 Close
 
@@ -143,16 +147,16 @@ Talk track:
 
 1. “That completes the loop from policy logic to quote-level decision outcome.”
 
-## 3. Backup / Recovery Lines During Recording
+## 3. Contingency Lines During Recording
 
 If any panel is stale:
 
-1. Say: “I’ll refresh the latest AI context for accuracy.”
+1. Say: “I will refresh the latest AI context for accuracy.”
 2. Click `Regenerate Insights + AI Rationale`.
 
 If scenario cards are empty:
 
-1. Say: “I’ll generate scenario options for comparison.”
+1. Say: “I will generate scenario options for comparison.”
 2. Click `Regenerate Quote Scenarios`.
 
 If Next runtime cache error appears:
@@ -164,8 +168,9 @@ npm run dev
 
 ## 4. Post-Recording QA Checklist
 
-1. Confirm all 4 flow steps were shown: Subscriptions -> Case Decision -> Scenario Quotes -> Quote Draft.
-2. Confirm AI Live typed streaming moment is clearly visible.
+1. Confirm all four flow steps were shown: Subscriptions -> Case Decision -> Scenario Quotes -> Quote Draft.
+2. Confirm AI Live typed streaming output is clearly visible.
 3. Confirm one applied insight is shown in quote traceability.
 4. Confirm scenario comparison and preferred scenario are visible.
 5. Confirm final quote decision action is shown.
+6. Confirm at least one `View Prompt Used` example is shown in recording.

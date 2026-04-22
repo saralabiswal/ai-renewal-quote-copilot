@@ -26,6 +26,7 @@ export function ReviewActions({
 }) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState<Decision | null>(null)
+  const [activeSuccess, setActiveSuccess] = useState<Decision | null>(null)
   const [error, setError] = useState<string | null>(null)
   const isRightAligned = align === 'right'
 
@@ -47,11 +48,15 @@ export function ReviewActions({
         throw new Error(body?.error ?? 'Failed to submit review decision.')
       }
 
+      setActiveSuccess(decision)
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error.')
     } finally {
       setIsLoading(null)
+      setTimeout(() => {
+        setActiveSuccess(null)
+      }, 1000)
     }
   }
 
@@ -77,27 +82,36 @@ export function ReviewActions({
       >
         <button
           type="button"
-          className={decisionClassName.APPROVE}
+          className={`${decisionClassName.APPROVE} action-feedback-button${
+            isLoading === 'APPROVE' ? ' is-loading' : ''
+          }${activeSuccess === 'APPROVE' ? ' is-success' : ''}`}
           onClick={() => submitDecision('APPROVE')}
           disabled={isLoading !== null}
+          aria-busy={isLoading === 'APPROVE'}
         >
           {isLoading === 'APPROVE' ? 'Approving...' : 'Approve'}
         </button>
 
         <button
           type="button"
-          className={decisionClassName.REQUEST_REVISION}
+          className={`${decisionClassName.REQUEST_REVISION} action-feedback-button${
+            isLoading === 'REQUEST_REVISION' ? ' is-loading' : ''
+          }${activeSuccess === 'REQUEST_REVISION' ? ' is-success' : ''}`}
           onClick={() => submitDecision('REQUEST_REVISION')}
           disabled={isLoading !== null}
+          aria-busy={isLoading === 'REQUEST_REVISION'}
         >
           {isLoading === 'REQUEST_REVISION' ? 'Submitting...' : 'Request Revision'}
         </button>
 
         <button
           type="button"
-          className={decisionClassName.REJECT}
+          className={`${decisionClassName.REJECT} action-feedback-button${
+            isLoading === 'REJECT' ? ' is-loading' : ''
+          }${activeSuccess === 'REJECT' ? ' is-success' : ''}`}
           onClick={() => submitDecision('REJECT')}
           disabled={isLoading !== null}
+          aria-busy={isLoading === 'REJECT'}
         >
           {isLoading === 'REJECT' ? 'Rejecting...' : 'Reject'}
         </button>

@@ -1,5 +1,6 @@
 import { AddQuoteInsightToQuoteButton } from '@/components/renewal-cases/add-quote-insight-to-quote-button'
 import { Badge } from '@/components/ui/badge'
+import { buildQuoteInsightInput, quoteInsightInstructions } from '@/lib/ai/prompts'
 
 type QuoteInsightView = {
   id: string
@@ -85,12 +86,14 @@ type BadgeTone = 'default' | 'info' | 'success' | 'warn' | 'danger'
 
 export function QuoteInsightsPanel({
   caseId,
+  accountName,
   items,
   currencyCode,
   needsRefresh = false,
   generatedAtLabel = null,
 }: {
   caseId: string
+  accountName: string
   items: QuoteInsightView[]
   currencyCode: string
   needsRefresh?: boolean
@@ -176,6 +179,21 @@ export function QuoteInsightsPanel({
                 aiWhatChangedFallback ||
                 aiNarrativeRemainder,
             )
+            const exactSystemPrompt = quoteInsightInstructions()
+            const exactPromptInput = buildQuoteInsightInput({
+              accountName,
+              title: item.title,
+              insightType: item.insightType,
+              productName: item.productName,
+              insightSummary: item.insightSummary,
+              recommendedActionSummary: item.recommendedActionSummary,
+              confidenceScore: item.confidenceScore,
+              fitScore: item.fitScore,
+              reasonCodes,
+              structuredReasoning: item.justification?.reasoning ?? [],
+              whatChangedSummary: buildWhatChangedSummary(changeLog),
+              expectedImpactSummary: buildExpectedImpactSummary(item.justification?.expectedImpact ?? null),
+            })
 
             return (
               <div key={item.id} className="opportunity-card">
@@ -235,6 +253,33 @@ export function QuoteInsightsPanel({
                     ) : null}
                   </div>
                 </div>
+
+                <details className="quote-insight-prompt-details">
+                  <summary className="quote-insight-prompt-summary">
+                    <span>View Prompt Used</span>
+                    <span className="small muted">Exact current prompt used by the LLM</span>
+                  </summary>
+                  <div className="quote-insight-prompt-body">
+                    <article className="quote-insight-prompt-card">
+                      <div className="quote-insight-prompt-card-head">
+                        <div>
+                          <div style={{ fontWeight: 700 }}>Quote Insight Rationale Prompt</div>
+                          <div className="small muted">
+                            Current model: {item.aiModelLabel ?? 'Runtime OPENAI_MODEL'}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="quote-insight-step-label">System Prompt (Exact)</div>
+                        <pre className="quote-insight-prompt-code">{exactSystemPrompt}</pre>
+                      </div>
+                      <div>
+                        <div className="quote-insight-step-label">Input Sent To LLM (Exact)</div>
+                        <pre className="quote-insight-prompt-code">{exactPromptInput}</pre>
+                      </div>
+                    </article>
+                  </div>
+                </details>
 
                 <div className="quote-insight-primary">
                   <div className="quote-insight-step-label">Decision</div>
@@ -587,6 +632,39 @@ function formatSignedCurrency(value: number | null, currencyCode: string) {
 function formatPercentValue(value: number | null) {
   if (value === null || value === undefined) return '—'
   return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value)}%`
+}
+
+function buildExpectedImpactSummary(
+  impact: {
+    arrDelta: number | null
+    marginDirection: string | null
+    retentionRisk: string | null
+  } | null,
+) {
+  if (!impact) return null
+
+  const arrDelta =
+    impact.arrDelta == null
+      ? 'N/A'
+      : `${impact.arrDelta >= 0 ? '+' : ''}${impact.arrDelta.toLocaleString('en-US')}`
+  const marginDirection = impact.marginDirection?.toLowerCase() ?? 'unknown'
+  const retentionRisk = impact.retentionRisk?.toLowerCase() ?? 'unknown'
+  return `Estimated ARR delta ${arrDelta}; margin direction ${marginDirection}; retention risk ${retentionRisk}.`
+}
+
+function buildWhatChangedSummary(
+  changeLog: {
+    fromSummary: string | null
+    toSummary: string | null
+    changedFields: string[]
+  } | null,
+) {
+  if (!changeLog) return 'No material change context supplied'
+  if (changeLog.fromSummary) {
+    const fields = changeLog.changedFields.length > 0 ? changeLog.changedFields.join(', ') : 'summary'
+    return `Changed fields: ${fields}. Previous: ${changeLog.fromSummary}. Current: ${changeLog.toSummary ?? 'N/A'}.`
+  }
+  return `New insight added in the latest regeneration. Current: ${changeLog.toSummary ?? 'N/A'}.`
 }
 
 type AiNarrativeSectionKey = 'decision' | 'why' | 'commercialImpact' | 'whatChanged'

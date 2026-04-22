@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useActionFeedback } from '@/components/ui/use-action-feedback'
 
 export function RecalculateQuoteInsightsButton({
   caseId,
@@ -17,6 +18,7 @@ export function RecalculateQuoteInsightsButton({
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { didSucceed, flashSuccess } = useActionFeedback()
 
   async function handleClick() {
     try {
@@ -33,6 +35,7 @@ export function RecalculateQuoteInsightsButton({
         throw new Error(body?.error ?? 'Failed to regenerate insights.')
       }
 
+      flashSuccess()
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error.')
@@ -47,7 +50,10 @@ export function RecalculateQuoteInsightsButton({
         type="button"
         onClick={handleClick}
         disabled={isLoading}
-        className={buttonClassName}
+        aria-busy={isLoading}
+        className={`${buttonClassName} action-feedback-button${isLoading ? ' is-loading' : ''}${
+          didSucceed ? ' is-success' : ''
+        }`}
         style={{ width: '100%', justifyContent: 'center' }}
       >
         {isLoading ? loadingLabel : label}

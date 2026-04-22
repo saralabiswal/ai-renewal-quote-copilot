@@ -67,3 +67,20 @@ test('policy studio end-to-end visual flow tab renders a self-explanatory journe
   await expect(page.getByRole('heading', { name: /Quote Insight Generated/i })).toBeVisible()
   await expect(page.getByRole('heading', { name: /Reviewer Action Outcome/i })).toBeVisible()
 })
+
+test('policy studio prompt governance tab shows versioned prompt packs and guardrails', async ({
+  page,
+}) => {
+  await page.goto('/policies')
+  await waitForPageStable(page)
+
+  await page.getByRole('button', { name: /Prompt Governance/i }).click()
+  await waitForPageStable(page)
+
+  await expect(page.getByRole('heading', { name: /Current LLM Prompts/i })).toBeVisible()
+  await expect(page.getByText(/System Prompt \(Exact\)/i).first()).toBeVisible()
+  await expect(page.getByText(/Input Sent To LLM/i).first()).toBeVisible()
+  await expect(page.getByText(/Step 2: Quote Insights \+ AI Rationales/i)).toBeVisible()
+  await expect(page.getByText(/Prompt Sources/i)).toBeVisible()
+  await expect(page.getByText(/Access & Guardrails/i)).toBeVisible()
+})

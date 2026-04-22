@@ -31,6 +31,7 @@ export default async function HomePage() {
         </div>
 
         <ActionRail
+          className="dashboard-entry-rail"
           primary={
             <Link className="button-link" href="/renewal-cases">
               Open Case Decision Board
@@ -46,7 +47,7 @@ export default async function HomePage() {
               Open Quote Draft Board
             </Link>
           }
-          hint="Primary path: start in Case Decision Board unless you need baseline subscription context first."
+          hint="Recommended start: Case Decision Board. Use Renewal Subscriptions for baseline context; open Quote Draft Board for final-stage reviews."
         />
       </section>
 

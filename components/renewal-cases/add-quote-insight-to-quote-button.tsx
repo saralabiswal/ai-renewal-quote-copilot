@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { useActionFeedback } from '@/components/ui/use-action-feedback'
 
 type InsightType =
   | 'RENEW_AS_IS'
@@ -34,6 +35,7 @@ export function AddQuoteInsightToQuoteButton({
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { didSucceed, flashSuccess } = useActionFeedback()
   const isAdditive = useMemo(() => isAdditiveInsight(insightType), [insightType])
 
   const buttonLabel = useMemo(() => {
@@ -69,6 +71,7 @@ export function AddQuoteInsightToQuoteButton({
         throw new Error(body?.error ?? 'Failed to apply quote insight.')
       }
 
+      flashSuccess()
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unexpected error.')
@@ -83,7 +86,10 @@ export function AddQuoteInsightToQuoteButton({
         type="button"
         onClick={handleClick}
         disabled={isLoading}
-        className={buttonClassName}
+        aria-busy={isLoading}
+        className={`${buttonClassName} action-feedback-button${isLoading ? ' is-loading' : ''}${
+          didSucceed ? ' is-success' : ''
+        }`}
       >
         {isLoading ? loadingLabel : buttonLabel}
       </button>

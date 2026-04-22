@@ -5,14 +5,18 @@ export function ActionRail({
   secondary,
   tertiary,
   hint,
+  className,
 }: {
   primary?: ReactNode
   secondary?: ReactNode
   tertiary?: ReactNode
   hint?: ReactNode
+  className?: string
 }) {
+  const railClassName = className ? `action-rail ${className}` : 'action-rail'
+
   return (
-    <div className="action-rail">
+    <div className={railClassName}>
       <div className="action-rail-buttons">
         {primary ? <div className="action-rail-slot action-rail-slot-primary">{primary}</div> : null}
         {secondary ? (

@@ -13,7 +13,7 @@ This application uses **Artificial Intelligence (AI), agentic workflows, and dec
 
 ---
 
-## 🚀 AI Use Case: Subscription Renewal & Pricing Intelligence
+## AI Use Case: Subscription Renewal & Pricing Intelligence
 
 This project demonstrates how **AI can be applied to SaaS revenue operations (RevOps)** to:
 
@@ -42,7 +42,7 @@ This leads to:
 
 As subscription portfolios scale, these inefficiencies directly impact:
 
-👉 **ARR growth, net revenue retention (NRR), and profitability**
+**ARR growth, net revenue retention (NRR), and profitability**
 
 ---
 
@@ -52,12 +52,13 @@ The **AI Renewal Quote Copilot** introduces an **AI-driven, agentic workflow** f
 
 ### Core AI capabilities
 
-- 🤖 **AI-powered renewal recommendations** (risk, expansion, concession)
-- 💰 **Dynamic pricing and discount optimization**
-- 📊 **Subscription intelligence using account + usage signals**
-- 🧾 **Automated CPQ / quote generation**
-- 🔍 **Explainable AI decisions with full traceability**
-- 🔁 **Human-in-the-loop approval workflows**
+- **AI-powered renewal recommendations** (risk, expansion, concession)
+- **Dynamic pricing and discount optimization**
+- **Subscription intelligence** using account and usage signals
+- **Automated CPQ / quote generation**
+- **Explainable AI decisions** with full traceability
+- **Prompt transparency** (exact current system prompt and LLM input payload in UI)
+- **Human-in-the-loop approval workflows**
 
 ### Business outcomes
 
@@ -68,7 +69,7 @@ The **AI Renewal Quote Copilot** introduces an **AI-driven, agentic workflow** f
 
 ---
 
-## 🔑 Key AI Concepts in this Project
+## Key AI Concepts in this Project
 
 - **Agentic AI Workflow** – multi-step AI + rules orchestration  
 - **Decision Intelligence** – AI-driven recommendations with business context  
@@ -87,9 +88,24 @@ The **AI Renewal Quote Copilot** introduces an **AI-driven, agentic workflow** f
 - `Scenario Quotes (Case Workspace)` (`/scenario-quotes/[caseId]`): compare read-only scenario quotes and mark preferred option
 - `Quote Draft Board` (`/quote-drafts`): baseline quote execution board with status, approval posture, and scenario-count cues
 - `Quote Draft Detail` (`/quote-drafts/[quoteDraftId]`): line-level commercial deltas and quote-level decision actions
-- `Policy Studio` (`/policies`): read-only recommendation and insight rules with worked examples
+- `Policy Studio` (`/policies`): read-only recommendation and insight rules, worked examples, and current LLM prompt visibility
 - `Settings` (`/settings`): environment and model readiness checks
 - `README Preview` (`/readme-preview`): internal markdown preview utility for documentation checks
+
+## Prompt Transparency
+
+The app exposes the exact current prompt content used by AI generation:
+
+- `Policy Studio` -> `Prompt Governance` tab:
+  - `Current LLM Prompts`
+  - exact `System Prompt`
+  - current `Input Sent To LLM` template
+- `Case Decision Board` (`/renewal-cases/[caseId]`) -> `AI Live Run Console`:
+  - per-step `View Prompt Used` drawer
+  - exact prompt text for that workflow stage
+- `Quote Insights` (`/renewal-cases/[caseId]`) -> insight card -> `View Prompt Used`:
+  - exact quote-insight `System Prompt`
+  - exact `Input Sent To LLM` generated for that specific insight
 
 ## End-to-end workflow
 
@@ -98,6 +114,7 @@ Policy Studio (optional, reference)
   -> Renewal Subscriptions
     -> Case Decision Board
       -> Run End-to-End AI workflow (or manual step-by-step mutations)
+      -> Inspect per-step "View Prompt Used" if needed
       -> Apply selected Quote Insights to Baseline Quote
         -> Scenario Quotes (auto-generate/regenerate, compare, mark preferred)
           -> Quote Draft Board (review and approve/reject quote)

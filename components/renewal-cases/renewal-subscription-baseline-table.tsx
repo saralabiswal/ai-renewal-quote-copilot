@@ -32,40 +32,43 @@ export function RenewalSubscriptionBaselineTable({
               <span className="story-lane-chip">{group.caseCount} Cases</span>
             </div>
           </summary>
+          <div className="subscription-account-body">
+            <div className="subscription-account-body-inner">
+              <div className="table-wrapper">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Subscription #</th>
+                      <th>Product</th>
+                      <th>Case</th>
+                      <th>Renewal Date</th>
+                      <th>Qty</th>
+                      <th>Net Unit Price</th>
+                      <th>Baseline ARR (Subscription)</th>
+                    </tr>
+                  </thead>
 
-          <div className="table-wrapper">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Subscription #</th>
-                  <th>Product</th>
-                  <th>Case</th>
-                  <th>Renewal Date</th>
-                  <th>Qty</th>
-                  <th>Net Unit Price</th>
-                  <th>Baseline ARR (Subscription)</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {group.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.subscriptionNumber}</td>
-                    <td>{item.productName}</td>
-                    <td>
-                      <Link className="secondary-link" href={`/renewal-cases/${item.caseId}`}>
-                        {item.caseNumber}
-                      </Link>
-                      <div className="small muted">{item.renewalWindowLabel}</div>
-                    </td>
-                    <td>{item.renewalDate}</td>
-                    <td>{item.quantity}</td>
-                    <td>{item.netUnitPriceFormatted}</td>
-                    <td>{item.baselineArrFormatted}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  <tbody>
+                    {group.items.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.subscriptionNumber}</td>
+                        <td>{item.productName}</td>
+                        <td>
+                          <Link className="secondary-link" href={`/renewal-cases/${item.caseId}`}>
+                            {item.caseNumber}
+                          </Link>
+                          <div className="small muted">{item.renewalWindowLabel}</div>
+                        </td>
+                        <td>{item.renewalDate}</td>
+                        <td>{item.quantity}</td>
+                        <td>{item.netUnitPriceFormatted}</td>
+                        <td>{item.baselineArrFormatted}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </details>
       ))}

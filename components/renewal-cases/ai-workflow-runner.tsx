@@ -3,6 +3,11 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DemoScenarioSelector } from '@/components/renewal-cases/demo-scenario-selector'
+import {
+  buildRedactedVariablePreview,
+  getPromptArtifactsForStage,
+  getPromptStageMeta,
+} from '@/lib/policies/prompt-governance'
 
 type StepKey = 'recalculate' | 'insights_ai' | 'full_ai'
 type StepStatus = 'pending' | 'running' | 'done' | 'error'
@@ -95,6 +100,33 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+function buildStagePromptContext(stage: StepKey, caseId: string, selectedScenarioKey: string) {
+  if (stage === 'insights_ai') {
+    return {
+      renewal_case_id: caseId,
+      scenario_key: selectedScenarioKey,
+      quote_insight_scope: 'ALL_OPEN_INSIGHTS',
+      actor: 'SYSTEM_WORKFLOW',
+    }
+  }
+
+  if (stage === 'full_ai') {
+    return {
+      renewal_case_id: caseId,
+      scenario_key: selectedScenarioKey,
+      guidance_pack: 'EXECUTIVE_SUMMARY|RATIONALE|APPROVAL_BRIEF_IF_REQUIRED',
+      actor: 'SYSTEM_WORKFLOW',
+    }
+  }
+
+  return {
+    renewal_case_id: caseId,
+    scenario_key: selectedScenarioKey,
+    evaluation_scope: 'RECOMMENDATION_ENGINE',
+    actor: 'SYSTEM_WORKFLOW',
+  }
+}
+
 export function AiWorkflowRunner({
   caseId,
   selectedScenarioKey,
@@ -109,12 +141,25 @@ export function AiWorkflowRunner({
   const [steps, setSteps] = useState<WorkflowStep[]>(DEFAULT_STEPS)
   const [logs, setLogs] = useState<RunLogItem[]>([])
   const [streamLines, setStreamLines] = useState<StreamLine[]>([])
+  const [selectedPromptStage, setSelectedPromptStage] = useState<StepKey | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<WorkflowSummary | null>(null)
   const [lastRunFinishedAt, setLastRunFinishedAt] = useState<string | null>(null)
 
   const completedCount = steps.filter((step) => step.status === 'done').length
   const progressPercent = Math.round((completedCount / steps.length) * 100)
+  const selectedPromptStageMeta = selectedPromptStage
+    ? getPromptStageMeta(selectedPromptStage)
+    : null
+  const selectedPromptArtifacts = selectedPromptStage
+    ? getPromptArtifactsForStage(selectedPromptStage)
+    : []
+  const selectedPromptContextPreview = useMemo(() => {
+    if (!selectedPromptStage) return []
+    return buildRedactedVariablePreview(
+      buildStagePromptContext(selectedPromptStage, caseId, selectedScenarioKey),
+    )
+  }, [caseId, selectedPromptStage, selectedScenarioKey])
 
   const statusLabel = useMemo(() => {
     if (isRunning) return 'AI workflow in progress'
@@ -411,14 +456,17 @@ export function AiWorkflowRunner({
             className="button-secondary ai-panel-toggle"
             onClick={() => setIsExpanded((prev) => !prev)}
             disabled={isRunning}
+            aria-expanded={isExpanded}
+            aria-controls="ai-workflow-panel"
           >
             {isExpanded ? 'Collapse' : 'Expand'}
           </button>
           <button
             type="button"
-            className="button-link"
+            className={`button-link action-feedback-button${isRunning ? ' is-loading' : ''}`}
             onClick={runWorkflow}
             disabled={isRunning}
+            aria-busy={isRunning}
           >
             {isRunning ? 'AI Working...' : 'Run End-to-End AI Workflow'}
           </button>
@@ -435,8 +483,12 @@ export function AiWorkflowRunner({
         </div>
       </div>
 
-      {isExpanded ? (
-        <>
+      <div
+        id="ai-workflow-panel"
+        className={`ai-workflow-panel ${isExpanded ? 'is-expanded' : 'is-collapsed'}`}
+        aria-hidden={!isExpanded}
+      >
+        <div className="ai-workflow-panel-inner">
           <div className="ai-scenario-shell">
             <div className="small muted" style={{ fontWeight: 700 }}>
               Scenario Selection
@@ -463,10 +515,81 @@ export function AiWorkflowRunner({
                   <div className="ai-step-title">{step.title}</div>
                   <div className="small muted">{step.subtitle}</div>
                   <div className="ai-step-detail">{step.detail ?? 'Waiting to run.'}</div>
+                  <div className="ai-step-actions">
+                    <button
+                      type="button"
+                      className={`button-tertiary ai-prompt-button${
+                        selectedPromptStage === step.key ? ' active' : ''
+                      }`}
+                      onClick={() =>
+                        setSelectedPromptStage((current) => (current === step.key ? null : step.key))
+                      }
+                    >
+                      {selectedPromptStage === step.key ? 'Hide Prompt' : 'View Prompt Used'}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {selectedPromptStage ? (
+            <div className="ai-prompt-drawer">
+              <div className="ai-prompt-drawer-head">
+                <div>
+                  <div className="small muted" style={{ fontWeight: 700 }}>
+                    Prompt Used in AI Live
+                  </div>
+                  <div style={{ fontWeight: 700 }}>{selectedPromptStageMeta?.label}</div>
+                  <div className="small muted">{selectedPromptStageMeta?.subtitle}</div>
+                </div>
+              </div>
+
+              <div className="ai-prompt-context-grid">
+                {selectedPromptContextPreview.map((preview) => (
+                  <div key={`${selectedPromptStage}-${preview.key}`} className="ai-prompt-context-item">
+                    <span>{preview.label}</span>
+                    <strong>
+                      {preview.displayValue}
+                      {preview.redacted ? ' (masked)' : ''}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+
+              <div className="ai-prompt-card-stack">
+                {selectedPromptArtifacts.map((artifact) => (
+                  <article key={artifact.id} className="ai-prompt-card">
+                    <div className="ai-prompt-card-head">
+                      <div>
+                        <h5>{artifact.name}</h5>
+                        <p>{artifact.purpose}</p>
+                      </div>
+                      <div className="ai-prompt-meta-tags">
+                        <span className="scenario-chip">{artifact.version.toUpperCase()}</span>
+                        <span className="scenario-chip">{artifact.fingerprint}</span>
+                      </div>
+                    </div>
+
+                    <div className="ai-prompt-technical-body">
+                      <div>
+                        <div className="small muted" style={{ fontWeight: 700, marginBottom: 6 }}>
+                          System Prompt (Exact)
+                        </div>
+                        <pre className="ai-prompt-code">{artifact.systemPrompt}</pre>
+                      </div>
+                      <div>
+                        <div className="small muted" style={{ fontWeight: 700, marginBottom: 6 }}>
+                          Input Sent To LLM (Current Template)
+                        </div>
+                        <pre className="ai-prompt-code">{artifact.inputTemplate}</pre>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="ai-stream-shell">
             <div className="ai-stream-head">
@@ -477,36 +600,46 @@ export function AiWorkflowRunner({
                 type="button"
                 className="button-secondary ai-panel-toggle"
                 onClick={() => setIsReasoningExpanded((prev) => !prev)}
+                aria-expanded={isReasoningExpanded}
+                aria-controls="ai-stream-body"
               >
                 {isReasoningExpanded ? 'Collapse Stream' : 'Expand Stream'}
               </button>
             </div>
 
-            {isReasoningExpanded ? (
-              <div className="ai-stream-output">
-                {streamLines.length > 0 ? (
-                  streamLines.map((line) => (
-                    <div className={`ai-stream-line ${line.tone}`} key={line.id}>
-                      <div className="ai-stream-meta">
-                        {line.atLabel} · {line.stepTitle}
+            <div
+              id="ai-stream-body"
+              className={`ai-stream-body ${isReasoningExpanded ? 'is-expanded' : 'is-collapsed'}`}
+              aria-hidden={!isReasoningExpanded}
+            >
+              <div className="ai-stream-body-inner">
+                <div className="ai-stream-output">
+                  {streamLines.length > 0 ? (
+                    streamLines.map((line) => (
+                      <div className={`ai-stream-line ${line.tone}`} key={line.id}>
+                        <div className="ai-stream-meta">
+                          {line.atLabel} · {line.stepTitle}
+                        </div>
+                        <div className="ai-stream-text">
+                          {line.text}
+                          {line.typing ? <span className="ai-typing-caret">▍</span> : null}
+                        </div>
                       </div>
-                      <div className="ai-stream-text">
-                        {line.text}
-                        {line.typing ? <span className="ai-typing-caret">▍</span> : null}
-                      </div>
+                    ))
+                  ) : (
+                    <div className="small muted">
+                      Run the workflow to show typed AI reasoning during each step.
                     </div>
-                  ))
-                ) : (
-                  <div className="small muted">
-                    Run the workflow to show typed AI reasoning during each step.
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            ) : (
+            </div>
+
+            {!isReasoningExpanded ? (
               <div className="small muted">
                 Expand stream to show live typed AI reasoning text.
               </div>
-            )}
+            ) : null}
           </div>
 
           {summary ? (
@@ -550,8 +683,8 @@ export function AiWorkflowRunner({
               ))}
             </div>
           ) : null}
-        </>
-      ) : null}
+        </div>
+      </div>
 
       {!isExpanded ? (
         <div className="small muted">
