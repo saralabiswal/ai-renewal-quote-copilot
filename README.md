@@ -1,21 +1,50 @@
 # AI Renewal Quote Copilot
 
-AI Renewal Quote Copilot is a standalone renewal decisioning demo for enterprise SaaS revenue teams. It combines deterministic pricing policy, local open-source ML models, optional LLM narrative generation, quote insight automation, and human approval workflows in one local Next.js application.
+AI Renewal Quote Copilot is a standalone revenue transformation demo for enterprise SaaS revenue teams. It shows how deterministic pricing policy, local open-source ML models, GenAI narrative generation, quote insight automation, and human approval workflows combine into one auditable renewal decision system.
 
-The current default experience is **ML-Assisted Rules**: rules remain the policy system of record, a local ML model can influence renewal risk, pricing guardrails remain final, and every workflow run leaves auditable decision evidence.
+The current default experience is **ML-Assisted Rules**: rules remain the policy system of record, a local ML model influences renewal risk scoring, pricing guardrails remain final, and every workflow run leaves auditable decision evidence.
 
 ![Renewal Command Center](docs/assets/user-guide/04-case-decision-workspace.png)
 
-## What This Demonstrates
+---
 
-- Renewal subscription review across account, product, usage, support, and pricing signals.
-- Recommendation calculation with deterministic rules plus a local ML risk overlay.
-- Quote insights that convert recommendation outputs into quote-ready actions.
-- Scenario Studio comparison before changing the editable baseline quote.
-- Quote Review Center approval with approve, reject, and revision-request decisions.
-- Technical review surfaces for model registry, model selection, metrics, prompts, and decision trace.
-- Standalone operation with local SQLite data, local Python ML artifacts, and optional local ML service.
-- Enterprise-style UI presentation with compact typography, product navigation, and review-ready workflow naming.
+## The Business Problem
+
+Enterprise SaaS renewal decisions are still mostly manual, even when the company has CRM, CPQ, subscription, usage, support, pricing, and finance data. The issue is not just data availability. The issue is that renewal teams must interpret many signals, reason through commercial trade-offs, prepare quote actions, justify decisions, and route approvals under time pressure.
+
+That creates several compounding problems:
+
+- Risk signals are scattered across systems and reviewed inconsistently.
+- Pricing and discount decisions depend too much on manual judgment.
+- Expansion, retention, concession, and escalation opportunities are easy to miss.
+- Quote changes are hard to explain after the fact.
+- Deal desk and finance reviewers do not always receive a clear audit trail.
+- AI-generated narratives, if used alone, are not sufficient — pricing decisions require governed rules, model evidence, and human approval.
+
+---
+
+## How This App Solves It
+
+AI Renewal Quote Copilot demonstrates an AI-native renewal workflow backed by deterministic rules, local ML models, GenAI narrative generation, and human approval. The app applies AI and ML in three distinct ways:
+
+**ML models score renewal risk and expansion propensity** using structured account, subscription, usage, support, pricing, payment, and adoption features. The app includes local open-source model artifacts, model registry metadata, evaluation reports, and a standalone prediction path.
+
+**Deterministic AI decision orchestration combines rules and ML evidence** to produce governed renewal recommendations. In ML-Assisted Rules mode, the rule engine remains the policy system of record while ML risk evidence influences the final recommendation score.
+
+**GenAI generates reviewer-ready explanations** for recommendations, quote insights, approval briefs, and executive summaries. Prompt inputs, fallback behavior, and generated narratives remain visible for audit.
+
+The result is a complete renewal decision workflow:
+
+- A renewal case is evaluated using rules plus local ML evidence.
+- Quote insights convert recommendation outputs into structured quote actions.
+- Scenario Studio generates read-only commercial alternatives for comparison.
+- Quote Review Center keeps final approval human-controlled.
+- Decision Trace shows rule output, ML output, final recommendation, guardrails, model metadata, and the evidence used.
+- AI Architecture and Settings expose model readiness, registry approval, evaluation metrics, serving mode, and runtime recommendation mode.
+
+This makes the app more than a UI demo. It is a standalone AI/ML-backed renewal decision system that shows how enterprise teams can combine predictive ML, GenAI explanation, deterministic guardrails, and human review in one auditable workflow.
+
+---
 
 ## Product Workflow
 
@@ -41,6 +70,8 @@ Quote Review Center
   -> review applied quote actions and record the final quote decision
 ```
 
+---
+
 ## Recommendation Modes
 
 | Mode | UI Label | Behavior |
@@ -51,27 +82,21 @@ Quote Review Center
 
 The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtime changes are made from `Settings` by selecting a mode and clicking `Apply ML Mode`.
 
-## Seeded Demo Data
-
-First-run seed data is designed for a complete standalone walkthrough:
-
-- Every renewal case has a baseline quote aligned to the renewal case.
-- Scenario quote artifacts are materialized for eligible cases and shown in the Scenario Studio index.
-- Scenario Studio shows per-case scenario counts before the user opens a case.
-- The baseline quote remains the editable execution source; scenario quotes are read-only comparison artifacts.
-- Default Recommendation Mode is ML-Assisted Rules.
+---
 
 ## How Recommendations Are Calculated
 
-1. The rule engine scores each renewal line from structured signals such as usage, active users, login trend, support tickets, Sev1 incidents, CSAT, payment risk, adoption band, current ARR, discount, and pricing policy.
-2. The rule engine assigns a line disposition such as renew, expand, renew with concession, or escalate.
+1. The rule engine scores each renewal line from structured signals: usage, active users, login trend, support tickets, Sev1 incidents, CSAT, payment risk, adoption band, current ARR, discount, and pricing policy.
+2. The rule engine assigns a line disposition — renew, expand, renew with concession, or escalate.
 3. Pricing guardrails calculate proposed quantity, discount, net unit price, ARR impact, and approval requirements.
 4. If ML is enabled, the app builds a versioned feature snapshot and calls the local ML predictor.
 5. In ML-Assisted Rules mode, each item risk score is blended as `70% rule risk + 30% ML risk`.
 6. The final bundle recommendation is recalculated from the effective item risk scores.
-7. Decision trace records the rule baseline, feature snapshot, ML output, final output, guardrails, model version, policy version, and feature schema.
+7. Decision Trace records the rule baseline, feature snapshot, ML output, final output, guardrails, model version, policy version, and feature schema.
 
 More detail: [AI Architecture](docs/technical-architecture.md)
+
+---
 
 ## How Quote Insights Are Calculated
 
@@ -79,11 +104,13 @@ Quote insights are generated after recommendation recalculation. They are not fr
 
 1. Each recommendation line is mapped to a quote insight type.
 2. The insight engine carries forward line disposition, risk, proposed quantity, proposed price, discount, ARR delta, scenario, signal snapshot, and ML evidence when available.
-3. Objective scoring classifies the business goal as retain revenue, protect margin, grow account, or govern risk.
+3. Objective scoring classifies the business goal: retain revenue, protect margin, grow account, or govern risk.
 4. Additive insights may be generated for eligible cross-sell or expansion motions.
 5. Existing quote actions already added to the quote are preserved.
 6. Suggested insights are diffed against the prior generation so the UI can show added, removed, or modified actions.
 7. Optional LLM or deterministic local rationale generation produces reviewer-facing narrative, but structured evidence remains the source of truth.
+
+---
 
 ## Architecture
 
@@ -130,6 +157,8 @@ flowchart LR
   Domain --> Prisma --> SQLite
 ```
 
+---
+
 ## Local ML Models
 
 The repo includes a standalone ML bundle under `ml/`.
@@ -141,15 +170,29 @@ The repo includes a standalone ML bundle under `ml/`.
 
 Supporting artifacts:
 
-- `ml/synthetic_data.py`: generates the local synthetic training dataset.
-- `ml/train.py`: trains runtime artifacts.
-- `ml/evaluate.py`: evaluates baseline and challenger candidates.
-- `ml/predict.py`: stdin/stdout prediction interface used by Next.js.
-- `ml/serve.py`: optional local HTTP model service.
-- `ml/model-registry.json`: active model metadata, approvals, checksums, and metrics.
-- `ml/MODEL_CARD.md`: model intent, limitations, and promotion requirements.
+- `ml/synthetic_data.py` — generates the local synthetic training dataset.
+- `ml/train.py` — trains runtime artifacts.
+- `ml/evaluate.py` — evaluates baseline and challenger candidates.
+- `ml/predict.py` — stdin/stdout prediction interface used by Next.js.
+- `ml/serve.py` — optional local HTTP model service.
+- `ml/model-registry.json` — active model metadata, approvals, checksums, and metrics.
+- `ml/MODEL_CARD.md` — model intent, limitations, and promotion requirements.
 
 The current data is synthetic and generated from the application data model. It is suitable for standalone demo readiness and integration validation, not production predictive claims.
+
+---
+
+## Seeded Demo Data
+
+First-run seed data is designed for a complete standalone walkthrough:
+
+- Every renewal case has a baseline quote aligned to the renewal case.
+- Scenario quote artifacts are materialized for eligible cases and shown in the Scenario Studio index.
+- Scenario Studio shows per-case scenario counts before the user opens a case.
+- The baseline quote remains the editable execution source; scenario quotes are read-only comparison artifacts.
+- Default Recommendation Mode is ML-Assisted Rules.
+
+---
 
 ## Tech Stack
 
@@ -161,6 +204,8 @@ The current data is synthetic and generated from the application data model. It 
 - Python ML runtime
 - scikit-learn and XGBoost model artifacts
 - Playwright E2E tests
+
+---
 
 ## Quickstart
 
@@ -192,6 +237,8 @@ npm run ml:evaluate
 npm run dev
 ```
 
+---
+
 ## Optional Local ML Service
 
 By default, Next.js invokes `ml/predict.py` as a local subprocess. To demonstrate a production-shaped model-serving boundary:
@@ -208,6 +255,8 @@ ML_SERVICE_URL=http://127.0.0.1:8010
 
 If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 
+---
+
 ## Environment Variables
 
 | Variable | Required | Default | Purpose |
@@ -219,6 +268,8 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `OPENAI_API_KEY` | No | empty | Enables live text generation when configured. |
 | `OPENAI_MODEL` | No | `gpt-5.3` | Text generation model label. |
 | `OPENAI_MOCK_MODE` | No | `0` | Forces deterministic mock AI text output when enabled. |
+
+---
 
 ## Scripts
 
@@ -241,6 +292,8 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `make standalone` | Install Node/Python dependencies, seed DB, train/evaluate ML, and lint. |
 | `make smoke-standalone` | Regenerate ML artifacts and run TypeScript/lint checks. |
 
+---
+
 ## Documentation
 
 - [User Guide with Screenshots](docs/user-guide-renewal-workflow.md)
@@ -249,15 +302,19 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 - [ML Model Card](ml/MODEL_CARD.md)
 - [ML README](ml/README.md)
 
+---
+
 ## Demo Notes
 
 For a technical review, start with:
 
-1. `Settings` to show Recommendation Mode and ML readiness.
-2. `AI Architecture` to show model selection, metrics, registry, and serving boundary.
-3. `Renewal Command Center` to run the workflow and inspect Decision Trace.
-4. `Quote Insights` to show structured evidence and ML metadata.
-5. `Quote Review Center` to show human approval and final quote decision.
+1. **Settings** — show Recommendation Mode and ML readiness.
+2. **AI Architecture** — show model selection, metrics, registry, and serving boundary.
+3. **Renewal Command Center** — run the workflow and inspect Decision Trace.
+4. **Quote Insights** — show structured evidence and ML metadata.
+5. **Quote Review Center** — show human approval and final quote decision.
+
+---
 
 ## Troubleshooting
 
