@@ -2,9 +2,9 @@ PYTHON ?= $(shell if [ -x /Library/Frameworks/Python.framework/Versions/3.11/bin
 ML_PYTHON ?= .venv-ml/bin/python
 ML_SERVICE_PORT ?= 8010
 
-.PHONY: standalone install-ml train-ml evaluate-ml serve-ml smoke-standalone
+.PHONY: standalone ensure-env install-ml train-ml evaluate-ml serve-ml smoke-standalone
 
-standalone: install-ml
+standalone: ensure-env install-ml
 	npm install
 	npm run db:generate
 	npm run db:push
@@ -13,6 +13,14 @@ standalone: install-ml
 	npm run ml:train
 	npm run ml:evaluate
 	npm run lint
+
+ensure-env:
+	@if [ ! -f .env ]; then \
+		cp .env.example .env; \
+		echo "Created .env from .env.example"; \
+	else \
+		echo ".env already exists"; \
+	fi
 
 install-ml:
 	$(PYTHON) -m venv .venv-ml
