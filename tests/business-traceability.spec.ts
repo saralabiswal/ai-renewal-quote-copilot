@@ -71,6 +71,7 @@ test.describe.serial('business traceability', () => {
     },
     select: {
       narrativeType: true,
+      content: true,
     },
   })
 
@@ -81,6 +82,28 @@ test.describe.serial('business traceability', () => {
 
   expect(countsByType.EXECUTIVE_SUMMARY).toBe(1)
   expect(countsByType.RATIONALE).toBe(1)
+  expect(countsByType.REASONING_RECOMMENDATION).toBe(1)
+  expect(countsByType.REASONING_DECISION_TRACE).toBe(1)
+  expect(countsByType.REASONING_WHAT_CHANGED).toBe(1)
+
+  const casePosture = await prisma.renewalCase.findUnique({
+    where: { id: CASE_ID },
+    select: { requiresApproval: true },
+  })
+  if (casePosture?.requiresApproval) {
+    expect(countsByType.REASONING_APPROVAL).toBe(1)
+  }
+
+  const reasoningNarratives = narratives.filter((row) =>
+    row.narrativeType.startsWith('REASONING_'),
+  )
+  expect(reasoningNarratives.length).toBeGreaterThanOrEqual(3)
+  for (const row of reasoningNarratives) {
+    expect(row.content).toContain('Reasoning Summary')
+    expect(row.content).toContain('Evidence Used')
+    expect(row.content).toContain('Guardrail Position')
+    expect(row.content).toContain('Reviewer Action')
+  }
 
   for (const [type, count] of Object.entries(countsByType)) {
     if (type.startsWith('QUOTE_INSIGHT_')) {

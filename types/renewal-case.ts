@@ -297,6 +297,10 @@ export type RenewalCaseDetailView = {
   narrative: RecommendationNarrativeView | null
   aiExecutiveSummary: RecommendationNarrativeView | null
   aiApprovalBrief: RecommendationNarrativeView | null
+  reasoningRecommendation: RecommendationNarrativeView | null
+  reasoningDecisionTrace: RecommendationNarrativeView | null
+  reasoningApproval: RecommendationNarrativeView | null
+  reasoningWhatChanged: RecommendationNarrativeView | null
   reviewHistory: ReviewDecisionView[]
   whatChanged: {
     recommendation: RecommendationChangeView | null

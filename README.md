@@ -60,8 +60,8 @@ Renewal Subscriptions
   -> review baseline subscription and signal context
 
 Renewal Command Center
-  -> run recommendation recalculation and quote insight workflow
-  -> inspect Decision Trace, ML output, guardrails, and prompts
+  -> follow the guided flow: Run Workflow, Review Changes, Apply Quote Actions, Inspect Evidence, Finalize Review
+  -> inspect Decision Trace, ML output, guardrails, prompts, and reasoning when needed
 
 Scenario Studio
   -> choose cases from an index with scenario counts

@@ -3,6 +3,7 @@ import type {
   ApprovalBriefInput,
   CaseRationaleInput,
   QuoteInsightRationaleInput,
+  ReasoningEvidenceInput,
 } from './types'
 
 type MockPromptContext<TInput> = {
@@ -165,4 +166,41 @@ export function generateMockQuoteInsightRationale({
   ].join('\n')
 
   return mockResult(model, content.trim())
+}
+
+export function generateMockReasoningEvidence({
+  model,
+  instructions,
+  promptInput,
+  input,
+}: MockPromptContext<ReasoningEvidenceInput>): AiTextResult {
+  const traceId = buildTraceId(instructions, promptInput)
+  const ruleEvidence = input.ruleSummary[0] ?? 'Rule output was not supplied.'
+  const mlEvidence = input.mlSummary[0] ?? 'ML evidence was not supplied.'
+  const finalEvidence = input.finalSummary[0] ?? `${input.recommendedAction} at ${input.riskLevel} risk.`
+  const guardrailEvidence =
+    input.guardrailSummary[0] ??
+    (input.approvalRequired ? 'Approval is required.' : 'No approval guardrail is active.')
+
+  const content = [
+    'Reasoning Summary',
+    `${input.accountName} is explained using ${input.recommendationMode} evidence for ${input.reasoningType.toLowerCase().replaceAll('_', ' ')}. ${finalEvidence}`,
+    '',
+    'Evidence Used',
+    `Rules: ${ruleEvidence}`,
+    `ML: ${mlEvidence}`,
+    `References: ${input.evidenceReferences.slice(0, 3).join(', ') || 'No references supplied.'}`,
+    '',
+    'Guardrail Position',
+    guardrailEvidence,
+    '',
+    'Reviewer Action',
+    input.approvalRequired
+      ? 'Reviewer should validate the approval reason and confirm the quote action remains inside policy boundaries.'
+      : 'Reviewer should validate the evidence and proceed through the normal quote review path.',
+    '',
+    `Mock Trace ID: ${traceId}`,
+  ].join('\n')
+
+  return mockResult(model, content)
 }

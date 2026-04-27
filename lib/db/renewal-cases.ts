@@ -246,6 +246,16 @@ function normalizeInsightChange(
   }
 }
 
+function narrativeView(
+  row: { content: string; modelLabel: string | null } | null | undefined,
+): RecommendationNarrativeView | null {
+  if (!row) return null
+  return {
+    content: row.content,
+    modelLabel: row.modelLabel ?? 'Unknown model',
+  }
+}
+
 function windowLabel(start: Date, end: Date) {
   return `${formatDate(start)} – ${formatDate(end)}`
 }
@@ -494,26 +504,37 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
     ) ?? null
   )
 
-  const narrative: RecommendationNarrativeView | null = latestNarrative
-    ? {
-        content: latestNarrative.content,
-        modelLabel: latestNarrative.modelLabel ?? 'Unknown model',
-      }
-    : null
+  const latestReasoningRecommendation = (
+    row.narratives.find(
+      (n) => n.scopeType === 'CASE' && n.narrativeType === 'REASONING_RECOMMENDATION',
+    ) ?? null
+  )
 
-  const aiExecutiveSummary: RecommendationNarrativeView | null = latestExecutiveSummary
-    ? {
-        content: latestExecutiveSummary.content,
-        modelLabel: latestExecutiveSummary.modelLabel ?? 'Unknown model',
-      }
-    : null
+  const latestReasoningDecisionTrace = (
+    row.narratives.find(
+      (n) => n.scopeType === 'CASE' && n.narrativeType === 'REASONING_DECISION_TRACE',
+    ) ?? null
+  )
 
-  const aiApprovalBrief: RecommendationNarrativeView | null = latestApprovalBrief
-    ? {
-        content: latestApprovalBrief.content,
-        modelLabel: latestApprovalBrief.modelLabel ?? 'Unknown model',
-      }
-    : null
+  const latestReasoningApproval = (
+    row.narratives.find(
+      (n) => n.scopeType === 'CASE' && n.narrativeType === 'REASONING_APPROVAL',
+    ) ?? null
+  )
+
+  const latestReasoningWhatChanged = (
+    row.narratives.find(
+      (n) => n.scopeType === 'CASE' && n.narrativeType === 'REASONING_WHAT_CHANGED',
+    ) ?? null
+  )
+
+  const narrative = narrativeView(latestNarrative)
+  const aiExecutiveSummary = narrativeView(latestExecutiveSummary)
+  const aiApprovalBrief = narrativeView(latestApprovalBrief)
+  const reasoningRecommendation = narrativeView(latestReasoningRecommendation)
+  const reasoningDecisionTrace = narrativeView(latestReasoningDecisionTrace)
+  const reasoningApproval = narrativeView(latestReasoningApproval)
+  const reasoningWhatChanged = narrativeView(latestReasoningWhatChanged)
 
   const reviewHistory: ReviewDecisionView[] = row.reviewDecisions.map((decision) => ({
     id: decision.id,
@@ -637,6 +658,10 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
     narrative,
     aiExecutiveSummary,
     aiApprovalBrief,
+    reasoningRecommendation,
+    reasoningDecisionTrace,
+    reasoningApproval,
+    reasoningWhatChanged,
     reviewHistory,
     whatChanged: {
       recommendation: recommendationChange,

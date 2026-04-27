@@ -4,11 +4,11 @@ This guide walks through the end-to-end demo workflow with the seeded reference 
 
 Reference case:
 
-- Account: Aster Commerce
-- Renewal Case Number: `RC-ACCT-1016`
-- Renewal Case ID: `rcase_aster_commerce`
-- Baseline Quote Number: `Q-ACCT-1016`
-- Baseline Quote Draft ID: `qd_aster_commerce`
+- Account: Redwood Energy Operations
+- Renewal Case Number: `RC-ACCT-1007`
+- Renewal Case ID: `rcase_redwood_energy`
+- Baseline Quote Number: `Q-ACCT-1007`
+- Baseline Quote Draft ID: `qd_redwood_energy`
 
 The app is designed to run standalone with local data and local ML artifacts. The default recommendation mode is **ML-Assisted Rules**.
 
@@ -93,7 +93,7 @@ Use this page to inspect the source subscription context before running a case:
 3. Baseline quantity, price, discount, and ARR.
 4. Usage, support, adoption, payment, and renewal health signals.
 
-For the reference walkthrough, find Aster Commerce.
+For the reference walkthrough, find Redwood Energy Operations.
 
 ![Renewal Subscriptions](assets/user-guide/02-renewal-subscriptions.png)
 
@@ -103,7 +103,7 @@ Open `Renewal Command Center`.
 
 Renewal Command Center groups renewal cases into decision lanes. Use it to:
 
-1. Find `RC-ACCT-1016`.
+1. Find `RC-ACCT-1007`.
 2. See recommendation mode cues.
 3. Review risk/action/approval posture.
 4. Open the renewal case command view.
@@ -115,26 +115,36 @@ Renewal Command Center groups renewal cases into decision lanes. Use it to:
 Open:
 
 ```text
-/renewal-cases/rcase_aster_commerce
+/renewal-cases/rcase_redwood_energy
 ```
 
-In Section A:
+The Renewal Command Center now uses a guided five-step command flow:
 
-1. Keep scenario selection at `Base Case` for the first run.
-2. Click `Run End-to-End AI Workflow`.
-3. Watch the AI Live Run Console progress through:
+1. `Run Workflow`: choose a scenario and run the AI workflow.
+2. `Review Changes`: confirm recommendation and quote-insight deltas.
+3. `Apply Quote Actions`: apply selected quote insights to the baseline quote.
+4. `Inspect Evidence`: review rules, ML output, guardrails, and decision reasoning.
+5. `Finalize Review`: read review guidance, approval details, and renewal case structure.
+
+For the reference walkthrough:
+
+1. Open `Run Workflow`.
+2. Select `Customer Risk Escalation`.
+3. Click `Run End-to-End AI Workflow`.
+4. Watch the AI Live Run Console progress through:
    - recalculate recommendation
    - generate quote insights and AI rationales
    - generate full AI review guidance
-4. Expand `View Prompt Used` when you need prompt transparency.
+5. Expand `View Prompt Used` only when you need prompt transparency.
 
 After the run:
 
-1. Review `What Changed`.
-2. Review `Quote Insights`.
-3. Open `Structured Evidence` inside an insight to see source, scenario, version, ML status, risk, expansion score, and signal evidence.
-4. Apply selected quote insights to the renewal line when appropriate.
-5. Review `Decision Trace` for rule input, rule output, ML output, final output, and guardrails.
+1. Open `Review Changes` to see how risk, recommendation, approval, and quote insights changed.
+2. Open `Apply Quote Actions` to review and apply suggested quote changes.
+3. Open `Inspect Evidence` to see Decision Trace, ML output, rule output, final output, guardrails, and reasoning.
+4. Open `Finalize Review` to read the reviewer summary, approval guidance, evidence, bundle analysis, subscription items, and review history.
+
+The screenshot below shows the workflow after selecting `Customer Risk Escalation`, running the end-to-end AI workflow, and opening `Review Changes`.
 
 ![Renewal Command Center](assets/user-guide/04-case-decision-workspace.png)
 
@@ -153,7 +163,7 @@ The index shows:
 Then open:
 
 ```text
-/scenario-quotes/rcase_aster_commerce
+/scenario-quotes/rcase_redwood_energy
 ```
 
 Use this page to compare commercial alternatives before editing the baseline quote:
@@ -172,7 +182,7 @@ Scenarios are read-only comparison artifacts. The baseline quote remains the edi
 Open:
 
 ```text
-/quote-drafts/qd_aster_commerce
+/quote-drafts/qd_redwood_energy
 ```
 
 Use Quote Review Center to:

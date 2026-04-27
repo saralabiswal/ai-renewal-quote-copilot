@@ -2,6 +2,7 @@ import type {
   ApprovalBriefInput,
   CaseRationaleInput,
   QuoteInsightRationaleInput,
+  ReasoningEvidenceInput,
 } from './types'
 
 export function caseRationaleInstructions() {
@@ -109,5 +110,40 @@ export function buildQuoteInsightInput(input: QuoteInsightRationaleInput) {
     `Expected impact: ${input.expectedImpactSummary ?? 'Not supplied'}`,
     `What changed from previous insight: ${input.whatChangedSummary ?? 'No material change context supplied'}`,
     'Write business-ready copy with headings: Decision, Why, Commercial Impact, What Changed.',
+  ].join('\n')
+}
+
+export function reasoningInstructions() {
+  return [
+    'You are an enterprise AI reasoning layer for a renewal decision system.',
+    'Explain the decision using only the supplied structured evidence.',
+    'Do not invent customer facts, pricing policy, ROI, discounts, or model behavior.',
+    'Clearly separate rule evidence, ML evidence, guardrails, and final human-review posture.',
+    'Do not present the LLM as the final decision maker.',
+    'Format output with exactly these headings: Reasoning Summary, Evidence Used, Guardrail Position, Reviewer Action.',
+    'Each heading should contain 1-3 concise sentences or bullets.',
+  ].join(' ')
+}
+
+export function buildReasoningEvidenceInput(input: ReasoningEvidenceInput) {
+  return [
+    `Reasoning type: ${input.reasoningType}`,
+    `Account: ${input.accountName}`,
+    `Case number: ${input.caseNumber}`,
+    `Recommendation mode: ${input.recommendationMode}`,
+    `Scenario: ${input.scenarioKey ?? 'BASE_CASE'}`,
+    `Final recommended action: ${input.recommendedAction}`,
+    `Final risk level: ${input.riskLevel}`,
+    `Approval required: ${input.approvalRequired ? 'Yes' : 'No'}`,
+    `Approval reason: ${input.approvalReason ?? 'Not supplied'}`,
+    `Rule evidence: ${input.ruleSummary.join(' | ') || 'Not supplied'}`,
+    `ML evidence: ${input.mlSummary.join(' | ') || 'Not supplied'}`,
+    `Final output: ${input.finalSummary.join(' | ') || 'Not supplied'}`,
+    `Guardrails: ${input.guardrailSummary.join(' | ') || 'Not supplied'}`,
+    `Quote insights: ${input.quoteInsightSummary.join(' | ') || 'Not supplied'}`,
+    `Quote deltas: ${input.quoteDeltaSummary.join(' | ') || 'Not supplied'}`,
+    `What changed: ${input.changeSummary.join(' | ') || 'Not supplied'}`,
+    `Evidence references: ${input.evidenceReferences.join(' | ') || 'Not supplied'}`,
+    'Write reviewer-ready reasoning. Keep it auditable and concise.',
   ].join('\n')
 }

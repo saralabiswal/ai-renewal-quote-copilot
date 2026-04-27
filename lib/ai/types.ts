@@ -43,6 +43,31 @@ export type QuoteInsightRationaleInput = {
   expectedImpactSummary?: string | null
 }
 
+export type ReasoningEvidenceInput = {
+  accountName: string
+  caseNumber: string
+  reasoningType:
+    | 'RECOMMENDATION'
+    | 'DECISION_TRACE'
+    | 'APPROVAL'
+    | 'WHAT_CHANGED'
+    | 'SCENARIO'
+  recommendationMode: string
+  scenarioKey: string | null
+  recommendedAction: string
+  riskLevel: string
+  approvalRequired: boolean
+  approvalReason: string | null
+  ruleSummary: string[]
+  mlSummary: string[]
+  finalSummary: string[]
+  guardrailSummary: string[]
+  quoteInsightSummary: string[]
+  quoteDeltaSummary: string[]
+  changeSummary: string[]
+  evidenceReferences: string[]
+}
+
 /**
  * Temporary compatibility alias.
  * Keep this until all AI generation files are fully renamed from

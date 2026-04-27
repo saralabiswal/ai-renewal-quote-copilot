@@ -36,6 +36,7 @@ type WorkflowSummary = {
   removedCount: number
   quoteInsightNarratives: number
   caseNarratives: number
+  reasoningNarratives: number
   approvalBriefGenerated: boolean
 }
 
@@ -66,7 +67,7 @@ const DEFAULT_STEPS: WorkflowStep[] = [
   {
     key: 'full_ai',
     title: 'Generate Full AI Review Guidance',
-    subtitle: 'Creates executive summary, rationale, and approval brief when needed.',
+    subtitle: 'Creates executive summary, rationale, evidence reasoning, and approval brief.',
     status: 'pending',
     detail: null,
   },
@@ -359,10 +360,11 @@ export function AiWorkflowRunner({
       const fullAiStepTitle = 'Generate Full AI Review Guidance'
       updateStep('full_ai', {
         status: 'running',
-        detail: 'Generating executive summary and reviewer guidance...',
+        detail: 'Generating executive summary, reviewer guidance, and evidence reasoning...',
       })
       const fullAiReasoning = streamStepReasoning(fullAiStepTitle, [
         'Composing executive summary and reviewer narrative from latest case signals.',
+        'Building a reasoning layer that explains rules, ML scoring, guardrails, and final output.',
         'Generating approval brief when approval posture requires explicit justification.',
       ])
       const fullAiBody = await postJson<{
@@ -371,6 +373,7 @@ export function AiWorkflowRunner({
           caseExecutiveSummary?: boolean
           caseRationale?: boolean
           approvalBrief?: boolean
+          reasoningNarratives?: number
           quoteInsightNarratives?: number
         }
       }>(`/api/renewal-cases/${caseId}/generate-ai`)
@@ -379,9 +382,10 @@ export function AiWorkflowRunner({
       const executiveDone = Boolean(fullAiBody?.generated?.caseExecutiveSummary)
       const rationaleDone = Boolean(fullAiBody?.generated?.caseRationale)
       const approvalBriefGenerated = Boolean(fullAiBody?.generated?.approvalBrief)
+      const reasoningNarratives = Number(fullAiBody?.generated?.reasoningNarratives ?? 0)
       const fullNarrativeCount = Number(fullAiBody?.generated?.quoteInsightNarratives ?? 0)
       const caseNarrativeCount = Number(executiveDone) + Number(rationaleDone)
-      const fullAiDetail = `${caseNarrativeCount} case narratives · ${fullNarrativeCount} insight narratives · approval brief ${approvalBriefGenerated ? 'generated' : 'not required'}`
+      const fullAiDetail = `${caseNarrativeCount} case narratives · ${reasoningNarratives} reasoning narratives · ${fullNarrativeCount} insight narratives · approval brief ${approvalBriefGenerated ? 'generated' : 'not required'}`
       updateStep('full_ai', { status: 'done', detail: fullAiDetail })
       await appendTypedStreamLine({
         stepTitle: fullAiStepTitle,
@@ -399,6 +403,7 @@ export function AiWorkflowRunner({
         removedCount,
         quoteInsightNarratives: fullNarrativeCount,
         caseNarratives: caseNarrativeCount,
+        reasoningNarratives,
         approvalBriefGenerated,
       })
       setLastRunFinishedAt(nowLabel())
@@ -657,7 +662,8 @@ export function AiWorkflowRunner({
               <div className="ai-summary-item">
                 <div className="small muted">Narratives</div>
                 <div className="ai-summary-value">
-                  {summary.caseNarratives} case + {summary.quoteInsightNarratives} insight
+                  {summary.caseNarratives} case + {summary.reasoningNarratives} reasoning +{' '}
+                  {summary.quoteInsightNarratives} insight
                 </div>
               </div>
               <div className="ai-summary-item">

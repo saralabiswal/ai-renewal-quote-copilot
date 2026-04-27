@@ -418,6 +418,21 @@ export function QuoteInsightsPanel({
                           <p className="opportunity-ai-explanation">{item.aiExplanation}</p>
                         )}
                       </div>
+
+                      {item.justification?.reasoning.length ? (
+                        <div className="quote-insight-step">
+                          <div className="quote-insight-step-label">Evidence-Based Reasoning</div>
+                          <ul className="quote-insight-evidence-list" style={{ marginTop: 4 }}>
+                            {item.justification.reasoning.map((point, reasonIndex) => (
+                              <li key={`${item.id}-visible-reason-${reasonIndex}`}>{point}</li>
+                            ))}
+                          </ul>
+                          <div className="small muted">
+                            Structured quote evidence. This explains the insight; pricing policy
+                            and recommendation mode remain governed by the decision run.
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
 
                     <details className="quote-insight-evidence">

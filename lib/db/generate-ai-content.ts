@@ -4,6 +4,8 @@ import { generateApprovalBrief } from '@/lib/ai/generate-approval-brief'
 import { generateCaseExecutiveSummary } from '@/lib/ai/generate-case-executive-summary'
 import { generateCaseRationale } from '@/lib/ai/generate-case-rationale'
 import { generateQuoteInsightRationale } from '@/lib/ai/generate-quote-insight-rationale'
+import { generateReasoningEvidence } from '@/lib/ai/generate-reasoning-evidence'
+import type { ReasoningEvidenceInput } from '@/lib/ai/types'
 
 function makeId(prefix: string) {
   return `${prefix}_${crypto.randomUUID()}`
@@ -34,7 +36,62 @@ type QuoteInsightNarrativeSource = {
   expectedImpactSummary: string | null
 }
 
-const CASE_NARRATIVE_TYPES = ['EXECUTIVE_SUMMARY', 'RATIONALE', 'APPROVAL_BRIEF'] as const
+const CASE_NARRATIVE_TYPES = [
+  'EXECUTIVE_SUMMARY',
+  'RATIONALE',
+  'APPROVAL_BRIEF',
+  'REASONING_RECOMMENDATION',
+  'REASONING_DECISION_TRACE',
+  'REASONING_APPROVAL',
+  'REASONING_WHAT_CHANGED',
+] as const
+
+type CaseReasoningNarrativeType = Extract<
+  (typeof CASE_NARRATIVE_TYPES)[number],
+  | 'REASONING_RECOMMENDATION'
+  | 'REASONING_DECISION_TRACE'
+  | 'REASONING_APPROVAL'
+  | 'REASONING_WHAT_CHANGED'
+>
+
+type ReasoningRenewalCaseSource = {
+  id: string
+  caseNumber: string
+  demoScenarioKey: string | null
+  recommendedAction: string | null
+  riskLevel: string | null
+  requiresApproval: boolean
+  approvalReason: string | null
+  lastRecommendationJson: string | null
+  lastInsightDiffJson: string | null
+  account: {
+    name: string
+  }
+  quoteInsights: Array<{
+    title: string
+    insightType: string
+    recommendedActionSummary: string | null
+    confidenceScore: number | null
+    fitScore: number | null
+    estimatedArrImpact: unknown
+    recommendedQuantity: number | null
+    recommendedDiscountPercent: unknown
+  }>
+  decisionRuns: Array<{
+    id: string
+    mode: string
+    mlMode: string | null
+    ruleEngineVersion: string | null
+    policyVersion: string | null
+    featureSchemaVersion: string | null
+    mlModelName: string | null
+    mlModelVersion: string | null
+    ruleOutputJson: string | null
+    mlOutputJson: string | null
+    finalOutputJson: string | null
+    guardrailSummaryJson: string | null
+  }>
+}
 
 function quoteInsightNarrativeType(quoteInsightId: string) {
   return `QUOTE_INSIGHT_${quoteInsightId}`
@@ -106,6 +163,190 @@ function parseNarrativeContextFromJustification(raw: string | null | undefined) 
   }
 }
 
+function parseJsonObject(value: string | null | undefined): Record<string, unknown> | null {
+  if (!value) return null
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null
+  } catch {
+    return null
+  }
+}
+
+function asText(value: unknown) {
+  if (value == null || value === '') return null
+  return String(value)
+}
+
+function asNumber(value: unknown) {
+  if (value == null || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatNumber(value: unknown) {
+  const parsed = asNumber(value)
+  if (parsed == null) return 'N/A'
+  return parsed.toLocaleString('en-US', {
+    maximumFractionDigits: Number.isInteger(parsed) ? 0 : 1,
+  })
+}
+
+function summarizeOutput(prefix: string, output: Record<string, unknown> | null) {
+  if (!output) return [`${prefix} output not available.`]
+
+  return [
+    `${prefix} risk score ${formatNumber(output.riskScore)}, risk level ${asText(output.riskLevel) ?? 'N/A'}, action ${asText(output.recommendedAction) ?? 'N/A'}.`,
+    `${prefix} approval required: ${
+      typeof output.approvalRequired === 'boolean' ? (output.approvalRequired ? 'yes' : 'no') : 'N/A'
+    }.`,
+  ]
+}
+
+function summarizeMlOutput(mlOutput: Record<string, unknown> | null) {
+  if (!mlOutput) return ['ML output not available for this run.']
+
+  const predictions = Array.isArray(mlOutput.itemPredictions) ? mlOutput.itemPredictions : []
+  return [
+    `ML status ${asText(mlOutput.status) ?? 'N/A'}, mode ${asText(mlOutput.mode) ?? 'N/A'}, bundle risk ${formatNumber(mlOutput.bundleRiskScore)}.`,
+    `Model ${asText(mlOutput.modelName) ?? 'N/A'} ${asText(mlOutput.modelVersion) ?? ''}; item predictions ${predictions.length}.`.trim(),
+  ]
+}
+
+function summarizeGuardrails(guardrailSummary: Record<string, unknown> | null, approvalRequired: boolean) {
+  if (!guardrailSummary) {
+    return [approvalRequired ? 'Approval required by current case posture.' : 'No approval guardrail is active.']
+  }
+
+  const count = asNumber(guardrailSummary.approvalRequiredCount)
+  const results = Array.isArray(guardrailSummary.guardrailResults)
+    ? guardrailSummary.guardrailResults.map(String).filter(Boolean)
+    : []
+  return [
+    `Approval-required guardrail count ${count ?? 0}.`,
+    results.length ? `Guardrail results: ${results.join(', ')}.` : 'No guardrail result list supplied.',
+  ]
+}
+
+function summarizeRecommendationChange(raw: string | null | undefined) {
+  const parsed = parseJsonObject(raw)
+  if (!parsed) return ['No recommendation change metadata is available.']
+
+  const previous = parsed.previous && typeof parsed.previous === 'object'
+    ? (parsed.previous as Record<string, unknown>)
+    : null
+  const next = parsed.next && typeof parsed.next === 'object'
+    ? (parsed.next as Record<string, unknown>)
+    : null
+
+  return [
+    `Recommendation changed from ${asText(previous?.recommendedAction) ?? 'N/A'} / ${asText(previous?.riskLevel) ?? 'N/A'} to ${asText(next?.recommendedAction) ?? 'N/A'} / ${asText(next?.riskLevel) ?? 'N/A'}.`,
+    `Scenario ${asText(parsed.scenarioKey) ?? 'BASE_CASE'}; decision run ${asText(parsed.decisionRunId) ?? 'N/A'}.`,
+  ]
+}
+
+function summarizeInsightChange(raw: string | null | undefined) {
+  const parsed = parseJsonObject(raw)
+  if (!parsed) return ['No quote insight change metadata is available.']
+  const added = Array.isArray(parsed.added) ? parsed.added.length : 0
+  const removed = Array.isArray(parsed.removed) ? parsed.removed.length : 0
+  const modified = Array.isArray(parsed.modified) ? parsed.modified.length : 0
+  return [
+    `Quote insights changed: +${added}, ~${modified}, -${removed}.`,
+    `Insight engine ${asText(parsed.engineVersion) ?? 'N/A'}; policy ${asText(parsed.policyVersion) ?? 'N/A'}.`,
+  ]
+}
+
+function buildReasoningInputs(args: {
+  renewalCase: ReasoningRenewalCaseSource
+  latestAnalysis: { primaryDriversJson: string | null; bundleSummaryText: string | null } | undefined
+  currency: string
+}): Array<{ narrativeType: CaseReasoningNarrativeType; input: ReasoningEvidenceInput }> {
+  const { renewalCase, latestAnalysis, currency } = args
+  const latestDecisionRun = renewalCase.decisionRuns[0] ?? null
+  const quoteInsights = renewalCase.quoteInsights
+  const account = renewalCase.account
+
+  const ruleOutput = parseJsonObject(latestDecisionRun?.ruleOutputJson)
+  const mlOutput = parseJsonObject(latestDecisionRun?.mlOutputJson)
+  const finalOutput = parseJsonObject(latestDecisionRun?.finalOutputJson)
+  const guardrailSummary = parseJsonObject(latestDecisionRun?.guardrailSummaryJson)
+  const primaryDrivers = parseJsonArray(latestAnalysis?.primaryDriversJson)
+  const ruleSummary = [
+    ...summarizeOutput('Rule', ruleOutput),
+    ...primaryDrivers.slice(0, 3).map((driver) => `Primary driver: ${driver}`),
+  ]
+  const mlSummary = summarizeMlOutput(mlOutput)
+  const finalSummary = summarizeOutput('Final', finalOutput)
+  const guardrails = summarizeGuardrails(guardrailSummary, Boolean(renewalCase.requiresApproval))
+  const quoteInsightSummary = quoteInsights.slice(0, 5).map((insight) => {
+    return `${insight.title} (${insight.insightType}) recommends ${insight.recommendedActionSummary ?? 'N/A'}; confidence ${insight.confidenceScore ?? 'N/A'}, fit ${insight.fitScore ?? 'N/A'}.`
+  })
+  const quoteDeltaSummary = quoteInsights.slice(0, 5).map((insight) => {
+    return `ARR impact ${formatCurrency(Number(insight.estimatedArrImpact ?? 0), currency)}, quantity ${insight.recommendedQuantity ?? 'N/A'}, discount ${formatNumber(insight.recommendedDiscountPercent)}.`
+  })
+  const changeSummary = [
+    ...summarizeRecommendationChange(String(renewalCase.lastRecommendationJson ?? '')),
+    ...summarizeInsightChange(String(renewalCase.lastInsightDiffJson ?? '')),
+  ]
+  const evidenceReferences = [
+    latestDecisionRun?.id ? `DecisionRun:${latestDecisionRun.id}` : 'DecisionRun:N/A',
+    latestDecisionRun?.ruleEngineVersion ? `Rules:${latestDecisionRun.ruleEngineVersion}` : 'Rules:N/A',
+    latestDecisionRun?.policyVersion ? `Policy:${latestDecisionRun.policyVersion}` : 'Policy:N/A',
+    latestDecisionRun?.featureSchemaVersion
+      ? `FeatureSchema:${latestDecisionRun.featureSchemaVersion}`
+      : 'FeatureSchema:N/A',
+    latestDecisionRun?.mlModelName && latestDecisionRun?.mlModelVersion
+      ? `Model:${latestDecisionRun.mlModelName}:${latestDecisionRun.mlModelVersion}`
+      : 'Model:N/A',
+  ]
+
+  const baseInput = {
+    accountName: account.name,
+    caseNumber: String(renewalCase.caseNumber ?? 'N/A'),
+    recommendationMode: String(latestDecisionRun?.mode ?? latestDecisionRun?.mlMode ?? 'UNKNOWN'),
+    scenarioKey: typeof renewalCase.demoScenarioKey === 'string' ? renewalCase.demoScenarioKey : null,
+    recommendedAction: String(renewalCase.recommendedAction ?? 'UNKNOWN'),
+    riskLevel: String(renewalCase.riskLevel ?? 'UNKNOWN'),
+    approvalRequired: Boolean(renewalCase.requiresApproval),
+    approvalReason: typeof renewalCase.approvalReason === 'string' ? renewalCase.approvalReason : null,
+    ruleSummary,
+    mlSummary,
+    finalSummary,
+    guardrailSummary: guardrails,
+    quoteInsightSummary,
+    quoteDeltaSummary,
+    changeSummary,
+    evidenceReferences,
+  }
+
+  const inputs: Array<{ narrativeType: CaseReasoningNarrativeType; input: ReasoningEvidenceInput }> = [
+    {
+      narrativeType: 'REASONING_RECOMMENDATION',
+      input: { ...baseInput, reasoningType: 'RECOMMENDATION' },
+    },
+    {
+      narrativeType: 'REASONING_DECISION_TRACE',
+      input: { ...baseInput, reasoningType: 'DECISION_TRACE' },
+    },
+    {
+      narrativeType: 'REASONING_WHAT_CHANGED',
+      input: { ...baseInput, reasoningType: 'WHAT_CHANGED' },
+    },
+  ]
+
+  if (baseInput.approvalRequired) {
+    inputs.push({
+      narrativeType: 'REASONING_APPROVAL',
+      input: { ...baseInput, reasoningType: 'APPROVAL' },
+    })
+  }
+
+  return inputs
+}
+
 async function createQuoteInsightNarratives(
   renewalCaseId: string,
   accountName: string,
@@ -166,6 +407,10 @@ export async function generateAiContentForRenewalCase(caseId: string) {
       },
       quoteInsights: {
         orderBy: [{ fitScore: 'desc' }, { confidenceScore: 'desc' }],
+      },
+      decisionRuns: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
       },
     },
   })
@@ -257,6 +502,28 @@ export async function generateAiContentForRenewalCase(caseId: string) {
     })
   }
 
+  const reasoningInputs = buildReasoningInputs({
+    renewalCase,
+    latestAnalysis,
+    currency,
+  })
+  const reasoningNarratives = await Promise.all(
+    reasoningInputs.map(async ({ narrativeType, input }) => {
+      const reasoningEvidence = await generateReasoningEvidence(input)
+      await prisma.recommendationNarrative.create({
+        data: {
+          id: makeId('rn'),
+          scopeType: 'CASE',
+          renewalCaseId: renewalCase.id,
+          narrativeType,
+          content: reasoningEvidence.content,
+          modelLabel: reasoningEvidence.modelLabel,
+        },
+      })
+      return narrativeType
+    }),
+  )
+
   const quoteInsightNarrativeSources: QuoteInsightNarrativeSource[] = renewalCase.quoteInsights.map(
     (quoteInsight) => {
       const context = parseNarrativeContextFromJustification(quoteInsight.justificationJson)
@@ -290,6 +557,7 @@ export async function generateAiContentForRenewalCase(caseId: string) {
       caseExecutiveSummary: true,
       caseRationale: true,
       approvalBrief: renewalCase.requiresApproval,
+      reasoningNarratives: reasoningNarratives.length,
       quoteInsightNarratives: quoteInsightNarrativesCount,
     },
   }
