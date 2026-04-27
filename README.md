@@ -4,8 +4,6 @@ AI Renewal Quote Copilot is a standalone revenue transformation demo for enterpr
 
 The current default experience is **ML-Assisted Rules**: rules remain the policy system of record, a local ML model influences renewal risk scoring, pricing guardrails remain final, and every workflow run leaves auditable decision evidence.
 
-![Renewal Command Center](docs/assets/user-guide/04-case-decision-workspace.png)
-
 ---
 
 ## The Business Problem
@@ -45,6 +43,9 @@ The result is a complete renewal decision workflow:
 This makes the app more than a UI demo. It is a standalone AI/ML-backed renewal decision system that shows how enterprise teams can combine predictive ML, GenAI explanation, deterministic guardrails, and human review in one auditable workflow.
 
 ---
+## The Renewal Command Center in Action
+
+![Renewal Command Center](docs/assets/user-guide/04-case-decision-workspace.png)
 
 ## Product Workflow
 
