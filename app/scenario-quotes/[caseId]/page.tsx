@@ -47,7 +47,7 @@ export default async function ScenarioQuoteWorkspacePage({
   const scenarioPurpose =
     'Compare read-only scenario quotes against the editable baseline quote before final approval.'
   const scenarioNextStep = !quoteScenarioWorkspace.baselineQuote
-    ? 'Open Case Decision Board and apply quote insights to create a baseline quote first.'
+    ? 'Open Renewal Command Center and apply quote insights to create a baseline quote first.'
     : hasScenarioQuotes
       ? 'Select a scenario in the navigator, review deltas, then mark your preferred scenario.'
       : quoteScenarioWorkspace.lastRunSummary?.suppressedReason
@@ -59,9 +59,7 @@ export default async function ScenarioQuoteWorkspacePage({
       <section className="card">
         <div className="section-header">
           <div>
-            <h1 className="renewal-workspace-title" style={{ fontSize: '2rem' }}>
-              Scenario Quotes
-            </h1>
+            <h1 className="renewal-workspace-title">Scenario Studio</h1>
             <p className="section-subtitle">
               Case {renewalCase.caseNumber} · {renewalCase.account.name} · {renewalCase.windowLabel}
             </p>
@@ -78,7 +76,7 @@ export default async function ScenarioQuoteWorkspacePage({
           <ActionRail
             primary={
               <Link className="button-link" href={`/renewal-cases/${renewalCase.id}`}>
-                Open Case Decision Board
+                Open Renewal Command Center
               </Link>
             }
             secondary={
@@ -90,7 +88,7 @@ export default async function ScenarioQuoteWorkspacePage({
             }
             tertiary={
               <Link className="button-tertiary" href="/scenario-quotes">
-                Back to Scenario Quotes
+                Back to Scenario Studio
               </Link>
             }
           />
@@ -98,7 +96,7 @@ export default async function ScenarioQuoteWorkspacePage({
       </section>
 
       <WorkflowJourney
-        title="Case Workflow Progress"
+        title="Renewal Workflow"
         subtitle="Scenario selection should feed directly into final quote review."
         steps={[
           {
@@ -110,21 +108,21 @@ export default async function ScenarioQuoteWorkspacePage({
           },
           {
             id: 'decision-workspace',
-            label: 'Case Decision Board',
+            label: 'Renewal Command Center',
             description: 'Recommendation and insight workflow already completed for this case.',
             href: `/renewal-cases/${renewalCase.id}`,
             state: 'complete',
           },
           {
             id: 'scenario-workspace',
-            label: 'Scenario Quotes',
+            label: 'Scenario Studio',
             description: 'Compare alternatives and mark a preferred scenario.',
             href: `/scenario-quotes/${renewalCase.id}`,
             state: 'current',
           },
           {
             id: 'quote-review',
-            label: 'Quote Draft Board',
+            label: 'Quote Review Center',
             description: hasQuoteDraft
               ? quoteDecisionComplete
                 ? 'Final quote decision has already been submitted.'

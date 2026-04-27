@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import type { PolicyStudioSeedProfile, PricingPolicyView } from '@/lib/db/policies'
+import type { MlRecommendationMode } from '@/lib/ml/config'
 import {
   getPromptGovernanceCatalog,
   getPromptStageMeta,
@@ -17,6 +18,44 @@ import type {
 
 type TabId = 'recommendation' | 'insight' | 'example' | 'journey' | 'prompts'
 const PROMPT_STAGES: PromptStageId[] = ['recalculate', 'insights_ai', 'full_ai']
+
+function mlModeLabel(mode: MlRecommendationMode) {
+  switch (mode) {
+    case 'ML_SHADOW':
+      return 'Shadow Mode'
+    case 'HYBRID_RULES_ML':
+      return 'ML-Assisted Rules'
+    case 'RULES_ONLY':
+    default:
+      return 'Rules Only'
+  }
+}
+
+function mlModeTone(mode: MlRecommendationMode): 'default' | 'info' | 'success' {
+  if (mode === 'HYBRID_RULES_ML') return 'success'
+  if (mode === 'ML_SHADOW') return 'info'
+  return 'default'
+}
+
+function recommendationModeCopy(mode: MlRecommendationMode) {
+  if (mode === 'HYBRID_RULES_ML') {
+    return 'Rules run first, ML risk is blended into the recommendation score, then pricing guardrails remain final.'
+  }
+  if (mode === 'ML_SHADOW') {
+    return 'Rules produce the final recommendation while ML scores are logged for comparison and audit.'
+  }
+  return 'Only deterministic rules produce recommendation, risk, pricing posture, and approval state.'
+}
+
+function insightModeCopy(mode: MlRecommendationMode) {
+  if (mode === 'HYBRID_RULES_ML') {
+    return 'Quote insights use the ML-assisted recommendation context and show ML risk or expansion evidence when present.'
+  }
+  if (mode === 'ML_SHADOW') {
+    return 'Quote insights remain rule-driven, but can surface shadow ML risk, expansion score, and top features as evidence.'
+  }
+  return 'Quote insights map directly from deterministic recommendation outputs without ML evidence.'
+}
 
 function formatPercent(value: number | null) {
   if (value === null) return '—'
@@ -233,6 +272,11 @@ function RuleFlowMap({
 }
 
 export function PoliciesWorkspace({
+  mlMode,
+  mlEnabled,
+  mlAffectsRecommendations,
+  mlModelName,
+  mlModelVersion,
   pricingPolicies,
   recommendationSections,
   recommendationSources,
@@ -244,6 +288,11 @@ export function PoliciesWorkspace({
   workedExampleOptions,
   seedProfile,
 }: {
+  mlMode: MlRecommendationMode
+  mlEnabled: boolean
+  mlAffectsRecommendations: boolean
+  mlModelName: string | null
+  mlModelVersion: string | null
   pricingPolicies: PricingPolicyView[]
   recommendationSections: RulebookSection[]
   recommendationSources: readonly string[]
@@ -320,7 +369,7 @@ export function PoliciesWorkspace({
     <section className="card policy-workspace-shell">
       <div className="policy-workspace-head">
         <div>
-          <h2 className="section-title">Policy Intelligence Workspace</h2>
+          <h2 className="section-title">Policy Intelligence Studio</h2>
           <p className="section-subtitle">
             Switch tabs to inspect rule logic and a full worked product example without long page
             scrolling.
@@ -345,6 +394,33 @@ export function PoliciesWorkspace({
           </div>
         </div>
       </div>
+
+      <section className="policy-mode-banner">
+        <div>
+          <div className="small muted">Recommendation Mode</div>
+          <div className="policy-mode-title">
+            <Badge tone={mlModeTone(mlMode)}>{mlModeLabel(mlMode)}</Badge>
+            <span>{mlModelName ?? 'No ML model registered'}</span>
+          </div>
+          <p>
+            {mlMode === 'RULES_ONLY'
+              ? 'Policy Studio is showing the deterministic rulebook that currently controls both recommendation and quote insight generation.'
+              : 'Policy Studio is showing the deterministic rulebook plus how the selected ML mode participates in recommendation and quote insight evidence.'}
+          </p>
+        </div>
+        <div className="policy-mode-impact-grid">
+          <div className="policy-mode-impact-card">
+            <div className="small muted">Recommendation UI</div>
+            <strong>{mlAffectsRecommendations ? 'ML-assisted' : 'Rule-authoritative'}</strong>
+            <p>{recommendationModeCopy(mlMode)}</p>
+          </div>
+          <div className="policy-mode-impact-card">
+            <div className="small muted">Quote Insight UI</div>
+            <strong>{mlEnabled ? 'ML evidence available' : 'Rule-only evidence'}</strong>
+            <p>{insightModeCopy(mlMode)}</p>
+          </div>
+        </div>
+      </section>
 
       <div className="policy-tabbar" role="tablist" aria-label="Policies tabs">
         <button
@@ -401,6 +477,26 @@ export function PoliciesWorkspace({
           </div>
 
           <aside className="policy-tab-side">
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Current Mode Impact
+              </div>
+              <div className="policy-chip-wrap" style={{ marginBottom: 10 }}>
+                <Badge tone={mlModeTone(mlMode)}>{mlModeLabel(mlMode)}</Badge>
+                <Badge tone={mlAffectsRecommendations ? 'success' : 'default'}>
+                  {mlAffectsRecommendations ? 'Affects Score' : 'Audit Only'}
+                </Badge>
+              </div>
+              <div className="small muted" style={{ lineHeight: 1.5 }}>
+                {recommendationModeCopy(mlMode)}
+              </div>
+              {mlModelName ? (
+                <div className="small muted" style={{ marginTop: 8 }}>
+                  Model: {mlModelName} {mlModelVersion ?? ''}
+                </div>
+              ) : null}
+            </div>
+
             <div className="policy-side-card">
               <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
                 Rule Sources
@@ -464,6 +560,21 @@ export function PoliciesWorkspace({
           <aside className="policy-tab-side">
             <div className="policy-side-card">
               <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Current Mode Impact
+              </div>
+              <div className="policy-chip-wrap" style={{ marginBottom: 10 }}>
+                <Badge tone={mlModeTone(mlMode)}>{mlModeLabel(mlMode)}</Badge>
+                <Badge tone={mlEnabled ? 'info' : 'default'}>
+                  {mlEnabled ? 'ML Evidence' : 'Rules Only'}
+                </Badge>
+              </div>
+              <div className="small muted" style={{ lineHeight: 1.5 }}>
+                {insightModeCopy(mlMode)}
+              </div>
+            </div>
+
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
                 Rule Sources
               </div>
               <div className="policy-source-list">
@@ -520,7 +631,7 @@ export function PoliciesWorkspace({
                           <p>{artifact.purpose}</p>
                         </div>
                         <div className="policy-prompt-badges">
-                          <Badge tone="info">{artifact.version.toUpperCase()}</Badge>
+                          <Badge tone="info">{artifact.version}</Badge>
                           <Badge tone="default">{artifact.fingerprint}</Badge>
                         </div>
                       </div>
@@ -589,7 +700,7 @@ export function PoliciesWorkspace({
                       <div className="small muted">{artifact.visibilityNote}</div>
                     </div>
                     <div className="policy-guardrail-right">
-                      <Badge tone="info">{artifact.version.toUpperCase()}</Badge>
+                      <Badge tone="info">{artifact.version}</Badge>
                       <div className="small muted">{artifact.redactionNote}</div>
                     </div>
                   </div>

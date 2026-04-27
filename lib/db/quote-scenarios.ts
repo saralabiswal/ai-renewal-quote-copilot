@@ -533,11 +533,147 @@ function computeChangedLineCount(baselineLines: BaselineLine[], scenarioLines: M
   return changed
 }
 
+function copyBaselineLines(lines: BaselineLine[]): MutableScenarioLine[] {
+  return lines.map((line) => ({
+    sourceQuoteDraftLineId: line.id,
+    sourceQuoteInsightId: line.sourceQuoteInsightId,
+    lineNumber: line.lineNumber,
+    productSku: line.productSku,
+    productName: line.productName,
+    chargeType: line.chargeType,
+    quantity: line.quantity,
+    listUnitPrice: line.listUnitPrice,
+    netUnitPrice: line.netUnitPrice,
+    discountPercent: line.discountPercent,
+    lineNetAmount: line.lineNetAmount,
+    sourceType: line.sourceType,
+    sourceInsightType: line.sourceInsightType,
+    insightSummary: line.insightSummary,
+  }))
+}
+
+function fallbackStrategyForCase(args: {
+  recommendedAction: string | null
+  riskLevel: string | null
+  insights: QuoteInsight[]
+}): StrategyType {
+  const [primaryInsight] = sortedInsights(args.insights)
+  if (primaryInsight) return strategyForInsight(primaryInsight)
+
+  const action = (args.recommendedAction ?? '').toUpperCase()
+  const risk = (args.riskLevel ?? '').toUpperCase()
+
+  if (action.includes('EXPAND') || action.includes('CROSS')) return 'UPSELL_EXPANSION'
+  if (action.includes('MARGIN')) return 'MARGIN_PROTECTION'
+  if (action.includes('CONCESSION') || action.includes('DEFENSIVE') || risk === 'HIGH') {
+    return 'RETENTION_OFFER'
+  }
+
+  return 'BUNDLE_OPTIMIZATION'
+}
+
+function buildFallbackScenarioCandidate(args: {
+  baselineLines: BaselineLine[]
+  insights: QuoteInsight[]
+  recommendedAction: string | null
+  riskLevel: string | null
+}) {
+  if (args.baselineLines.length === 0) return null
+
+  const strategyType = fallbackStrategyForCase(args)
+  const scenarioLines = copyBaselineLines(args.baselineLines)
+  const target = scenarioLines
+    .slice()
+    .sort((a, b) => Number(b.lineNetAmount) - Number(a.lineNetAmount))[0]
+  const targetIndex = scenarioLines.findIndex((line) => line.lineNumber === target.lineNumber)
+  const discount = target.discountPercent ?? new Prisma.Decimal(0)
+  const [primaryInsight] = sortedInsights(args.insights)
+
+  let nextQuantity = target.quantity
+  let nextNetUnitPrice = target.netUnitPrice
+  let nextDiscount = discount
+
+  switch (strategyType) {
+    case 'UPSELL_EXPANSION':
+      nextQuantity = Math.max(target.quantity + 1, Math.ceil(target.quantity * 1.1))
+      break
+    case 'RIGHT_SIZING':
+      nextQuantity = Math.max(1, Math.floor(target.quantity * 0.9))
+      if (nextQuantity === target.quantity) {
+        nextNetUnitPrice = target.netUnitPrice.mul(0.98).toDecimalPlaces(2)
+      }
+      break
+    case 'RETENTION_OFFER':
+      nextNetUnitPrice = target.netUnitPrice.mul(0.97).toDecimalPlaces(2)
+      nextDiscount = Prisma.Decimal.min(discount.add(3), new Prisma.Decimal(95))
+      break
+    case 'MARGIN_PROTECTION':
+      nextNetUnitPrice = target.netUnitPrice.mul(1.03).toDecimalPlaces(2)
+      nextDiscount = Prisma.Decimal.max(discount.sub(2), new Prisma.Decimal(0))
+      break
+    case 'BUNDLE_OPTIMIZATION':
+    default:
+      nextNetUnitPrice = target.netUnitPrice.mul(1.02).toDecimalPlaces(2)
+      nextDiscount = Prisma.Decimal.max(discount.sub(1), new Prisma.Decimal(0))
+      break
+  }
+
+  const nextLine = {
+    ...target,
+    quantity: nextQuantity,
+    netUnitPrice: nextNetUnitPrice,
+    discountPercent: nextDiscount,
+    listUnitPrice: computeListUnitPrice(nextNetUnitPrice, nextDiscount),
+    lineNetAmount: nextNetUnitPrice.mul(nextQuantity).toDecimalPlaces(2),
+    sourceType: 'SCENARIO_ENGINE',
+    sourceInsightType: primaryInsight?.insightType ?? 'BASELINE_ALTERNATIVE',
+    sourceQuoteInsightId: primaryInsight?.id ?? null,
+    insightSummary:
+      primaryInsight?.insightSummary ??
+      'Seeded read-only scenario generated from the baseline quote for first-run demo coverage.',
+  }
+
+  scenarioLines[targetIndex] = nextLine
+
+  const baselineTotals = computeScenarioTotals(copyBaselineLines(args.baselineLines))
+  const totals = computeScenarioTotals(scenarioLines)
+  const expectedArrImpact = round2(
+    Number(totals.totalNetAmount) - Number(baselineTotals.totalNetAmount),
+  )
+  const selectedInsights = primaryInsight ? [primaryInsight] : []
+  const confidenceScore = primaryInsight?.confidenceScore ?? 72
+  const candidateBase = {
+    strategyType,
+    title: STRATEGY_TITLE[strategyType],
+    summary:
+      primaryInsight != null
+        ? summarizeScenario(strategyType, selectedInsights)
+        : `Creates a conservative read-only ${titleizeToken(
+            strategyType,
+          ).toLowerCase()} alternative from the baseline quote.`,
+    insights: selectedInsights,
+    confidenceScore,
+    expectedArrImpact,
+    expectedMarginImpact: STRATEGY_MARGIN_DELTA[strategyType],
+    expectedRiskReduction: STRATEGY_RISK_REDUCTION[strategyType],
+  }
+
+  return {
+    ...candidateBase,
+    rankingScore: rankingScoreForCandidate(candidateBase),
+    scenarioLines,
+    totals,
+    changedLineCount: computeChangedLineCount(args.baselineLines, scenarioLines),
+  }
+}
+
 export async function generateQuoteScenariosForRenewalCase(caseId: string) {
   const renewalCase = await prisma.renewalCase.findUnique({
     where: { id: caseId },
     select: {
       id: true,
+      recommendedAction: true,
+      riskLevel: true,
       preferredQuoteScenarioKey: true,
       quoteDraft: {
         include: {
@@ -567,54 +703,6 @@ export async function generateQuoteScenariosForRenewalCase(caseId: string) {
   const now = new Date()
   const generatedAtIso = now.toISOString()
 
-  let suppressedReason: string | null = null
-
-  if (sortedSuggestedInsights.length === 0) {
-    suppressedReason = 'No meaningful signals were found for scenario generation.'
-  } else if (detectConflictingInsights(sortedSuggestedInsights)) {
-    suppressedReason = 'Conflicting insights detected across the same product lines.'
-  } else {
-    const topImpact = Math.max(
-      ...sortedSuggestedInsights.map((item) => Math.abs(numberOrNull(item.estimatedArrImpact) ?? 0)),
-    )
-    const hasStrongConfidence = sortedSuggestedInsights.some((item) => (item.confidenceScore ?? 0) >= 70)
-
-    if (topImpact < 1000 && !hasStrongConfidence) {
-      suppressedReason = 'Signal changes are negligible relative to baseline quote impact.'
-    }
-  }
-
-  if (suppressedReason) {
-    await prisma.$transaction(async (tx) => {
-      await tx.quoteScenario.deleteMany({
-        where: {
-          renewalCaseId: caseId,
-        },
-      })
-
-      await tx.renewalCase.update({
-        where: { id: caseId },
-        data: {
-          quoteScenariosNeedRefresh: false,
-          quoteScenariosGeneratedAt: now,
-          preferredQuoteScenarioKey: null,
-          lastQuoteScenarioRunJson: JSON.stringify({
-            generatedAt: generatedAtIso,
-            generatedCount: 0,
-            suppressedReason,
-          }),
-        },
-      })
-    })
-
-    return {
-      caseId,
-      generatedCount: 0,
-      suppressedReason,
-      scenarioKeys: [] as string[],
-    }
-  }
-
   const baselineLines: BaselineLine[] = baselineQuote.lines.map((line) => ({
     id: line.id,
     lineNumber: line.lineNumber,
@@ -633,7 +721,7 @@ export async function generateQuoteScenariosForRenewalCase(caseId: string) {
   }))
 
   const candidates = buildScenarioCandidates(sortedSuggestedInsights)
-  const materializedCandidates = candidates
+  let materializedCandidates = candidates
     .map((candidate) => {
       const scenarioLines: MutableScenarioLine[] = baselineLines.map((line) => ({
         sourceQuoteDraftLineId: line.id,
@@ -669,38 +757,20 @@ export async function generateQuoteScenariosForRenewalCase(caseId: string) {
     .filter((candidate) => candidate.changedLineCount > 0)
 
   if (materializedCandidates.length === 0) {
-    suppressedReason = 'Generated scenarios matched baseline quote with no commercial changes.'
-  }
-
-  if (suppressedReason) {
-    await prisma.$transaction(async (tx) => {
-      await tx.quoteScenario.deleteMany({
-        where: {
-          renewalCaseId: caseId,
-        },
-      })
-
-      await tx.renewalCase.update({
-        where: { id: caseId },
-        data: {
-          quoteScenariosNeedRefresh: false,
-          quoteScenariosGeneratedAt: now,
-          preferredQuoteScenarioKey: null,
-          lastQuoteScenarioRunJson: JSON.stringify({
-            generatedAt: generatedAtIso,
-            generatedCount: 0,
-            suppressedReason,
-          }),
-        },
-      })
+    const fallbackCandidate = buildFallbackScenarioCandidate({
+      baselineLines,
+      insights: sortedSuggestedInsights,
+      recommendedAction: renewalCase.recommendedAction,
+      riskLevel: renewalCase.riskLevel,
     })
 
-    return {
-      caseId,
-      generatedCount: 0,
-      suppressedReason,
-      scenarioKeys: [] as string[],
-    }
+    materializedCandidates = fallbackCandidate?.changedLineCount
+      ? [fallbackCandidate]
+      : []
+  }
+
+  if (materializedCandidates.length === 0) {
+    throw new Error('Unable to generate a scenario because the baseline quote has no lines.')
   }
 
   const rankedCandidates = materializedCandidates.map((candidate, index) => ({

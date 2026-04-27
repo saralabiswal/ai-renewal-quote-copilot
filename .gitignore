@@ -11,6 +11,7 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+.runtime-settings.json
 
 # prisma / sqlite
 dev.db
@@ -30,6 +31,23 @@ pnpm-debug.log*
 # build artifacts
 coverage/
 dist/
+.venv-ml/
+ml/models/*.json
+ml/models/*.joblib
+!ml/models/.gitkeep
+!ml/models/renewal_risk_sklearn.joblib
+!ml/models/renewal_risk_sklearn.meta.json
+!ml/models/expansion_propensity_sklearn.joblib
+!ml/models/expansion_propensity_sklearn.meta.json
+!ml/models/renewal_risk_xgboost.joblib
+!ml/models/renewal_risk_xgboost.meta.json
+!ml/models/expansion_propensity_xgboost.joblib
+!ml/models/expansion_propensity_xgboost.meta.json
+ml/data/*.csv
+!ml/data/synthetic-renewal-training.csv
+ml/__pycache__/
+__pycache__/
+*.pyc
 
 # playwright artifacts
 test-results/
@@ -37,6 +55,8 @@ playwright-report/
 
 # docs
 docs/*
+!docs/technical-architecture.md
+!docs/technical-review-ai-ml.md
 !docs/user-guide-renewal-workflow.md
 !docs/demo-recording-runbook-rc-acct-1016.md
 !docs/assets/

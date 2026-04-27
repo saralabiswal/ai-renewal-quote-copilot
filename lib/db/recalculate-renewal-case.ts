@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client'
 
 import { buildCaseNarrative, buildItemAnalysisSummary } from '../rules/driver-builder'
-import { evaluateRenewalCase } from '../rules/recommendation-engine'
 import { toNumber } from '../rules/helpers'
 import type { RuleCaseItemInput } from '../rules/types'
 import { DEMO_SCENARIOS, toDemoScenarioKey, type DemoScenarioKey } from '@/lib/scenarios/demo-scenarios'
+import { runRecommendationDecision } from '@/lib/decision/recommendation-orchestrator'
 
 const prisma = new PrismaClient()
 
@@ -215,31 +215,31 @@ export async function recalculateRenewalCaseById(caseId: string) {
     recommendedAction: renewalCase.recommendedAction,
     requiresApproval: renewalCase.requiresApproval,
   }
+  const decisionRunId = makeId('dr')
 
-  const engineOutput = evaluateRenewalCase({
+  const engineInput = {
     account: {
       id: renewalCase.account.id,
       name: renewalCase.account.name,
       segment: renewalCase.account.segment,
+      industry: renewalCase.account.industry,
       healthScore: toNumber(renewalCase.account.healthScore, 0),
       npsBand: renewalCase.account.npsBand,
       openEscalationCount: toNumber(renewalCase.account.openEscalationCount, 0),
     },
     items,
-  })
+  }
 
-  const recommendationDiff = {
+  const decision = await runRecommendationDecision({
+    caseId,
+    decisionRunId,
     scenarioKey,
     scenarioLabel: DEMO_SCENARIOS[scenarioKey].label,
-    previous: previousCaseState,
-    next: {
-      riskLevel: engineOutput.bundleResult.riskLevel,
-      recommendedAction: engineOutput.bundleResult.recommendedAction,
-      requiresApproval: engineOutput.bundleResult.approvalRequired,
-    },
+    previousCaseState,
+    engineInput,
     driverChanges: buildDriverChanges(items),
-    recalculatedAt: new Date().toISOString(),
-  }
+  })
+  const engineOutput = decision.finalOutput
 
   const nextCaseAnalysisVersion = (renewalCase.analyses[0]?.analysisVersion ?? 0) + 1
 
@@ -260,7 +260,7 @@ export async function recalculateRenewalCaseById(caseId: string) {
         status: 'UNDER_REVIEW',
         quoteInsightsNeedRefresh: true,
         quoteScenariosNeedRefresh: true,
-        lastRecommendationJson: JSON.stringify(recommendationDiff),
+        lastRecommendationJson: JSON.stringify(decision.recommendationDiff),
         lastScenarioChangedAt: new Date(),
       },
     })
@@ -284,7 +284,32 @@ export async function recalculateRenewalCaseById(caseId: string) {
         approvalRequired: engineOutput.bundleResult.approvalRequired,
         primaryDriversJson: JSON.stringify(engineOutput.bundleResult.primaryDrivers),
         bundleSummaryText: engineOutput.bundleResult.summaryText,
-        generatedBy: 'RULE_ENGINE',
+        generatedBy: decision.generatedBy,
+      },
+    })
+
+    await tx.decisionRun.create({
+      data: {
+        id: decisionRunId,
+        renewalCaseId: caseId,
+        runType: 'RECOMMENDATION_RECALCULATION',
+        scenarioKey,
+        mode: decision.generatedBy,
+        status: 'COMPLETED',
+        ruleEngineVersion: decision.versions.ruleEngineVersion,
+        policyVersion: decision.versions.policyVersion,
+        featureSchemaVersion: decision.versions.featureSchemaVersion,
+        mlMode: decision.mlConfig.mode,
+        mlModelName:
+          decision.mlPrediction?.modelName ?? decision.mlConfig.registryModelName ?? null,
+        mlModelVersion:
+          decision.mlPrediction?.modelVersion ?? decision.mlConfig.registryModelVersion ?? null,
+        ruleInputJson: JSON.stringify(engineInput),
+        featureSnapshotJson: JSON.stringify(decision.featureSnapshot),
+        ruleOutputJson: JSON.stringify(decision.ruleEngineOutput.bundleResult),
+        mlOutputJson: decision.mlPrediction ? JSON.stringify(decision.mlPrediction) : null,
+        finalOutputJson: JSON.stringify(engineOutput.bundleResult),
+        guardrailSummaryJson: JSON.stringify(decision.guardrailSummary),
       },
     })
 
@@ -302,7 +327,7 @@ export async function recalculateRenewalCaseById(caseId: string) {
           engineOutput.bundleResult.approvalRequired,
           engineOutput.bundleResult.primaryDrivers,
         ),
-        modelLabel: 'rule-engine-v1',
+        modelLabel: decision.generatedBy === 'HYBRID_RULES_ML' ? 'hybrid-rules-ml-v1' : 'rule-engine-v1',
       },
     })
 
@@ -317,7 +342,7 @@ export async function recalculateRenewalCaseById(caseId: string) {
           engineOutput.bundleResult.summaryText,
           engineOutput.bundleResult.primaryDrivers,
         ),
-        modelLabel: 'rule-engine-v1',
+        modelLabel: decision.generatedBy === 'HYBRID_RULES_ML' ? 'hybrid-rules-ml-v1' : 'rule-engine-v1',
       },
     })
 
@@ -366,7 +391,7 @@ export async function recalculateRenewalCaseById(caseId: string) {
           renewalCaseItemId: itemResult.itemId,
           narrativeType: 'RATIONALE',
           content: buildItemAnalysisSummary(itemResult),
-          modelLabel: 'rule-engine-v1',
+          modelLabel: decision.generatedBy === 'HYBRID_RULES_ML' ? 'hybrid-rules-ml-v1' : 'rule-engine-v1',
         },
       })
     }

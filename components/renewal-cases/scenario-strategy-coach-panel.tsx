@@ -24,7 +24,7 @@ export function ScenarioStrategyCoachPanel({
     <section className="card coach-shell">
       <div className="section-header">
         <div>
-          <h3 className="panel-title">Phase 3 AI Personalization Coach</h3>
+          <h3 className="panel-title">AI Scenario Coach</h3>
           <p className="section-subtitle">
             Account-aware scenario recommendation using weighted ARR, margin, and risk posture.
           </p>

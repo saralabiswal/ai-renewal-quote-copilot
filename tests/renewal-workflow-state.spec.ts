@@ -8,13 +8,6 @@ const GENERATED_SCENARIO_CASE_IDS = [
   'rcase_summitone',
 ]
 
-const SUPPRESSED_SCENARIO_CASE_IDS = [
-  'rcase_apex_mfg',
-  'rcase_vertex_industrial',
-  'rcase_bluepeak',
-  'rcase_orion_revenue',
-]
-
 type ScenarioGenerationResponse = {
   ok: boolean
   caseId: string
@@ -51,16 +44,11 @@ async function generateScenariosForCase(
 async function findCaseByScenarioExpectation(
   request: APIRequestContext,
   caseIds: string[],
-  expectation: 'generated' | 'suppressed',
 ) {
   for (const caseId of caseIds) {
     const generation = await generateScenariosForCase(request, caseId)
-    const matches =
-      expectation === 'generated'
-        ? generation.generatedCount > 0
-        : generation.generatedCount === 0 && Boolean(generation.suppressedReason)
 
-    if (matches) {
+    if (generation.generatedCount > 0) {
       return {
         caseId,
         generation,
@@ -69,7 +57,7 @@ async function findCaseByScenarioExpectation(
   }
 
   throw new Error(
-    `No case found for expectation "${expectation}" in candidates: ${caseIds.join(', ')}`,
+    `No generated scenario case found in candidates: ${caseIds.join(', ')}`,
   )
 }
 
@@ -105,6 +93,59 @@ test('recalculate recommendation sets case under review and marks insights stale
   await page.goto('/renewal-cases/rcase_apex_mfg')
   await waitForPageStable(page)
   await expect(page.getByText('Quote Insights may be outdated')).toBeVisible()
+})
+
+test('decision trace logs rules-only recalculation metadata', async ({ page, request }) => {
+  await postJson(request, '/api/settings/ml', {
+    mlRecommendationMode: 'RULES_ONLY',
+  })
+
+  const recalcBody = await postJson(request, '/api/renewal-cases/rcase_apex_mfg/recalculate')
+  expect(recalcBody.ok).toBe(true)
+
+  await page.goto('/renewal-cases/rcase_apex_mfg')
+  await waitForPageStable(page)
+
+  const tracePanel = page.locator('section.card').filter({
+    has: page.getByRole('heading', { name: 'Decision Trace' }),
+  })
+  await expect(tracePanel).toBeVisible()
+  await expect(tracePanel).toContainText('Recommendation Recalculation')
+  await expect(tracePanel).toContainText('Rule Engine')
+  await expect(tracePanel).toContainText('renewal-features-v1')
+  await expect(tracePanel).toContainText('Rules: recommendation-engine-v1')
+})
+
+test('ML shadow mode records ML status without changing recommendation result', async ({
+  request,
+}) => {
+  await postJson(request, '/api/settings/ml', {
+    mlRecommendationMode: 'RULES_ONLY',
+  })
+  const rulesOnlyBody = await postJson(
+    request,
+    '/api/renewal-cases/rcase_vertex_industrial/recalculate',
+  )
+
+  await postJson(request, '/api/settings/ml', {
+    mlRecommendationMode: 'ML_SHADOW',
+  })
+  const shadowBody = await postJson(
+    request,
+    '/api/renewal-cases/rcase_vertex_industrial/recalculate',
+  )
+
+  expect(shadowBody.ok).toBe(true)
+  expect(shadowBody.result.bundleResult.riskScore).toBe(
+    rulesOnlyBody.result.bundleResult.riskScore,
+  )
+  expect(shadowBody.result.bundleResult.recommendedAction).toBe(
+    rulesOnlyBody.result.bundleResult.recommendedAction,
+  )
+
+  await postJson(request, '/api/settings/ml', {
+    mlRecommendationMode: 'RULES_ONLY',
+  })
 })
 
 test('recalculate quote insights clears stale warning and shows regenerated timestamp', async ({
@@ -193,7 +234,7 @@ test('quote review decision updates quote status and review history', async ({ p
     has: page.getByRole('heading', { name: 'Review History' }),
   })
   await expect(reviewPanel).toBeVisible()
-  await expect(reviewPanel).toContainText('APPROVE')
+  await expect(reviewPanel).toContainText('Approve')
   await expect(reviewPanel).toContainText(comment)
 })
 
@@ -233,17 +274,13 @@ test('quote scenario generation is deterministic and idempotent', async ({ reque
   await page.goto(`/scenario-quotes/${caseId}`)
   await waitForPageStable(page)
   const scenarioPanel = page.locator('section.card').filter({
-    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+    has: page.getByRole('heading', { name: /Scenario Comparison/i }),
   })
   await expect(scenarioPanel).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Phase 3 AI Personalization Coach/i })).toBeVisible()
-
-  if (first.generatedCount > 0) {
-    await expect(scenarioPanel.getByText(/Scenario Quote Navigator/i)).toBeVisible()
-    await expect(scenarioPanel.getByText(/Read-only/i).first()).toBeVisible()
-  } else {
-    await expect(scenarioPanel.getByText(/No scenarios generated/i)).toBeVisible()
-  }
+  await expect(page.getByRole('heading', { name: /AI Scenario Coach/i })).toBeVisible()
+  expect(first.generatedCount).toBeGreaterThan(0)
+  await expect(scenarioPanel.getByText(/Scenario Quote Navigator/i)).toBeVisible()
+  await expect(scenarioPanel.getByText(/Read-only/i).first()).toBeVisible()
 })
 
 test('quote scenario comparison supports preferred scenario workflow', async ({ request, page }) => {
@@ -255,15 +292,11 @@ test('quote scenario comparison supports preferred scenario workflow', async ({ 
   await waitForPageStable(page)
 
   const scenarioPanel = page.locator('section.card').filter({
-    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+    has: page.getByRole('heading', { name: /Scenario Comparison/i }),
   })
   await expect(scenarioPanel).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Phase 3 AI Personalization Coach/i })).toBeVisible()
-
-  if (generation.generatedCount === 0) {
-    await expect(scenarioPanel.getByText(/No scenarios generated/i)).toBeVisible()
-    return
-  }
+  await expect(page.getByRole('heading', { name: /AI Scenario Coach/i })).toBeVisible()
+  expect(generation.generatedCount).toBeGreaterThan(0)
 
   const firstScenarioButton = scenarioPanel.locator('button', { hasText: '#1' }).first()
   await firstScenarioButton.click()
@@ -285,20 +318,19 @@ test('quote scenario comparison supports preferred scenario workflow', async ({ 
   ).toBeVisible()
 })
 
-test('baseline scenario indicator reflects generated count and suppressed runs', async ({
+test('baseline scenario indicator reflects generated count for first-run scenarios', async ({
   page,
   request,
 }) => {
   const generated = await findCaseByScenarioExpectation(
     request,
     GENERATED_SCENARIO_CASE_IDS,
-    'generated',
   )
   await page.goto(`/scenario-quotes/${generated.caseId}`)
   await waitForPageStable(page)
 
   const generatedPanel = page.locator('section.card').filter({
-    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+    has: page.getByRole('heading', { name: /Scenario Comparison/i }),
   })
   await expect(generatedPanel).toBeVisible()
   const generatedBaselineButton = generatedPanel
@@ -307,41 +339,44 @@ test('baseline scenario indicator reflects generated count and suppressed runs',
   await expect(generatedBaselineButton).toContainText(
     `System generated scenarios: ${generated.generation.generatedCount}`,
   )
+})
 
-  const suppressed = await findCaseByScenarioExpectation(
+test('scenario index shows scenario quote counts before opening studio', async ({
+  page,
+  request,
+}) => {
+  const generated = await findCaseByScenarioExpectation(
     request,
-    SUPPRESSED_SCENARIO_CASE_IDS,
-    'suppressed',
+    GENERATED_SCENARIO_CASE_IDS,
   )
-  await page.goto(`/scenario-quotes/${suppressed.caseId}`)
+
+  await page.goto('/scenario-quotes')
   await waitForPageStable(page)
 
-  const suppressedPanel = page.locator('section.card').filter({
-    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
-  })
-  await expect(suppressedPanel).toBeVisible()
-  const suppressedBaselineButton = suppressedPanel
-    .locator('button', { hasText: 'Baseline Quote' })
-    .first()
-  await expect(suppressedBaselineButton).toContainText('System generated scenarios: 0')
-  await expect(suppressedPanel.getByText(/No scenarios generated yet\./i)).toBeVisible()
-  await expect(suppressedPanel.getByText(/^No scenarios generated:/i)).toBeVisible()
+  await expect(page.getByText('With Scenarios', { exact: true })).toBeVisible()
+  await expect(page.getByText('Generated Scenarios', { exact: true })).toBeVisible()
 
-  const baselineMetrics = suppressedPanel
-    .locator('.opportunity-metrics-grid')
-    .filter({ hasText: 'Generated Scenarios' })
-    .first()
-  await expect(baselineMetrics).toContainText('Generated Scenarios')
-  await expect(baselineMetrics).toContainText('0')
-  await expect(baselineMetrics).toContainText('Suppression')
-  await expect(baselineMetrics).toContainText('Yes')
+  const generatedRow = page.locator('tr').filter({
+    has: page.locator(`a[href="/scenario-quotes/${generated.caseId}"]`),
+  })
+  await expect(generatedRow).toHaveCount(1)
+  await expect(generatedRow).toContainText(
+    `${generated.generation.generatedCount} scenario${
+      generated.generation.generatedCount === 1 ? '' : 's'
+    }`,
+  )
+
+  const horizonRow = page.locator('tr').filter({
+    has: page.locator('a[href="/scenario-quotes/rcase_horizon_util"]'),
+  })
+  await expect(horizonRow).toHaveCount(1)
+  await expect(horizonRow).toContainText('1 scenario')
 })
 
 test('scenario workspace auto-regenerates when marked stale', async ({ page, request }) => {
   const generated = await findCaseByScenarioExpectation(
     request,
     GENERATED_SCENARIO_CASE_IDS,
-    'generated',
   )
   const caseId = generated.caseId
 
@@ -354,7 +389,7 @@ test('scenario workspace auto-regenerates when marked stale', async ({ page, req
   await waitForPageStable(page)
 
   const scenarioPanel = page.locator('section.card').filter({
-    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+    has: page.getByRole('heading', { name: /Scenario Comparison/i }),
   })
   await expect(scenarioPanel).toBeVisible()
   await expect(scenarioPanel.getByText(/Quote scenarios may be outdated/i)).toHaveCount(0)
@@ -368,7 +403,6 @@ test('preferred scenario remains coherent after regeneration', async ({ page, re
   const generated = await findCaseByScenarioExpectation(
     request,
     GENERATED_SCENARIO_CASE_IDS,
-    'generated',
   )
   const caseId = generated.caseId
   const initialPreferredKey = generated.generation.scenarioKeys[0]
@@ -389,7 +423,7 @@ test('preferred scenario remains coherent after regeneration', async ({ page, re
   await waitForPageStable(page)
 
   const scenarioPanel = page.locator('section.card').filter({
-    has: page.getByRole('heading', { name: /Baseline Quote and Quote Scenarios/i }),
+    has: page.getByRole('heading', { name: /Scenario Comparison/i }),
   })
   await expect(scenarioPanel).toBeVisible()
   const preferredSummary = scenarioPanel.locator('.scenario-preferred-summary')

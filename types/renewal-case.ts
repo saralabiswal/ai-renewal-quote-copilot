@@ -29,8 +29,17 @@ export type RenewalCaseListItem = {
   itemCount: number
   quoteDraftId: string | null
   quoteNumber: string | null
+  scenarioQuoteCount: number
+  quoteScenariosNeedRefresh: boolean
   quoteTrackLabel: string
   quoteTrackDescription: string
+  latestDecisionRunMode: string | null
+  latestDecisionRunMlMode: string | null
+  latestDecisionRunMlStatus: string | null
+  latestDecisionRunMlAffectsRecommendation: boolean | null
+  latestDecisionRunMlModelName: string | null
+  latestDecisionRunMlModelVersion: string | null
+  latestDecisionRunMlBundleRiskScore: number | null
 }
 
 export type RenewalSubscriptionBaselineListItem = {
@@ -106,6 +115,65 @@ export type RecalculationMetaView = {
   updatedAtLabel: string | null
   approvalRequired: boolean
   drivers: string[]
+  ml: RecommendationChangeView['ml']
+}
+
+export type DecisionRunTraceView = {
+  id: string
+  runType: string
+  mode: string
+  status: string
+  scenarioKey: string | null
+  createdAt: string
+  ruleEngineVersion: string | null
+  policyVersion: string | null
+  featureSchemaVersion: string | null
+  mlMode: string | null
+  mlModelName: string | null
+  mlModelVersion: string | null
+  ruleInputSummary: {
+    itemCount: number
+    accountSegment: string | null
+  } | null
+  featureSnapshotSummary: {
+    featureSchemaVersion: string | null
+    itemCount: number
+    generatedAt: string | null
+  } | null
+  ruleOutputSummary: {
+    riskScore: number | null
+    riskLevel: string | null
+    recommendedAction: string | null
+    approvalRequired: boolean | null
+  } | null
+  mlOutputSummary: {
+    status: string | null
+    mode: string | null
+    modelName: string | null
+    modelVersion: string | null
+    generatedAt: string | null
+    bundleRiskScore: number | null
+    itemPredictionCount: number
+    error: string | null
+    itemPredictions: Array<{
+      itemId: string
+      riskScore: number | null
+      riskProbability: number | null
+      expansionScore: number | null
+      expansionProbability: number | null
+      topFeatures: string[]
+    }>
+  } | null
+  finalOutputSummary: {
+    riskScore: number | null
+    riskLevel: string | null
+    recommendedAction: string | null
+    approvalRequired: boolean | null
+  } | null
+  guardrailSummary: {
+    approvalRequiredCount: number
+    guardrailResults: string[]
+  } | null
 }
 
 export type RecommendationStateSnapshot = {
@@ -131,7 +199,31 @@ export type RecommendationChangeView = {
   scenarioLabel: string | null
   previous: RecommendationStateSnapshot
   next: RecommendationStateSnapshot
+  ruleBaseline?: {
+    riskScore: number | null
+    riskLevel: string | null
+    recommendedAction: string | null
+    requiresApproval: boolean | null
+  } | null
+  ml?: {
+    mode: string
+    status: string
+    affectsRecommendation: boolean
+    modelName: string | null
+    modelVersion: string | null
+    bundleRiskScore: number | null
+    error: string | null
+    itemPredictions: Array<{
+      itemId: string
+      riskScore: number | null
+      riskProbability: number | null
+      expansionScore: number | null
+      expansionProbability: number | null
+      topFeatures: string[]
+    }>
+  } | null
   driverChanges: RecommendationDriverChange[]
+  decisionRunId?: string | null
   recalculatedAt: string | null
 }
 
@@ -200,6 +292,7 @@ export type RenewalCaseDetailView = {
   summaryCards: SummaryCard[]
   analysis: RenewalCaseAnalysisView | null
   recalculationMeta: RecalculationMetaView
+  latestDecisionRun: DecisionRunTraceView | null
   items: RenewalCaseItemView[]
   narrative: RecommendationNarrativeView | null
   aiExecutiveSummary: RecommendationNarrativeView | null

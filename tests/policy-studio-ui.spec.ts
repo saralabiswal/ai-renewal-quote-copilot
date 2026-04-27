@@ -6,7 +6,7 @@ test('policy studio renders seeded context and under-the-hood guidance', async (
   await waitForPageStable(page)
 
   await expect(
-    page.getByRole('heading', { name: /Policy Intelligence Workspace/i }),
+    page.getByRole('heading', { name: /^Policy Studio$/i }),
   ).toBeVisible()
 
   const seedContext = page.locator('section.policy-step-card').filter({

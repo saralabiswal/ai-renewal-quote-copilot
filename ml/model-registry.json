@@ -1,0 +1,118 @@
+{
+  "models": {
+    "renewal_risk": {
+      "activeVersion": "v0.1-synthetic",
+      "modelName": "renewal_risk_xgboost",
+      "modelPath": "ml/models/renewal_risk_xgboost.joblib",
+      "metadataPath": "ml/models/renewal_risk_xgboost.meta.json",
+      "featureSchemaVersion": "renewal-features-v1",
+      "approvedForShadow": true,
+      "approvedForHybrid": true,
+      "owner": "RevOps Decision Intelligence",
+      "notes": "Active xgboost challenger selected by local holdout evaluation.",
+      "artifactSha256": "581015f1969ceb538e9b414c6fc844291f92569282301bce0b7571f02f328abf",
+      "latestEvaluationReport": "ml/reports/evaluation.json",
+      "latestMetrics": {
+        "mae": 4.4493,
+        "rmse": 5.9273,
+        "r2": 0.9537
+      }
+    },
+    "expansion_propensity": {
+      "activeVersion": "v0.1-synthetic",
+      "modelName": "expansion_propensity_sklearn",
+      "modelPath": "ml/models/expansion_propensity_sklearn.joblib",
+      "metadataPath": "ml/models/expansion_propensity_sklearn.meta.json",
+      "featureSchemaVersion": "renewal-features-v1",
+      "approvedForShadow": true,
+      "approvedForHybrid": false,
+      "owner": "RevOps Decision Intelligence",
+      "notes": "Active scikit-learn baseline selected by local holdout evaluation.",
+      "artifactSha256": "8d2404f1fa60e1748418016c89a959fa2ac6fb250407ddaced11dea1e7ac242f",
+      "latestEvaluationReport": "ml/reports/evaluation.json",
+      "latestMetrics": {
+        "accuracy": 0.7767,
+        "precision": 0.7429,
+        "recall": 0.8553,
+        "f1": 0.7951,
+        "rocAuc": 0.8681
+      }
+    },
+    "renewal_risk_scikit_learn": {
+      "activeVersion": "v0.1-synthetic",
+      "modelName": "renewal_risk_sklearn",
+      "modelPath": "ml/models/renewal_risk_sklearn.joblib",
+      "metadataPath": "ml/models/renewal_risk_sklearn.meta.json",
+      "featureSchemaVersion": "renewal-features-v1",
+      "approvedForShadow": true,
+      "approvedForHybrid": false,
+      "owner": "RevOps Decision Intelligence",
+      "notes": "Active scikit-learn baseline selected by local holdout evaluation.",
+      "artifactSha256": "0b72280c3445b3fcdbed35b82b783c53b6b32e03ea921bfcb151c4f7cd06b72b",
+      "latestEvaluationReport": "ml/reports/evaluation.json",
+      "latestMetrics": {
+        "mae": 4.4815,
+        "rmse": 5.9303,
+        "r2": 0.9537
+      }
+    },
+    "renewal_risk_xgboost": {
+      "activeVersion": "v0.1-synthetic",
+      "modelName": "renewal_risk_xgboost",
+      "modelPath": "ml/models/renewal_risk_xgboost.joblib",
+      "metadataPath": "ml/models/renewal_risk_xgboost.meta.json",
+      "featureSchemaVersion": "renewal-features-v1",
+      "approvedForShadow": true,
+      "approvedForHybrid": true,
+      "owner": "RevOps Decision Intelligence",
+      "notes": "Active xgboost challenger selected by local holdout evaluation.",
+      "artifactSha256": "581015f1969ceb538e9b414c6fc844291f92569282301bce0b7571f02f328abf",
+      "latestEvaluationReport": "ml/reports/evaluation.json",
+      "latestMetrics": {
+        "mae": 4.4493,
+        "rmse": 5.9273,
+        "r2": 0.9537
+      }
+    },
+    "expansion_propensity_scikit_learn": {
+      "activeVersion": "v0.1-synthetic",
+      "modelName": "expansion_propensity_sklearn",
+      "modelPath": "ml/models/expansion_propensity_sklearn.joblib",
+      "metadataPath": "ml/models/expansion_propensity_sklearn.meta.json",
+      "featureSchemaVersion": "renewal-features-v1",
+      "approvedForShadow": true,
+      "approvedForHybrid": false,
+      "owner": "RevOps Decision Intelligence",
+      "notes": "Active scikit-learn baseline selected by local holdout evaluation.",
+      "artifactSha256": "8d2404f1fa60e1748418016c89a959fa2ac6fb250407ddaced11dea1e7ac242f",
+      "latestEvaluationReport": "ml/reports/evaluation.json",
+      "latestMetrics": {
+        "accuracy": 0.7767,
+        "precision": 0.7429,
+        "recall": 0.8553,
+        "f1": 0.7951,
+        "rocAuc": 0.8681
+      }
+    },
+    "expansion_propensity_xgboost": {
+      "activeVersion": "v0.1-synthetic",
+      "modelName": "expansion_propensity_xgboost",
+      "modelPath": "ml/models/expansion_propensity_xgboost.joblib",
+      "metadataPath": "ml/models/expansion_propensity_xgboost.meta.json",
+      "featureSchemaVersion": "renewal-features-v1",
+      "approvedForShadow": true,
+      "approvedForHybrid": false,
+      "owner": "RevOps Decision Intelligence",
+      "notes": "Active xgboost challenger selected by local holdout evaluation.",
+      "artifactSha256": "c0005f9d334b0f684fb98c5b275b79c202af5d18777a5fd7026286d01cfb4c45",
+      "latestEvaluationReport": "ml/reports/evaluation.json",
+      "latestMetrics": {
+        "accuracy": 0.78,
+        "precision": 0.7529,
+        "recall": 0.8421,
+        "f1": 0.795,
+        "rocAuc": 0.8631
+      }
+    }
+  }
+}

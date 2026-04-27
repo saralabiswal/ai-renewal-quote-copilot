@@ -1,201 +1,166 @@
 # AI Renewal Quote Copilot
 
-AI-powered renewal management and pricing optimization workflow for enterprise SaaS teams.  
-This application uses **Artificial Intelligence (AI), agentic workflows, and decision intelligence** to transform subscription and account signals into **automated renewal recommendations, CPQ-ready quotes, and explainable pricing insights**.
+AI Renewal Quote Copilot is a standalone renewal decisioning demo for enterprise SaaS revenue teams. It combines deterministic pricing policy, local open-source ML models, optional LLM narrative generation, quote insight automation, and human approval workflows in one local Next.js application.
 
-> Keywords: AI for SaaS renewals, subscription revenue optimization, pricing intelligence, CPQ automation, ARR growth, renewal management AI
+The current default experience is **ML-Assisted Rules**: rules remain the policy system of record, a local ML model can influence renewal risk, pricing guardrails remain final, and every workflow run leaves auditable decision evidence.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma)](https://www.prisma.io/)
-[![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?logo=sqlite)](https://www.sqlite.org/)
-[![Playwright](https://img.shields.io/badge/Tested_with-Playwright-45BA63?logo=playwright)](https://playwright.dev/)
+![Renewal Command Center](docs/assets/user-guide/04-case-decision-workspace.png)
 
----
+## What This Demonstrates
 
-## AI Use Case: Subscription Renewal & Pricing Intelligence
+- Renewal subscription review across account, product, usage, support, and pricing signals.
+- Recommendation calculation with deterministic rules plus a local ML risk overlay.
+- Quote insights that convert recommendation outputs into quote-ready actions.
+- Scenario Studio comparison before changing the editable baseline quote.
+- Quote Review Center approval with approve, reject, and revision-request decisions.
+- Technical review surfaces for model registry, model selection, metrics, prompts, and decision trace.
+- Standalone operation with local SQLite data, local Python ML artifacts, and optional local ML service.
+- Enterprise-style UI presentation with compact typography, product navigation, and review-ready workflow naming.
 
-This project demonstrates how **AI can be applied to SaaS revenue operations (RevOps)** to:
-
-- automate subscription renewal decision-making  
-- optimize pricing and discounting strategies  
-- generate CPQ (Configure Price Quote) ready outputs  
-- improve customer retention and expansion  
-- increase Annual Recurring Revenue (ARR)  
-
----
-
-## Business Problem
-
-Modern SaaS companies rely on **subscription revenue models**, but renewal operations remain:
-
-- manual and reactive  
-- disconnected from pricing intelligence  
-- difficult to scale  
-
-This leads to:
-
-- missed or delayed renewals  
-- inconsistent pricing and discounting  
-- revenue leakage  
-- lower retention and expansion rates  
-
-As subscription portfolios scale, these inefficiencies directly impact:
-
-**ARR growth, net revenue retention (NRR), and profitability**
-
----
-
-## Proposed Solution: AI Renewal & Pricing Workflow
-
-The **AI Renewal Quote Copilot** introduces an **AI-driven, agentic workflow** for renewal and pricing automation.
-
-### Core AI capabilities
-
-- **AI-powered renewal recommendations** (risk, expansion, concession)
-- **Dynamic pricing and discount optimization**
-- **Subscription intelligence** using account and usage signals
-- **Automated CPQ / quote generation**
-- **Explainable AI decisions** with full traceability
-- **Prompt transparency** (exact current system prompt and LLM input payload in UI)
-- **Human-in-the-loop approval workflows**
-
-### Business outcomes
-
-- increase ARR and Net Revenue Retention (NRR)  
-- reduce revenue leakage  
-- improve pricing consistency  
-- scale renewal operations with AI automation  
-
----
-
-## Key AI Concepts in this Project
-
-- **Agentic AI Workflow** – multi-step AI + rules orchestration  
-- **Decision Intelligence** – AI-driven recommendations with business context  
-- **Pricing Optimization** – AI-guided discount and contract strategies  
-- **CPQ Automation** – generating quote-ready outputs  
-- **Explainable AI (XAI)** – transparent reasoning behind recommendations  
-
-
-## Product surfaces
-
-- `Dashboard` (`/`): queue-level visibility and attention cases
-- `Renewal Subscriptions` (`/renewal-cases?view=list`): baseline subscription list grouped by account
-- `Case Decision Board` (`/renewal-cases`): actionable renewal case storyboard grouped by storyline lane
-- `Case Decision Board (Case Workspace)` (`/renewal-cases/[caseId]`): scenario selection, AI workflow run, quote insights, and review context
-- `Scenario Quotes` (`/scenario-quotes`): dedicated case index for baseline-vs-scenario comparison
-- `Scenario Quotes (Case Workspace)` (`/scenario-quotes/[caseId]`): compare read-only scenario quotes and mark preferred option
-- `Quote Draft Board` (`/quote-drafts`): baseline quote execution board with status, approval posture, and scenario-count cues
-- `Quote Draft Detail` (`/quote-drafts/[quoteDraftId]`): line-level commercial deltas and quote-level decision actions
-- `Policy Studio` (`/policies`): read-only recommendation and insight rules, worked examples, and current LLM prompt visibility
-- `Settings` (`/settings`): environment and model readiness checks
-- `README Preview` (`/readme-preview`): internal markdown preview utility for documentation checks
-
-## Prompt Transparency
-
-The app exposes the exact current prompt content used by AI generation:
-
-- `Policy Studio` -> `Prompt Governance` tab:
-  - `Current LLM Prompts`
-  - exact `System Prompt`
-  - current `Input Sent To LLM` template
-- `Case Decision Board` (`/renewal-cases/[caseId]`) -> `AI Live Run Console`:
-  - per-step `View Prompt Used` drawer
-  - exact prompt text for that workflow stage
-- `Quote Insights` (`/renewal-cases/[caseId]`) -> insight card -> `View Prompt Used`:
-  - exact quote-insight `System Prompt`
-  - exact `Input Sent To LLM` generated for that specific insight
-
-## End-to-end workflow
+## Product Workflow
 
 ```text
-Policy Studio (optional, reference)
-  -> Renewal Subscriptions
-    -> Case Decision Board
-      -> Run End-to-End AI workflow (or manual step-by-step mutations)
-      -> Inspect per-step "View Prompt Used" if needed
-      -> Apply selected Quote Insights to Baseline Quote
-        -> Scenario Quotes (auto-generate/regenerate, compare, mark preferred)
-          -> Quote Draft Board (review and approve/reject quote)
+Settings
+  -> choose Recommendation Mode and confirm ML readiness
+
+Policy Studio
+  -> inspect rules, worked examples, prompts, and ML-assisted behavior
+
+Renewal Subscriptions
+  -> review baseline subscription and signal context
+
+Renewal Command Center
+  -> run recommendation recalculation and quote insight workflow
+  -> inspect Decision Trace, ML output, guardrails, and prompts
+
+Scenario Studio
+  -> choose cases from an index with scenario counts
+  -> compare generated commercial alternatives
+
+Quote Review Center
+  -> review applied quote actions and record the final quote decision
 ```
+
+## Recommendation Modes
+
+| Mode | UI Label | Behavior |
+| --- | --- | --- |
+| `RULES_ONLY` | Rules Only | Deterministic recommendation engine is final. ML is not called. |
+| `ML_SHADOW` | Shadow Mode | ML scores are captured for audit and comparison. Rules remain final. |
+| `HYBRID_RULES_ML` | ML-Assisted Rules | Rule risk and ML risk are blended for the recommendation. Pricing guardrails remain final. |
+
+The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtime changes are made from `Settings` by selecting a mode and clicking `Apply ML Mode`.
+
+## Seeded Demo Data
+
+First-run seed data is designed for a complete standalone walkthrough:
+
+- Every renewal case has a baseline quote aligned to the renewal case.
+- Scenario quote artifacts are materialized for eligible cases and shown in the Scenario Studio index.
+- Scenario Studio shows per-case scenario counts before the user opens a case.
+- The baseline quote remains the editable execution source; scenario quotes are read-only comparison artifacts.
+- Default Recommendation Mode is ML-Assisted Rules.
+
+## How Recommendations Are Calculated
+
+1. The rule engine scores each renewal line from structured signals such as usage, active users, login trend, support tickets, Sev1 incidents, CSAT, payment risk, adoption band, current ARR, discount, and pricing policy.
+2. The rule engine assigns a line disposition such as renew, expand, renew with concession, or escalate.
+3. Pricing guardrails calculate proposed quantity, discount, net unit price, ARR impact, and approval requirements.
+4. If ML is enabled, the app builds a versioned feature snapshot and calls the local ML predictor.
+5. In ML-Assisted Rules mode, each item risk score is blended as `70% rule risk + 30% ML risk`.
+6. The final bundle recommendation is recalculated from the effective item risk scores.
+7. Decision trace records the rule baseline, feature snapshot, ML output, final output, guardrails, model version, policy version, and feature schema.
+
+More detail: [AI Architecture](docs/technical-architecture.md)
+
+## How Quote Insights Are Calculated
+
+Quote insights are generated after recommendation recalculation. They are not free-form suggestions.
+
+1. Each recommendation line is mapped to a quote insight type.
+2. The insight engine carries forward line disposition, risk, proposed quantity, proposed price, discount, ARR delta, scenario, signal snapshot, and ML evidence when available.
+3. Objective scoring classifies the business goal as retain revenue, protect margin, grow account, or govern risk.
+4. Additive insights may be generated for eligible cross-sell or expansion motions.
+5. Existing quote actions already added to the quote are preserved.
+6. Suggested insights are diffed against the prior generation so the UI can show added, removed, or modified actions.
+7. Optional LLM or deterministic local rationale generation produces reviewer-facing narrative, but structured evidence remains the source of truth.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  U[Business User]
+  User[Revenue User]
 
-  subgraph WEB["Next.js App Router"]
-    PAGES["Pages + Server Components"]
-    CLIENT["Client Actions\n(recalculate, regenerate, apply, review)"]
-    API["Route Handlers\n/app/api/renewal-cases/... + /app/api/quote-drafts/..."]
+  subgraph UI[Next.js App Router]
+    Pages[Server Pages]
+    Client[Client Workflow Controls]
+    API[Route Handlers]
   end
 
-  subgraph DOMAIN["Domain Layer"]
-    DB["lib/db/*\nworkflow orchestration + persistence"]
-    RULES["lib/rules/*\nrisk + recommendation + pricing guardrails"]
-    AI["lib/ai/*\nprompting + model/fallback generation"]
+  subgraph Domain[Domain Services]
+    Rules[Recommendation Rules]
+    Decision[Decision Orchestrator]
+    Insights[Quote Insight Engine]
+    AI[Optional Text Generation]
   end
 
-  subgraph DATA["Data Layer"]
-    PRISMA["Prisma Client"]
-    SQLITE[("SQLite\nprisma/dev.db")]
+  subgraph ML[Standalone Local ML]
+    Features[Feature Snapshot]
+    Registry[Model Registry]
+    Predict[Python Predictor or Local Service]
+    Models[Joblib Model Artifacts]
   end
 
-  OAI["OpenAI API (optional)"]
+  subgraph Data[Local Data]
+    Prisma[Prisma]
+    SQLite[(SQLite)]
+  end
 
-  U --> PAGES
-  U --> CLIENT
-  CLIENT --> API
-  PAGES --> DB
-  API --> DB
-  DB --> RULES
-  DB --> AI
-  DB --> PRISMA --> SQLITE
-  AI --> OAI
+  User --> Pages
+  User --> Client
+  Client --> API
+  Pages --> Domain
+  API --> Domain
+  Decision --> Rules
+  Decision --> Features --> Predict
+  Predict --> Registry
+  Predict --> Models
+  Insights --> Decision
+  AI --> Insights
+  Domain --> Prisma --> SQLite
 ```
 
-ASCII fallback:
+## Local ML Models
 
-```text
-+--------------------+
-| Business User      |
-+--------------------+
-          |
-          v
-+----------------------------------------------+
-| Next.js App Router                            |
-| - Pages + Server Components                   |
-| - Client Actions                              |
-| - Route Handlers (/app/api/renewal-cases/... + /app/api/quote-drafts/...) |
-+----------------------------------------------+
-          |
-          v
-+----------------------------------------------+
-| Domain Layer                                  |
-| - lib/db    (workflow orchestration)          |
-| - lib/rules (risk + recommendations)          |
-| - lib/ai    (AI generation + fallback)        |
-+----------------------------------------------+
-      |                           |
-      v                           v
-+---------------------+      +----------------------+
-| Prisma Client       |      | OpenAI API (optional)|
-+---------------------+      +----------------------+
-      |
-      v
-+---------------------+
-| SQLite (prisma/dev.db) |
-+---------------------+
-```
+The repo includes a standalone ML bundle under `ml/`.
 
-## Tech stack
+| Task | Active Model | Framework | Selection Criterion |
+| --- | --- | --- | --- |
+| Renewal risk | `renewal_risk_xgboost` | XGBoost | Lowest holdout MAE |
+| Expansion propensity | `expansion_propensity_sklearn` | scikit-learn | Highest holdout ROC AUC |
 
-- Next.js 15 (App Router)
-- TypeScript (strict mode)
-- Prisma + SQLite
-- Playwright (E2E)
+Supporting artifacts:
+
+- `ml/synthetic_data.py`: generates the local synthetic training dataset.
+- `ml/train.py`: trains runtime artifacts.
+- `ml/evaluate.py`: evaluates baseline and challenger candidates.
+- `ml/predict.py`: stdin/stdout prediction interface used by Next.js.
+- `ml/serve.py`: optional local HTTP model service.
+- `ml/model-registry.json`: active model metadata, approvals, checksums, and metrics.
+- `ml/MODEL_CARD.md`: model intent, limitations, and promotion requirements.
+
+The current data is synthetic and generated from the application data model. It is suitable for standalone demo readiness and integration validation, not production predictive claims.
+
+## Tech Stack
+
+- Next.js 15 App Router
+- React 18
+- TypeScript strict mode
+- Prisma ORM
+- SQLite local database
+- Python ML runtime
+- scikit-learn and XGBoost model artifacts
+- Playwright E2E tests
 
 ## Quickstart
 
@@ -203,132 +168,117 @@ ASCII fallback:
 
 - Node.js `>=20`
 - npm
+- Python 3.11 recommended for ML setup
 
-### Run locally
+### One-command standalone setup
+
+```bash
+make standalone
+npm run dev
+```
+
+Open `http://localhost:3000`.
+
+### Manual setup
 
 ```bash
 npm install
 cp .env.example .env
 npm run db:setup
+make install-ml
+npm run ml:generate-data
+npm run ml:train
+npm run ml:evaluate
 npm run dev
 ```
 
-Open:
+## Optional Local ML Service
 
-- `http://localhost:3000`
-- if `3000` is already used, Next.js will auto-fallback (usually `http://localhost:3001`)
+By default, Next.js invokes `ml/predict.py` as a local subprocess. To demonstrate a production-shaped model-serving boundary:
 
-## User guide (with screenshots)
+```bash
+npm run ml:serve
+```
 
-- End-to-end walkthrough using `RC-ACCT-1016`:
-  - [`docs/user-guide-renewal-workflow.md`](docs/user-guide-renewal-workflow.md)
+Then set:
 
-## Environment variables
+```bash
+ML_SERVICE_URL=http://127.0.0.1:8010
+```
+
+If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
+
+## Environment Variables
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
-| `DATABASE_URL` | Yes | `file:./dev.db` | Local SQLite database |
-| `OPENAI_API_KEY` | No | empty | Enable live OpenAI generation |
-| `OPENAI_MODEL` | No | `gpt-5.3` | Model used when API key is set |
-| `OPENAI_MOCK_MODE` | No | `0` | Force deterministic mock AI outputs (`1/true/yes/on`) |
-
-AI execution modes:
-
-- `OPENAI_MOCK_MODE=1`: deterministic mock path through the same generation workflow
-- no API key + mock mode off: deterministic fallback text
-- API key present + mock mode off: live OpenAI calls
+| `DATABASE_URL` | Yes | `file:./dev.db` | Local SQLite database. |
+| `ML_RECOMMENDATION_MODE` | No | `HYBRID_RULES_ML` | Default recommendation mode before runtime setting is saved. |
+| `ML_PYTHON_BIN` | No | `.venv-ml/bin/python` | Python executable used for local prediction. |
+| `ML_SERVICE_URL` | No | empty | Optional local HTTP ML service URL. |
+| `OPENAI_API_KEY` | No | empty | Enables live text generation when configured. |
+| `OPENAI_MODEL` | No | `gpt-5.3` | Text generation model label. |
+| `OPENAI_MOCK_MODE` | No | `0` | Forces deterministic mock AI text output when enabled. |
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Start local dev server |
-| `npm run build` | Production build |
-| `npm run start` | Start production server |
-| `npm run lint` | Run Next/ESLint checks |
-| `npm run db:generate` | Generate Prisma client |
-| `npm run db:push` | Push Prisma schema |
-| `npm run db:seed` | Seed local data |
-| `npm run db:setup` | Generate + push + seed |
-| `npm run db:reset` | Force reset DB then seed |
-| `npm run db:reset:clean` | Remove local DB then validate/generate/push/seed |
-| `npm run db:studio` | Open Prisma Studio |
-| `npm run app:reset:run` | Validate DB setup then run app |
-| `npm run app:smoke` | Curl-based smoke checks |
-| `npm run test:scenario:coverage` | Validate baseline + scenario generation coverage across all seeded cases |
-| `npm run test:e2e` | Playwright full E2E test suite |
-| `npm run test:e2e:contracts` | Contracts/regression subset for workflow and traceability |
-| `npm run test:e2e:ui` | Playwright interactive UI mode |
-| `npm run test:e2e:headed` | Playwright headed browser mode |
-| `npm run test:e2e:debug` | Playwright debug mode |
+| `npm run dev` | Start the local Next.js server. |
+| `npm run build` | Build the production app. |
+| `npm run lint` | Run lint checks. |
+| `npm run db:setup` | Generate Prisma client, push schema, and seed data. |
+| `npm run db:reset` | Force-reset schema and reseed. |
+| `npm run db:reset:clean` | Remove local DB and rebuild from seed. |
+| `npm run ml:generate-data` | Generate synthetic ML training data. |
+| `npm run ml:train` | Train local ML artifacts. |
+| `npm run ml:evaluate` | Evaluate model candidates and update reports. |
+| `npm run ml:predict` | Run stdin/stdout predictor. |
+| `npm run ml:serve` | Start optional local ML prediction service. |
+| `npm run test:scenario:coverage` | Validate scenario generation coverage. |
+| `npm run test:e2e` | Run Playwright tests. |
+| `npm run test:e2e:contracts` | Run workflow and traceability regression subset. |
+| `make standalone` | Install Node/Python dependencies, seed DB, train/evaluate ML, and lint. |
+| `make smoke-standalone` | Regenerate ML artifacts and run TypeScript/lint checks. |
 
-## Testing
+## Documentation
+
+- [User Guide with Screenshots](docs/user-guide-renewal-workflow.md)
+- [AI Architecture](docs/technical-architecture.md)
+- [Technical Review Notes](docs/technical-review-ai-ml.md)
+- [ML Model Card](ml/MODEL_CARD.md)
+- [ML README](ml/README.md)
+
+## Demo Notes
+
+For a technical review, start with:
+
+1. `Settings` to show Recommendation Mode and ML readiness.
+2. `AI Architecture` to show model selection, metrics, registry, and serving boundary.
+3. `Renewal Command Center` to run the workflow and inspect Decision Trace.
+4. `Quote Insights` to show structured evidence and ML metadata.
+5. `Quote Review Center` to show human approval and final quote decision.
+
+## Troubleshooting
+
+If the dev server shows a stale chunk error after a production build:
 
 ```bash
-# quick route smoke checks
-npm run app:smoke
-
-# baseline/scenario data integrity check across all seeded cases
-npm run test:scenario:coverage
-
-# contract/regression suite used as main quality gate
-npm run test:e2e:contracts
-
-# full E2E suite
-npm run test:e2e
+rm -rf .next
+npm run dev
 ```
 
-If tests fail due to dirty scenario state, reseed and rerun:
+If local data looks inconsistent:
 
 ```bash
 npm run db:reset:clean
-npm run test:e2e
 ```
 
-## API surface
+If ML prediction is unavailable:
 
-- `POST /api/quote-drafts/[quoteDraftId]/review`
-- `POST /api/renewal-cases/[caseId]/generate-ai`
-- `POST /api/renewal-cases/[caseId]/generate-quote-scenarios`
-- `POST /api/renewal-cases/[caseId]/preferred-quote-scenario`
-- `POST /api/renewal-cases/[caseId]/quote-insights/[quoteInsightId]/add-to-quote`
-- `POST /api/renewal-cases/[caseId]/recalculate`
-- `POST /api/renewal-cases/[caseId]/recalculate-quote-insights`
-- `POST /api/renewal-cases/[caseId]/regenerate-insights-ai`
-- `POST /api/renewal-cases/[caseId]/review`
-- `POST /api/renewal-cases/[caseId]/scenario`
-
-## Repository structure
-
-```text
-app/                     Next.js routes + API handlers
-components/              UI components by feature
-lib/
-  ai/                    AI orchestration, prompts, fallback
-  db/                    Query/mutation workflow orchestration
-  rules/                 Deterministic scoring/recommendation logic
-  format/                Formatting helpers
-  policies/              Rule references and worked examples
-prisma/
-  schema.prisma          Data model
-  seed.ts                Seed loader
-  seed-data/             Synthetic seed data
-tests/                   Playwright end-to-end specs
-scripts/                 DB reset and smoke automation scripts
-docs/                    Product, data model, and scaffold notes
+```bash
+make install-ml
+npm run ml:generate-data
+npm run ml:train
+npm run ml:evaluate
 ```
-
-## GitHub upload checklist
-
-Before pushing:
-
-1. Confirm local env files are not committed (`.env` is ignored).
-2. Run `npm run db:setup`.
-3. Run `npm run test:scenario:coverage` and `npm run test:e2e:contracts` (or at minimum `npm run app:smoke`).
-4. Verify README links/routes are correct.
-5. Push with a clean root (no local artifacts).
-
-## Notes
-
-- Data is synthetic and intended for local development/testing.
-- This project is intentionally focused on decision intelligence and reviewer workflow, not production-grade multi-tenant integration hardening.

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DemoScenarioSelector } from '@/components/renewal-cases/demo-scenario-selector'
+import { labelize } from '@/lib/format/risk'
 import {
   buildRedactedVariablePreview,
   getPromptArtifactsForStage,
@@ -70,11 +71,6 @@ const DEFAULT_STEPS: WorkflowStep[] = [
     detail: null,
   },
 ]
-
-function labelize(value: string | null | undefined) {
-  if (!value) return 'Unknown'
-  return value.replaceAll('_', ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
-}
 
 function formatDuration(ms: number) {
   if (ms < 1000) return `${ms}ms`
@@ -566,7 +562,7 @@ export function AiWorkflowRunner({
                         <p>{artifact.purpose}</p>
                       </div>
                       <div className="ai-prompt-meta-tags">
-                        <span className="scenario-chip">{artifact.version.toUpperCase()}</span>
+                        <span className="scenario-chip">{artifact.version}</span>
                         <span className="scenario-chip">{artifact.fingerprint}</span>
                       </div>
                     </div>

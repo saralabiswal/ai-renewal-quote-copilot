@@ -56,7 +56,7 @@ export function QuoteDraftTable({ quotes }: { quotes: QuoteDraftListItem[] }) {
                           <div className="small muted">{item.windowLabel}</div>
                           <div className="quote-scenario-link-row">
                             <Link className="button-secondary-sm" href={`/scenario-quotes/${item.caseId}`}>
-                              Open Scenario Quotes
+                              Open Scenario Studio
                             </Link>
                             <span className="quote-scenario-meta">
                               {item.scenarioQuoteCount} Scenario

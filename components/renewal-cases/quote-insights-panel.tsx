@@ -1,6 +1,7 @@
 import { AddQuoteInsightToQuoteButton } from '@/components/renewal-cases/add-quote-insight-to-quote-button'
 import { Badge } from '@/components/ui/badge'
 import { buildQuoteInsightInput, quoteInsightInstructions } from '@/lib/ai/prompts'
+import { labelize } from '@/lib/format/risk'
 
 type QuoteInsightView = {
   id: string
@@ -73,6 +74,15 @@ type QuoteInsightView = {
       businessKpi: string
       signalDrivers: string[]
     } | null
+    ml?: {
+      status: string
+      affectsRecommendation: boolean
+      riskScore: number | null
+      riskProbability: number | null
+      expansionScore: number | null
+      expansionProbability: number | null
+      topFeatures: string[]
+    } | null
     changeLog?: {
       fromSummary: string | null
       toSummary: string | null
@@ -83,6 +93,22 @@ type QuoteInsightView = {
 }
 
 type BadgeTone = 'default' | 'info' | 'success' | 'warn' | 'danger'
+
+function mlParticipationLabel(affectsRecommendation: boolean) {
+  return affectsRecommendation ? 'ML-Assisted Rules' : 'Shadow Mode'
+}
+
+function isLocalRationaleLabel(modelLabel: string | null) {
+  if (!modelLabel) return false
+  const normalized = modelLabel.toLowerCase()
+  return normalized.includes('fallback') || normalized.includes('local-quote-insight-rationale')
+}
+
+function quoteInsightRationaleLabel(modelLabel: string | null) {
+  if (!modelLabel) return null
+  if (isLocalRationaleLabel(modelLabel)) return 'Rationale: Local deterministic v1'
+  return `Model: ${modelLabel}`
+}
 
 export function QuoteInsightsPanel({
   caseId,
@@ -161,6 +187,7 @@ export function QuoteInsightsPanel({
             const alternatives = item.justification?.alternativesConsidered ?? []
             const changeLog = item.justification?.changeLog ?? null
             const objectiveLens = item.justification?.objectiveLens ?? null
+            const mlInsight = item.justification?.ml ?? null
             const objectiveBand = scoreBand(objectiveLens?.objectiveScore ?? null)
             const aiNarrative = parseAiNarrativeSections(item.aiExplanation)
             const aiDecisionFallback =
@@ -172,6 +199,8 @@ export function QuoteInsightsPanel({
               changeLog == null ? aiNarrative?.whatChanged ?? null : null
             const aiCommercialImpact = aiNarrative?.commercialImpact ?? null
             const aiNarrativeRemainder = aiNarrative?.unstructured ?? null
+            const isLocalRationale = isLocalRationaleLabel(item.aiModelLabel)
+            const rationaleLabel = quoteInsightRationaleLabel(item.aiModelLabel)
             const hasUniqueStructuredAiContent = Boolean(
               aiCommercialImpact ||
                 aiDecisionFallback ||
@@ -221,8 +250,14 @@ export function QuoteInsightsPanel({
                       <Badge tone={aiFreshnessTone}>{aiFreshnessLabel}</Badge>
                       <Badge tone={confidenceBand.tone}>Confidence: {confidenceBand.label}</Badge>
                       <Badge tone={fitBand.tone}>Fit: {fitBand.label}</Badge>
-                      {item.aiModelLabel ? (
-                        <span className="scenario-chip">Model: {item.aiModelLabel}</span>
+                      {rationaleLabel ? (
+                        <span className="scenario-chip">{rationaleLabel}</span>
+                      ) : null}
+                      {mlInsight ? (
+                        <Badge tone={mlInsight.affectsRecommendation ? 'info' : 'default'}>
+                          {mlParticipationLabel(mlInsight.affectsRecommendation)}:{' '}
+                          {mlInsight.riskScore != null ? Math.round(mlInsight.riskScore) : 'N/A'}
+                        </Badge>
                       ) : null}
                     </div>
                     <div className="small muted" style={{ marginTop: 6 }}>
@@ -257,7 +292,11 @@ export function QuoteInsightsPanel({
                 <details className="quote-insight-prompt-details">
                   <summary className="quote-insight-prompt-summary">
                     <span>View Prompt Used</span>
-                    <span className="small muted">Exact current prompt used by the LLM</span>
+                    <span className="small muted">
+                      {isLocalRationale
+                        ? 'Prompt template retained for audit; no LLM call was made'
+                        : 'Exact current prompt used by the LLM'}
+                    </span>
                   </summary>
                   <div className="quote-insight-prompt-body">
                     <article className="quote-insight-prompt-card">
@@ -265,7 +304,9 @@ export function QuoteInsightsPanel({
                         <div>
                           <div style={{ fontWeight: 700 }}>Quote Insight Rationale Prompt</div>
                           <div className="small muted">
-                            Current model: {item.aiModelLabel ?? 'Runtime OPENAI_MODEL'}
+                            {isLocalRationale
+                              ? 'Execution path: Local deterministic rationale'
+                              : `Current model: ${item.aiModelLabel ?? 'Runtime OPENAI_MODEL'}`}
                           </div>
                         </div>
                       </div>
@@ -274,7 +315,11 @@ export function QuoteInsightsPanel({
                         <pre className="quote-insight-prompt-code">{exactSystemPrompt}</pre>
                       </div>
                       <div>
-                        <div className="quote-insight-step-label">Input Sent To LLM (Exact)</div>
+                        <div className="quote-insight-step-label">
+                          {isLocalRationale
+                            ? 'Input Assembled For Rationale'
+                            : 'Input Sent To LLM (Exact)'}
+                        </div>
                         <pre className="quote-insight-prompt-code">{exactPromptInput}</pre>
                       </div>
                     </article>
@@ -386,7 +431,7 @@ export function QuoteInsightsPanel({
                             Source: {humanizeToken(item.justification.sourceType)} • Insight Type:{' '}
                             {humanizeToken(item.justification.insightType)} • Scenario:{' '}
                             {humanizeToken(item.justification.scenarioKey ?? 'BASE_CASE')} • Version:{' '}
-                            {item.justification.version.toUpperCase()}
+                            {item.justification.version}
                           </div>
 
                           {item.justification.decisionMeta ? (
@@ -394,6 +439,29 @@ export function QuoteInsightsPanel({
                               Engine: {item.justification.decisionMeta.engineVersion ?? 'N/A'} •
                               Policy: {item.justification.decisionMeta.policyVersion ?? 'N/A'} •
                               Actor: {item.justification.decisionMeta.actor ?? 'N/A'}
+                            </div>
+                          ) : null}
+
+                          {item.justification.ml ? (
+                            <div className="quote-insight-ai-meta" style={{ marginTop: 8 }}>
+                              <Badge
+                                tone={
+                                  item.justification.ml.affectsRecommendation ? 'info' : 'default'
+                                }
+                              >
+                                {mlParticipationLabel(item.justification.ml.affectsRecommendation)}:{' '}
+                                {labelize(item.justification.ml.status)}
+                              </Badge>
+                              {item.justification.ml.riskScore != null ? (
+                                <Badge tone="warn">
+                                  ML Risk: {Math.round(item.justification.ml.riskScore)}
+                                </Badge>
+                              ) : null}
+                              {item.justification.ml.expansionScore != null ? (
+                                <Badge tone="success">
+                                  ML Expansion: {Math.round(item.justification.ml.expansionScore)}
+                                </Badge>
+                              ) : null}
                             </div>
                           ) : null}
 
@@ -511,6 +579,22 @@ export function QuoteInsightsPanel({
                             value={item.confidenceScore != null ? `${item.confidenceScore}` : '—'}
                           />
                           <Metric label="Fit Score" value={item.fitScore != null ? `${item.fitScore}` : '—'} />
+                          <Metric
+                            label="ML Risk Score"
+                            value={
+                              item.justification?.ml?.riskScore != null
+                                ? `${Math.round(item.justification.ml.riskScore)}`
+                                : '—'
+                            }
+                          />
+                          <Metric
+                            label="ML Expansion Score"
+                            value={
+                              item.justification?.ml?.expansionScore != null
+                                ? `${Math.round(item.justification.ml.expansionScore)}`
+                                : '—'
+                            }
+                          />
                         </div>
                       </div>
                     </details>

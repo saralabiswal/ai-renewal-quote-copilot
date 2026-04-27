@@ -1,0 +1,232 @@
+import type { ReactNode } from 'react'
+import { labelize } from '@/lib/format/risk'
+import type { DecisionRunTraceView } from '@/types/renewal-case'
+
+function formatBoolean(value: boolean | null | undefined) {
+  if (value == null) return '—'
+  return value ? 'Yes' : 'No'
+}
+
+function formatScore(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return value.toLocaleString('en-US', {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 1,
+    maximumFractionDigits: 1,
+  })
+}
+
+function formatProbability(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return '—'
+  const percent = value <= 1 ? value * 100 : value
+  return `${percent.toLocaleString('en-US', {
+    minimumFractionDigits: percent < 10 ? 1 : 0,
+    maximumFractionDigits: 1,
+  })}%`
+}
+
+export function DecisionRunTracePanel({ run }: { run: DecisionRunTraceView | null }) {
+  return (
+    <section className="card decision-trace-card">
+      <div className="section-header">
+        <div>
+          <h3 className="panel-title">Decision Trace</h3>
+          <p className="section-subtitle">
+            Latest recalculation audit snapshot across rules, ML, final recommendation, and
+            guardrails.
+          </p>
+        </div>
+      </div>
+
+      {!run ? (
+        <div className="small muted">
+          No decision run has been logged yet. Run recommendation recalculation to create the first
+          trace.
+        </div>
+      ) : (
+        <>
+          <div className="decision-trace-grid">
+            <TraceMetric label="Run ID" value={run.id} />
+            <TraceMetric label="Run Type" value={formatLabel(run.runType)} />
+            <TraceMetric label="Mode" value={formatLabel(run.mode)} />
+            <TraceMetric label="Status" value={formatLabel(run.status)} />
+            <TraceMetric label="Scenario" value={formatLabel(run.scenarioKey ?? 'BASE_CASE')} />
+            <TraceMetric label="Created" value={run.createdAt} />
+          </div>
+
+          <div className="decision-trace-columns">
+            <TraceSection title="Rules Input">
+              <TraceRow label="Items" value={String(run.ruleInputSummary?.itemCount ?? '—')} />
+              <TraceRow
+                label="Segment"
+                value={formatLabel(run.ruleInputSummary?.accountSegment)}
+              />
+              <TraceRow label="Feature Schema" value={run.featureSchemaVersion ?? '—'} />
+              <TraceRow
+                label="Snapshot Items"
+                value={String(run.featureSnapshotSummary?.itemCount ?? '—')}
+              />
+            </TraceSection>
+
+            <TraceSection title="Rule Output">
+              <TraceRow label="Risk Score" value={formatScore(run.ruleOutputSummary?.riskScore)} />
+              <TraceRow label="Risk Level" value={formatLabel(run.ruleOutputSummary?.riskLevel)} />
+              <TraceRow
+                label="Action"
+                value={formatLabel(run.ruleOutputSummary?.recommendedAction)}
+              />
+              <TraceRow
+                label="Approval"
+                value={formatBoolean(run.ruleOutputSummary?.approvalRequired)}
+              />
+            </TraceSection>
+
+            <TraceSection title="ML Output">
+              <TraceRow label="Mode" value={formatLabel(run.mlOutputSummary?.mode ?? run.mlMode)} />
+              <TraceRow label="Status" value={formatLabel(run.mlOutputSummary?.status ?? 'DISABLED')} />
+              <TraceRow
+                label="Model"
+                value={
+                  run.mlOutputSummary?.modelName && run.mlOutputSummary?.modelVersion
+                    ? `${run.mlOutputSummary.modelName} ${run.mlOutputSummary.modelVersion}`
+                    : run.mlModelName && run.mlModelVersion
+                      ? `${run.mlModelName} ${run.mlModelVersion}`
+                      : '—'
+                }
+              />
+              <TraceRow
+                label="Generated"
+                value={formatTimestamp(run.mlOutputSummary?.generatedAt)}
+              />
+              <TraceRow
+                label="Bundle Risk"
+                value={formatScore(run.mlOutputSummary?.bundleRiskScore)}
+              />
+              <TraceRow
+                label="Predictions"
+                value={String(run.mlOutputSummary?.itemPredictionCount ?? 0)}
+              />
+              {run.mlOutputSummary?.error ? (
+                <TraceRow label="ML Note" value={run.mlOutputSummary.error} />
+              ) : null}
+            </TraceSection>
+
+            <TraceSection title="Final Output">
+              <TraceRow label="Risk Score" value={formatScore(run.finalOutputSummary?.riskScore)} />
+              <TraceRow label="Risk Level" value={formatLabel(run.finalOutputSummary?.riskLevel)} />
+              <TraceRow
+                label="Action"
+                value={formatLabel(run.finalOutputSummary?.recommendedAction)}
+              />
+              <TraceRow
+                label="Approval"
+                value={formatBoolean(run.finalOutputSummary?.approvalRequired)}
+              />
+            </TraceSection>
+          </div>
+
+          {run.mlOutputSummary?.itemPredictions.length ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">ML Item Predictions</div>
+              <div className="decision-trace-table-wrapper">
+                <table className="decision-trace-table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Risk Score</th>
+                      <th>Risk Probability</th>
+                      <th>Expansion Score</th>
+                      <th>Expansion Probability</th>
+                      <th>Top Features</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.mlOutputSummary.itemPredictions.map((prediction) => (
+                      <tr key={prediction.itemId}>
+                        <td>{prediction.itemId}</td>
+                        <td>{formatScore(prediction.riskScore)}</td>
+                        <td>{formatProbability(prediction.riskProbability)}</td>
+                        <td>{formatScore(prediction.expansionScore)}</td>
+                        <td>{formatProbability(prediction.expansionProbability)}</td>
+                        <td>
+                          {prediction.topFeatures.length
+                            ? prediction.topFeatures.map(formatLabel).join(', ')
+                            : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          <div className="decision-trace-footer">
+            <span>Rules: {run.ruleEngineVersion ?? '—'}</span>
+            <span>Policy: {run.policyVersion ?? '—'}</span>
+            <span>
+              Model:{' '}
+              {run.mlModelName && run.mlModelVersion
+                ? `${run.mlModelName} ${run.mlModelVersion}`
+                : '—'}
+            </span>
+            <span>
+              Guardrails:{' '}
+              {run.guardrailSummary?.guardrailResults.length
+                ? run.guardrailSummary.guardrailResults.map(formatLabel).join(', ')
+                : '—'}
+            </span>
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
+function formatLabel(value: string | null | undefined) {
+  if (!value) return '—'
+  return labelize(value)
+}
+
+function formatTimestamp(value: string | null | undefined) {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(parsed)
+}
+
+function TraceMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="decision-trace-metric">
+      <div className="small muted">{label}</div>
+      <div className="decision-trace-value">{value}</div>
+    </div>
+  )
+}
+
+function TraceSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <div className="decision-trace-section">
+      <div className="decision-trace-section-title">{title}</div>
+      <div className="decision-trace-rows">{children}</div>
+    </div>
+  )
+}
+
+function TraceRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="decision-trace-row">
+      <span className="muted">{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}

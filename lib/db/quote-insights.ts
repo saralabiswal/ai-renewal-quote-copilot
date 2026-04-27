@@ -31,6 +31,15 @@ export type QuoteInsightView = {
 
 type EvidenceValue = string | number | boolean | null
 
+type MlInsightPrediction = {
+  itemId: string
+  riskScore: number | null
+  riskProbability: number | null
+  expansionScore: number | null
+  expansionProbability: number | null
+  topFeatures: string[]
+}
+
 export type QuoteInsightEvidenceSignalView = {
   label: string
   value: EvidenceValue
@@ -106,6 +115,15 @@ export type QuoteInsightJustificationView = {
   expectedImpact?: QuoteInsightExpectedImpactView | null
   changeLog?: QuoteInsightChangeLogView | null
   objectiveLens?: QuoteInsightObjectiveView | null
+  ml?: {
+    status: string
+    affectsRecommendation: boolean
+    riskScore: number | null
+    riskProbability: number | null
+    expansionScore: number | null
+    expansionProbability: number | null
+    topFeatures: string[]
+  } | null
 }
 
 const SKU_TO_PRODUCT_ID: Record<string, string> = {
@@ -327,6 +345,22 @@ function parseQuoteInsightJustification(
       }
     }
 
+    let ml: QuoteInsightJustificationView['ml'] = null
+    if (parsed.ml && typeof parsed.ml === 'object') {
+      const rec = parsed.ml as Record<string, unknown>
+      ml = {
+        status: typeof rec.status === 'string' ? rec.status : 'UNKNOWN',
+        affectsRecommendation: Boolean(rec.affectsRecommendation),
+        riskScore: toNullableNumber(rec.riskScore),
+        riskProbability: toNullableNumber(rec.riskProbability),
+        expansionScore: toNullableNumber(rec.expansionScore),
+        expansionProbability: toNullableNumber(rec.expansionProbability),
+        topFeatures: Array.isArray(rec.topFeatures)
+          ? rec.topFeatures.map((item) => String(item)).filter(Boolean)
+          : [],
+      }
+    }
+
     return {
       version: parsed.version === 'v2' ? 'v2' : 'v1',
       sourceType: typeof parsed.sourceType === 'string' ? parsed.sourceType : 'UNKNOWN',
@@ -344,6 +378,7 @@ function parseQuoteInsightJustification(
       expectedImpact,
       changeLog,
       objectiveLens,
+      ml,
     }
   } catch {
     return null
@@ -841,6 +876,8 @@ function buildLineInsightJustification(args: {
   paymentRiskBand: string | null
   adoptionBand: string | null
   signalSnapshotDate: string | null
+  mlPrediction?: MlInsightPrediction | null
+  mlAffectsRecommendation?: boolean
 }): string {
   const {
     insightType,
@@ -869,6 +906,8 @@ function buildLineInsightJustification(args: {
     paymentRiskBand,
     adoptionBand,
     signalSnapshotDate,
+    mlPrediction,
+    mlAffectsRecommendation,
   } = args
 
   const quantityDelta = proposedQuantity - currentQuantity
@@ -892,6 +931,11 @@ function buildLineInsightJustification(args: {
     analysisSummary
       ? 'Line-level analysis summary was included as supporting context.'
       : 'No line-level analysis summary was available; decision used structured signals only.',
+    mlPrediction
+      ? `ML layer returned risk score ${formatSignalNumber(
+          mlPrediction.riskScore,
+        )}; affects recommendation: ${mlAffectsRecommendation ? 'yes' : 'no'}.`
+      : 'No ML prediction was attached to this insight.',
   ]
 
   const signals: QuoteInsightEvidenceSignalView[] = [
@@ -909,6 +953,17 @@ function buildLineInsightJustification(args: {
     { label: 'Adoption Band', value: adoptionBand },
     { label: 'Confidence Score', value: confidenceScore },
     { label: 'Fit Score', value: fitScore },
+    { label: 'ML Risk Score', value: mlPrediction?.riskScore ?? null },
+    { label: 'ML Risk Probability', value: mlPrediction?.riskProbability ?? null },
+    { label: 'ML Expansion Score', value: mlPrediction?.expansionScore ?? null },
+    {
+      label: 'ML Expansion Probability',
+      value: mlPrediction?.expansionProbability ?? null,
+    },
+    {
+      label: 'ML Top Features',
+      value: mlPrediction?.topFeatures?.slice(0, 3).join(', ') || null,
+    },
     { label: 'Current Quantity', value: currentQuantity },
     { label: 'Proposed Quantity', value: proposedQuantity },
     { label: 'Quantity Delta', value: quantityDelta },
@@ -999,6 +1054,17 @@ function buildLineInsightJustification(args: {
         recommendedDiscountPercent: toEvidenceNumber(recommendedDiscountPercent),
       }),
     },
+    ml: mlPrediction
+      ? {
+          status: 'OK',
+          affectsRecommendation: Boolean(mlAffectsRecommendation),
+          riskScore: mlPrediction.riskScore,
+          riskProbability: mlPrediction.riskProbability,
+          expansionScore: mlPrediction.expansionScore,
+          expansionProbability: mlPrediction.expansionProbability,
+          topFeatures: mlPrediction.topFeatures,
+        }
+      : null,
   })
 }
 
@@ -1160,6 +1226,8 @@ function buildLineInsight(args: {
   paymentRiskBand: string | null
   adoptionBand: string | null
   signalSnapshotDate: string | null
+  mlPrediction?: MlInsightPrediction | null
+  mlAffectsRecommendation?: boolean
 }) {
   const {
     caseId,
@@ -1189,6 +1257,8 @@ function buildLineInsight(args: {
     paymentRiskBand,
     adoptionBand,
     signalSnapshotDate,
+    mlPrediction,
+    mlAffectsRecommendation,
   } = args
 
   const normalizedDisposition = recommendedDisposition ?? 'RENEW'
@@ -1265,8 +1335,21 @@ function buildLineInsight(args: {
       break
   }
 
-  const confidenceScore = clampScore(100 - baseScore / 2)
-  const fitScore = clampScore(100 - baseScore / 3)
+  const heuristicConfidenceScore = clampScore(100 - baseScore / 2)
+  const heuristicFitScore = clampScore(100 - baseScore / 3)
+  const confidenceScore =
+    mlPrediction?.riskScore != null
+      ? clampScore(
+          Math.round(
+            heuristicConfidenceScore * 0.7 +
+              (100 - Math.abs(baseScore - mlPrediction.riskScore)) * 0.3,
+          ),
+        )
+      : heuristicConfidenceScore
+  const fitScore =
+    insightType === 'EXPANSION' && mlPrediction?.expansionScore != null
+      ? clampScore(Math.round(heuristicFitScore * 0.6 + mlPrediction.expansionScore * 0.4))
+      : heuristicFitScore
 
   const recommendedQuantity =
     insightType === 'EXPANSION'
@@ -1307,6 +1390,8 @@ function buildLineInsight(args: {
     paymentRiskBand,
     adoptionBand,
     signalSnapshotDate,
+    mlPrediction,
+    mlAffectsRecommendation,
   })
 
   return {
@@ -1590,6 +1675,51 @@ function normalizeInsightForDiff(item: {
   }
 }
 
+function parseMlInsightPredictions(raw: string | null | undefined) {
+  if (!raw) {
+    return {
+      affectsRecommendation: false,
+      predictionsByItemId: new Map<string, MlInsightPrediction>(),
+    }
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as {
+      ml?: {
+        affectsRecommendation?: boolean
+        itemPredictions?: MlInsightPrediction[]
+      } | null
+    }
+    const predictions = Array.isArray(parsed.ml?.itemPredictions)
+      ? parsed.ml.itemPredictions
+      : []
+    return {
+      affectsRecommendation: Boolean(parsed.ml?.affectsRecommendation),
+      predictionsByItemId: new Map(
+        predictions.map((item) => [
+          String(item.itemId),
+          {
+            itemId: String(item.itemId),
+            riskScore: item.riskScore == null ? null : Number(item.riskScore),
+            riskProbability:
+              item.riskProbability == null ? null : Number(item.riskProbability),
+            expansionScore:
+              item.expansionScore == null ? null : Number(item.expansionScore),
+            expansionProbability:
+              item.expansionProbability == null ? null : Number(item.expansionProbability),
+            topFeatures: Array.isArray(item.topFeatures) ? item.topFeatures.map(String) : [],
+          },
+        ]),
+      ),
+    }
+  } catch {
+    return {
+      affectsRecommendation: false,
+      predictionsByItemId: new Map<string, MlInsightPrediction>(),
+    }
+  }
+}
+
 export async function recalculateQuoteInsights(caseId: string) {
   const renewalCase = await prisma.renewalCase.findUnique({
     where: { id: caseId },
@@ -1619,6 +1749,7 @@ export async function recalculateQuoteInsights(caseId: string) {
   const scenarioKey = renewalCase.demoScenarioKey ?? 'BASE_CASE'
   const generatedAtIso = new Date().toISOString()
   const decisionRunId = makeId('qirun')
+  const mlContext = parseMlInsightPredictions(renewalCase.lastRecommendationJson)
 
   const appliedFingerprints = new Set(
     renewalCase.quoteInsights
@@ -1665,6 +1796,8 @@ export async function recalculateQuoteInsights(caseId: string) {
         paymentRiskBand: latestSnapshot?.paymentRiskBand ?? null,
         adoptionBand: latestSnapshot?.adoptionBand ?? null,
         signalSnapshotDate: latestSnapshot ? latestSnapshot.snapshotDate.toISOString() : null,
+        mlPrediction: mlContext.predictionsByItemId.get(item.id) ?? null,
+        mlAffectsRecommendation: mlContext.affectsRecommendation,
       })
     })
     .filter(Boolean)

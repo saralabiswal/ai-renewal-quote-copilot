@@ -5,7 +5,7 @@ type Metric = {
 }
 
 const PRIMARY_METRICS = new Set([
-  'Bundled Renewal Cases',
+  'Renewal Portfolio',
   'Approval Required',
   'High-Risk Cases',
   'ARR Delta',

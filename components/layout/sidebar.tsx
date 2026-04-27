@@ -15,7 +15,7 @@ const navItems = [
   {
     id: 'case_board',
     href: '/renewal-cases',
-    label: 'Case Decision Board',
+    label: 'Renewal Command Center',
     hint: 'Run recommendation workflow',
     group: 'flow',
     stepLabel: 'Step 2',
@@ -23,7 +23,7 @@ const navItems = [
   {
     id: 'scenario_quotes',
     href: '/scenario-quotes',
-    label: 'Scenario Quotes',
+    label: 'Scenario Studio',
     hint: 'Compare alternatives vs baseline',
     group: 'flow',
     stepLabel: 'Step 3',
@@ -31,26 +31,34 @@ const navItems = [
   {
     id: 'quote_board',
     href: '/quote-drafts',
-    label: 'Quote Draft Board',
+    label: 'Quote Review Center',
     hint: 'Submit final quote decision',
     group: 'flow',
     stepLabel: 'Step 4',
   },
   {
-    id: 'policies',
-    href: '/policies',
-    label: 'Policy Studio',
-    hint: 'Explain recommendation logic',
-    group: 'support',
-    stepLabel: 'Reference',
-  },
-  {
     id: 'settings',
     href: '/settings',
     label: 'Settings',
-    hint: 'Check model and API readiness',
-    group: 'support',
+    hint: 'Set ML-assisted mode and readiness',
+    group: 'control',
     stepLabel: 'Setup',
+  },
+  {
+    id: 'policies',
+    href: '/policies',
+    label: 'Policy Studio',
+    hint: 'Review policy and recommendation logic',
+    group: 'control',
+    stepLabel: 'Policy',
+  },
+  {
+    id: 'technical_review',
+    href: '/technical-review',
+    label: 'AI Architecture',
+    hint: 'AI/ML architecture evidence',
+    group: 'control',
+    stepLabel: 'Architecture',
   },
 ] as const
 
@@ -80,7 +88,7 @@ export function Sidebar() {
     <aside className="sidebar">
       <Link className="brand brand-link" href="/">
         <div className="brand-title">AI Renewal Quote Copilot</div>
-        <div className="brand-subtitle">AI-assisted renewal recommendation and quote execution</div>
+        <div className="brand-subtitle">ML-assisted renewal recommendation and quote execution</div>
       </Link>
       <nav className="nav-section">
         <div className="nav-group">
@@ -103,9 +111,9 @@ export function Sidebar() {
         </div>
 
         <div className="nav-group">
-          <div className="nav-group-title">Support</div>
+          <div className="nav-group-title">Control Center</div>
           {navItems
-            .filter((item) => item.group === 'support')
+            .filter((item) => item.group === 'control')
             .map((item) => (
               <Link
                 key={item.id}

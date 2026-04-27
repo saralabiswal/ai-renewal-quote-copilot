@@ -1,0 +1,201 @@
+{
+  "generatedAt": "2026-04-27T00:06:05.466606Z",
+  "data": {
+    "source": "ml/data/synthetic-renewal-training.csv",
+    "trainingRows": 1000,
+    "holdoutRows": 300,
+    "labelSource": "synthetic historical-like outcomes generated from renewal data model",
+    "evaluationProtocol": "70/30 stratified holdout; evaluation models are trained only on the train split; runtime artifacts are trained on all rows",
+    "productionLabelExpectation": [
+      "historical renewal outcome",
+      "accepted discount and price realization",
+      "approval override outcome",
+      "expansion conversion",
+      "churn or contraction outcome"
+    ]
+  },
+  "featureSchemaVersion": "renewal-features-v1",
+  "artifacts": {
+    "renewalRiskSklearn": {
+      "path": "ml/models/renewal_risk_sklearn.joblib",
+      "sha256": "0b72280c3445b3fcdbed35b82b783c53b6b32e03ea921bfcb151c4f7cd06b72b"
+    },
+    "expansionPropensitySklearn": {
+      "path": "ml/models/expansion_propensity_sklearn.joblib",
+      "sha256": "8d2404f1fa60e1748418016c89a959fa2ac6fb250407ddaced11dea1e7ac242f"
+    },
+    "renewalRiskXgboost": {
+      "path": "ml/models/renewal_risk_xgboost.joblib",
+      "sha256": "581015f1969ceb538e9b414c6fc844291f92569282301bce0b7571f02f328abf"
+    },
+    "expansionPropensityXgboost": {
+      "path": "ml/models/expansion_propensity_xgboost.joblib",
+      "sha256": "c0005f9d334b0f684fb98c5b275b79c202af5d18777a5fd7026286d01cfb4c45"
+    }
+  },
+  "modelSelection": {
+    "renewalRisk": {
+      "criterion": "lowest holdout MAE",
+      "selected": {
+        "modelName": "renewal_risk_xgboost",
+        "modelType": "XGBRegressor",
+        "framework": "xgboost",
+        "role": "challenger",
+        "modelPath": "ml/models/renewal_risk_xgboost.joblib",
+        "metadataPath": "ml/models/renewal_risk_xgboost.meta.json",
+        "available": true,
+        "metrics": {
+          "mae": 4.4493,
+          "rmse": 5.9273,
+          "r2": 0.9537
+        }
+      },
+      "candidates": [
+        {
+          "modelName": "renewal_risk_sklearn",
+          "modelType": "GradientBoostingRegressor",
+          "framework": "scikit-learn",
+          "role": "baseline",
+          "modelPath": "ml/models/renewal_risk_sklearn.joblib",
+          "metadataPath": "ml/models/renewal_risk_sklearn.meta.json",
+          "available": true,
+          "metrics": {
+            "mae": 4.4815,
+            "rmse": 5.9303,
+            "r2": 0.9537
+          }
+        },
+        {
+          "modelName": "renewal_risk_xgboost",
+          "modelType": "XGBRegressor",
+          "framework": "xgboost",
+          "role": "challenger",
+          "modelPath": "ml/models/renewal_risk_xgboost.joblib",
+          "metadataPath": "ml/models/renewal_risk_xgboost.meta.json",
+          "available": true,
+          "metrics": {
+            "mae": 4.4493,
+            "rmse": 5.9273,
+            "r2": 0.9537
+          }
+        }
+      ]
+    },
+    "expansionPropensity": {
+      "criterion": "highest holdout ROC AUC",
+      "selected": {
+        "modelName": "expansion_propensity_sklearn",
+        "modelType": "GradientBoostingClassifier",
+        "framework": "scikit-learn",
+        "role": "baseline",
+        "modelPath": "ml/models/expansion_propensity_sklearn.joblib",
+        "metadataPath": "ml/models/expansion_propensity_sklearn.meta.json",
+        "available": true,
+        "metrics": {
+          "accuracy": 0.7767,
+          "precision": 0.7429,
+          "recall": 0.8553,
+          "f1": 0.7951,
+          "rocAuc": 0.8681
+        }
+      },
+      "candidates": [
+        {
+          "modelName": "expansion_propensity_sklearn",
+          "modelType": "GradientBoostingClassifier",
+          "framework": "scikit-learn",
+          "role": "baseline",
+          "modelPath": "ml/models/expansion_propensity_sklearn.joblib",
+          "metadataPath": "ml/models/expansion_propensity_sklearn.meta.json",
+          "available": true,
+          "metrics": {
+            "accuracy": 0.7767,
+            "precision": 0.7429,
+            "recall": 0.8553,
+            "f1": 0.7951,
+            "rocAuc": 0.8681
+          }
+        },
+        {
+          "modelName": "expansion_propensity_xgboost",
+          "modelType": "XGBClassifier",
+          "framework": "xgboost",
+          "role": "challenger",
+          "modelPath": "ml/models/expansion_propensity_xgboost.joblib",
+          "metadataPath": "ml/models/expansion_propensity_xgboost.meta.json",
+          "available": true,
+          "metrics": {
+            "accuracy": 0.78,
+            "precision": 0.7529,
+            "recall": 0.8421,
+            "f1": 0.795,
+            "rocAuc": 0.8631
+          }
+        }
+      ]
+    },
+    "xgboostStatus": {
+      "available": true,
+      "error": null
+    }
+  },
+  "models": {
+    "renewalRisk": {
+      "modelName": "renewal_risk_xgboost",
+      "modelType": "XGBRegressor",
+      "framework": "xgboost",
+      "metrics": {
+        "mae": 4.4493,
+        "rmse": 5.9273,
+        "r2": 0.9537
+      },
+      "ruleBaselineMetrics": {
+        "mae": 4.4583,
+        "rmse": 6.4694
+      }
+    },
+    "expansionPropensity": {
+      "modelName": "expansion_propensity_sklearn",
+      "modelType": "GradientBoostingClassifier",
+      "framework": "scikit-learn",
+      "metrics": {
+        "accuracy": 0.7767,
+        "precision": 0.7429,
+        "recall": 0.8553,
+        "f1": 0.7951,
+        "rocAuc": 0.8681
+      },
+      "ruleBaselineMetrics": {
+        "accuracy": 0.6667
+      }
+    },
+    "renewalRiskSklearn": {
+      "modelName": "renewal_risk_sklearn",
+      "modelType": "GradientBoostingRegressor",
+      "framework": "scikit-learn",
+      "metrics": {
+        "mae": 4.4815,
+        "rmse": 5.9303,
+        "r2": 0.9537
+      }
+    },
+    "expansionPropensitySklearn": {
+      "modelName": "expansion_propensity_sklearn",
+      "modelType": "GradientBoostingClassifier",
+      "framework": "scikit-learn",
+      "metrics": {
+        "accuracy": 0.7767,
+        "precision": 0.7429,
+        "recall": 0.8553,
+        "f1": 0.7951,
+        "rocAuc": 0.8681
+      }
+    }
+  },
+  "limitations": [
+    "Metrics are demo-readiness metrics, not production generalization evidence.",
+    "The model currently learns from synthetic historical-like data generated from the app data model.",
+    "The synthetic generator includes rule-derived signals, product archetypes, and non-rule observed outcome noise.",
+    "Production promotion should require historical labels, drift monitoring, and approval workflow."
+  ]
+}

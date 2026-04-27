@@ -1,9 +1,10 @@
-import { PrismaClient, Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-
-const prisma = new PrismaClient()
+import { generateQuoteScenariosForRenewalCase } from '../lib/db/quote-scenarios'
+import { prisma } from '../lib/prisma'
+import { saveRuntimeSettings } from '../lib/settings/runtime-settings'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -84,6 +85,9 @@ async function main() {
   console.log('Clearing existing seed data...')
 
   await prisma.$transaction([
+    prisma.scenarioQuoteLine.deleteMany(),
+    prisma.scenarioQuote.deleteMany(),
+    prisma.quoteScenario.deleteMany(),
     prisma.quoteInsight.deleteMany(),
     prisma.quoteDraftLine.deleteMany(),
     prisma.reviewDecision.deleteMany(),
@@ -358,35 +362,45 @@ async function main() {
   })
 
   if (quoteInsights.length > 0) {
-  await prisma.quoteInsight.createMany({
-    data: quoteInsights.map((row) => ({
-      id: String(row.id),
-      renewalCaseId: String(row.renewalCaseId),
-      sourceType: String(row.sourceType),
-      insightType: String(row.insightType),
-      status: String(row.status),
-      productId: String(row.productId),
-      productSkuSnapshot: String(row.productSkuSnapshot),
-      productNameSnapshot: String(row.productNameSnapshot),
-      productFamilySnapshot: String(row.productFamilySnapshot),
-      title: String(row.title),
-      insightSummary: String(row.insightSummary),
-      recommendedActionSummary: asString(row.recommendedActionSummary),
-      confidenceScore: asInt(row.confidenceScore),
-      fitScore: asInt(row.fitScore),
-      recommendedQuantity: asInt(row.recommendedQuantity),
-      recommendedUnitPrice: asDecimal(row.recommendedUnitPrice),
-      recommendedDiscountPercent: asDecimal(row.recommendedDiscountPercent),
-      estimatedArrImpact: asDecimal(row.estimatedArrImpact),
-      justificationJson: asString(row.justificationJson),
-      addedQuoteDraftId: asString(row.addedQuoteDraftId),
-      addedQuoteDraftLineId: asString(row.addedQuoteDraftLineId),
-      dismissedReason: asString(row.dismissedReason),
-      createdAt: asDate(row.createdAt) ?? new Date(),
-      updatedAt: asDate(row.updatedAt) ?? new Date(),
-    })),
-  })
-}
+    await prisma.quoteInsight.createMany({
+      data: quoteInsights.map((row) => ({
+        id: String(row.id),
+        renewalCaseId: String(row.renewalCaseId),
+        sourceType: String(row.sourceType),
+        insightType: String(row.insightType),
+        status: String(row.status),
+        productId: String(row.productId),
+        productSkuSnapshot: String(row.productSkuSnapshot),
+        productNameSnapshot: String(row.productNameSnapshot),
+        productFamilySnapshot: String(row.productFamilySnapshot),
+        title: String(row.title),
+        insightSummary: String(row.insightSummary),
+        recommendedActionSummary: asString(row.recommendedActionSummary),
+        confidenceScore: asInt(row.confidenceScore),
+        fitScore: asInt(row.fitScore),
+        recommendedQuantity: asInt(row.recommendedQuantity),
+        recommendedUnitPrice: asDecimal(row.recommendedUnitPrice),
+        recommendedDiscountPercent: asDecimal(row.recommendedDiscountPercent),
+        estimatedArrImpact: asDecimal(row.estimatedArrImpact),
+        justificationJson: asString(row.justificationJson),
+        addedQuoteDraftId: asString(row.addedQuoteDraftId),
+        addedQuoteDraftLineId: asString(row.addedQuoteDraftLineId),
+        dismissedReason: asString(row.dismissedReason),
+        createdAt: asDate(row.createdAt) ?? new Date(),
+        updatedAt: asDate(row.updatedAt) ?? new Date(),
+      })),
+    })
+  }
+
+  console.log('Materializing read-only scenario quotes...')
+
+  let materializedScenarioQuoteCount = 0
+  for (const renewalCase of renewalCases) {
+    const generated = await generateQuoteScenariosForRenewalCase(String(renewalCase.id))
+    materializedScenarioQuoteCount += generated.generatedCount
+  }
+
+  saveRuntimeSettings({ mlRecommendationMode: 'HYBRID_RULES_ML' })
 
   const [
     accountCount,
@@ -394,12 +408,14 @@ async function main() {
     renewalCaseCount,
     quoteDraftCount,
     quoteInsightCount,
+    scenarioQuoteCount,
   ] = await Promise.all([
     prisma.account.count(),
     prisma.subscription.count(),
     prisma.renewalCase.count(),
     prisma.quoteDraft.count(),
     prisma.quoteInsight.count(),
+    prisma.scenarioQuote.count(),
   ])
 
   console.log('Seed complete.')
@@ -409,6 +425,8 @@ async function main() {
     renewalCaseCount,
     quoteDraftCount,
     quoteInsightCount,
+    scenarioQuoteCount,
+    materializedScenarioQuoteCount,
   })
 }
 

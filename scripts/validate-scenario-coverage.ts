@@ -128,6 +128,10 @@ async function validateAllRenewalCases() {
       )
     }
 
+    if (hasBaselineQuote && generatedCount === 0) {
+      errors.push('Expected at least one read-only scenario quote for first-run demo coverage.')
+    }
+
     if (hasBaselineQuote && needsRefresh) {
       errors.push('Scenario workspace is still marked as needing refresh after generation.')
     }
@@ -156,14 +160,14 @@ async function main() {
   const failedRows = rows.filter((row) => row.errors.length > 0)
   const withBaseline = rows.filter((row) => row.hasBaselineQuote)
   const generated = rows.filter((row) => row.generatedCount > 0)
-  const suppressed = rows.filter((row) => row.generatedCount === 0 && !!row.suppressedReason)
+  const withoutScenarios = rows.filter((row) => row.generatedCount === 0)
 
   console.log('\nScenario + Baseline Coverage Validation')
   console.log('--------------------------------------')
   console.log(`Total renewal cases: ${rows.length}`)
   console.log(`Cases with baseline quote: ${withBaseline.length}`)
   console.log(`Cases with generated scenarios: ${generated.length}`)
-  console.log(`Cases suppressed after generation: ${suppressed.length}`)
+  console.log(`Cases without generated scenarios: ${withoutScenarios.length}`)
   console.log(`Cases with validation errors: ${failedRows.length}`)
   console.log('')
 

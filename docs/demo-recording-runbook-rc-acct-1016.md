@@ -12,7 +12,7 @@ Use this runbook for a consistent, repeatable, step-by-step recording that suppl
 Run from repo root:
 
 ```bash
-npm run db:seed
+npm run db:reset
 rm -rf .next
 npm run dev
 ```
@@ -28,6 +28,7 @@ Recording quality checklist:
 3. Hide bookmarks/extensions and enable Do Not Disturb.
 4. Keep zoom at 100%.
 5. Pause one second after each navigation before speaking.
+6. Confirm `Settings` shows Recommendation Mode as `ML-Assisted Rules`.
 
 ## 2. Suggested Recording Structure (Timestamped)
 
@@ -68,7 +69,7 @@ Talk track:
 
 1. “This is baseline commercial context, before AI workflow actions.”
 
-## 2:15-3:00 Step 2: Case Decision Board
+## 2:15-3:00 Step 2: Renewal Command Center
 
 Screen:
 
@@ -113,17 +114,19 @@ Talk track:
 
 Screen:
 
-1. Open `/scenario-quotes/rcase_aster_commerce`.
-2. Click `Regenerate Quote Scenarios` (only if needed).
-3. Select one scenario in navigator.
-4. Show `What Changed Commercially` and line-level comparison.
-5. Mark a preferred scenario.
+1. Open `Scenario Studio` (`/scenario-quotes`).
+2. Show the case index, including total scenario count and per-case scenario count.
+3. Open `/scenario-quotes/rcase_aster_commerce`.
+4. Click `Regenerate Quote Scenarios` only if a refresh warning is shown.
+5. Select one scenario in navigator.
+6. Show `What Changed Commercially` and line-level comparison.
+7. Mark a preferred scenario.
 
 Talk track:
 
 1. “Scenario quotes are compare-only options; baseline quote remains the execution source.”
 
-## 6:30-7:30 Step 6: Quote Draft Board + Final Decision
+## 6:30-7:30 Step 6: Quote Review Center + Final Decision
 
 Screen:
 
@@ -168,7 +171,7 @@ npm run dev
 
 ## 4. Post-Recording QA Checklist
 
-1. Confirm all four flow steps were shown: Subscriptions -> Case Decision -> Scenario Quotes -> Quote Draft.
+1. Confirm all four flow steps were shown: Renewal Subscriptions -> Renewal Command Center -> Scenario Studio -> Quote Review Center.
 2. Confirm AI Live typed streaming output is clearly visible.
 3. Confirm one applied insight is shown in quote traceability.
 4. Confirm scenario comparison and preferred scenario are visible.

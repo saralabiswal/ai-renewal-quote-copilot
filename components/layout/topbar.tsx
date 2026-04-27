@@ -5,13 +5,14 @@ import { usePathname } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
 function currentWorkspaceLabel(pathname: string) {
-  if (pathname.startsWith('/renewal-cases/')) return 'Case Decision Board'
-  if (pathname.startsWith('/renewal-cases')) return 'Case Decision Board'
-  if (pathname.startsWith('/quote-drafts/')) return 'Quote Draft Board'
-  if (pathname.startsWith('/quote-drafts')) return 'Quote Draft Board'
-  if (pathname.startsWith('/scenario-quotes/')) return 'Scenario Quotes'
-  if (pathname.startsWith('/scenario-quotes')) return 'Scenario Quotes'
+  if (pathname.startsWith('/renewal-cases/')) return 'Renewal Command Center'
+  if (pathname.startsWith('/renewal-cases')) return 'Renewal Command Center'
+  if (pathname.startsWith('/quote-drafts/')) return 'Quote Review Center'
+  if (pathname.startsWith('/quote-drafts')) return 'Quote Review Center'
+  if (pathname.startsWith('/scenario-quotes/')) return 'Scenario Studio'
+  if (pathname.startsWith('/scenario-quotes')) return 'Scenario Studio'
   if (pathname.startsWith('/policies')) return 'Policy Studio'
+  if (pathname.startsWith('/technical-review')) return 'AI Architecture'
   if (pathname.startsWith('/settings')) return 'Settings'
   return 'Dashboard'
 }
@@ -43,24 +44,27 @@ function nextStepHint(pathname: string) {
     return 'Open a case with high risk or approval required first.'
   }
   if (pathname.startsWith('/quote-drafts/')) {
-    return 'Validate commercial changes, then submit quote board decision.'
+    return 'Validate commercial changes, then submit the quote review decision.'
   }
   if (pathname.startsWith('/quote-drafts')) {
     return 'Open a quote to review line-level impact and status.'
   }
   if (pathname.startsWith('/scenario-quotes/')) {
-    return 'Compare against baseline and mark preferred scenario in Scenario Quotes.'
+    return 'Compare against baseline and mark preferred scenario in Scenario Studio.'
   }
   if (pathname.startsWith('/scenario-quotes')) {
     return 'Choose a renewal case to open scenario comparison.'
   }
   if (pathname.startsWith('/policies')) {
-    return 'Use this page to explain rule-driven recommendation logic.'
+    return 'Use this page to explain policy logic and ML-assisted recommendation behavior.'
+  }
+  if (pathname.startsWith('/technical-review')) {
+    return 'Review standalone ML architecture, serving, evaluation, and decision trace evidence.'
   }
   if (pathname.startsWith('/settings')) {
-    return 'Confirm OpenAI settings before running live AI generation.'
+    return 'Set Recommendation Mode, then confirm local ML and optional AI readiness.'
   }
-  return 'Start in Case Decision Board or Renewal Subscriptions.'
+  return 'Start in Renewal Command Center or Renewal Subscriptions.'
 }
 
 export function Topbar() {
@@ -76,7 +80,7 @@ export function Topbar() {
           <strong>AI Renewal Quote Copilot</strong>
         </Link>
         <div className="topbar-context">
-          <span className="topbar-context-label">Workspace</span>
+          <span className="topbar-context-label">Area</span>
           <span className="topbar-context-value">{workspace}</span>
           {entity ? (
             <>

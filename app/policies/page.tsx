@@ -18,9 +18,13 @@ import {
   buildWorkedExampleOptionsFromSeeds,
   buildWorkedPolicyExamplesFromSeeds,
 } from '@/lib/policies/worked-example'
+import { getMlRuntimeConfig } from '@/lib/ml/config'
+
+export const dynamic = 'force-dynamic'
 
 export default async function PoliciesPage() {
   const pricingPolicies = await getPricingPolicies()
+  const mlConfig = getMlRuntimeConfig()
   const [seedProfile, policyStudioSeeds] = await Promise.all([
     getPolicyStudioSeedProfile(),
     getPolicyStudioExampleSeeds(6),
@@ -42,6 +46,11 @@ export default async function PoliciesPage() {
       />
 
       <PoliciesWorkspace
+        mlMode={mlConfig.mode}
+        mlEnabled={mlConfig.enabled}
+        mlAffectsRecommendations={mlConfig.affectsRecommendations}
+        mlModelName={mlConfig.registryModelName}
+        mlModelVersion={mlConfig.registryModelVersion}
         pricingPolicies={pricingPolicies}
         recommendationSections={recommendationRuleSections}
         recommendationSources={recommendationRuleSources}

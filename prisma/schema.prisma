@@ -165,6 +165,7 @@ model RenewalCase {
   quoteDraft      QuoteDraft?
   quoteInsights   QuoteInsight[]
   quoteScenarios  QuoteScenario[]
+  decisionRuns    DecisionRun[]
 
   @@index([accountId])
   @@index([status])
@@ -249,6 +250,36 @@ model RenewalCaseItemAnalysis {
 
   @@unique([renewalCaseItemId, analysisVersion])
   @@index([renewalCaseItemId])
+}
+
+model DecisionRun {
+  id                    String   @id
+  renewalCaseId         String
+  runType               String
+  scenarioKey           String?
+  mode                  String
+  status                String   @default("COMPLETED")
+  ruleEngineVersion     String?
+  policyVersion         String?
+  featureSchemaVersion  String?
+  mlMode                String?
+  mlModelName           String?
+  mlModelVersion        String?
+  ruleInputJson         String?
+  featureSnapshotJson   String?
+  ruleOutputJson        String?
+  mlOutputJson          String?
+  finalOutputJson       String?
+  guardrailSummaryJson  String?
+  createdAt             DateTime @default(now())
+
+  renewalCase RenewalCase @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+
+  @@index([renewalCaseId])
+  @@index([runType])
+  @@index([mode])
+  @@index([createdAt])
+  @@index([renewalCaseId, createdAt])
 }
 
 model RecommendationNarrative {

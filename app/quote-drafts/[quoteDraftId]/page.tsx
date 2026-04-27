@@ -40,7 +40,7 @@ export default async function QuoteDraftDetailPage({
     quoteDraft.statusLabel.toLowerCase() === 'rejected'
   const quotePurpose = 'Finalize quote-level approval using baseline-vs-current commercial evidence.'
   const quoteNextStep = reviewComplete
-    ? 'Decision is complete. Use this page for audit review or return to case workspace.'
+    ? 'Decision is complete. Use this page for audit review or return to Renewal Command Center.'
     : 'Review the change strip and line deltas, then use Quote Review Actions to approve or reject.'
 
   return (
@@ -48,7 +48,7 @@ export default async function QuoteDraftDetailPage({
       <section className="card quote-review-hero">
         <div className="quote-review-main">
           <div>
-            <h1 className="quote-review-title">Quote Draft Board</h1>
+            <h1 className="quote-review-title">Quote Review Center</h1>
             <p className="quote-review-subtitle">
               Understand what changed from the baseline renewal, why lines were added or modified,
               and verify commercial impact before approval.
@@ -97,10 +97,10 @@ export default async function QuoteDraftDetailPage({
 
             <div className="quote-review-action-row">
               <Link className="button-tertiary" href={`/renewal-cases/${quoteDraft.renewalCase.id}`}>
-                Open Case Decision Board
+                Open Renewal Command Center
               </Link>
               <Link className="button-tertiary" href={`/scenario-quotes/${quoteDraft.renewalCase.id}`}>
-                Open Scenario Quotes
+                Open Scenario Studio
               </Link>
             </div>
 
@@ -114,7 +114,7 @@ export default async function QuoteDraftDetailPage({
       </section>
 
       <WorkflowJourney
-        title="Case Workflow Progress"
+        title="Renewal Workflow"
         subtitle="This is the final approval stage after decision and scenario analysis."
         steps={[
           {
@@ -126,21 +126,21 @@ export default async function QuoteDraftDetailPage({
           },
           {
             id: 'decision-workspace',
-            label: 'Case Decision Board',
+            label: 'Renewal Command Center',
             description: 'Recommendation and AI guidance generated for this case.',
             href: `/renewal-cases/${quoteDraft.renewalCase.id}`,
             state: 'complete',
           },
           {
             id: 'scenario-workspace',
-            label: 'Scenario Quotes',
+            label: 'Scenario Studio',
             description: 'Scenario alternatives are available for commercial comparison.',
             href: `/scenario-quotes/${quoteDraft.renewalCase.id}`,
             state: 'complete',
           },
           {
             id: 'quote-review',
-            label: 'Quote Draft Board',
+            label: 'Quote Review Center',
             description: reviewComplete
               ? 'Final decision is complete for this quote.'
               : 'Validate line-level changes, then approve or reject.',

@@ -14,6 +14,7 @@ import { RegenerateInsightsAiButton } from '@/components/renewal-cases/regenerat
 import { AiWorkflowRunner } from '@/components/renewal-cases/ai-workflow-runner'
 import { WorkflowJourney } from '@/components/layout/workflow-journey'
 import { ActionRail } from '@/components/layout/action-rail'
+import { DecisionRunTracePanel } from '@/components/renewal-cases/decision-run-trace-panel'
 
 export default async function RenewalCaseDetailPage({
   params,
@@ -35,10 +36,10 @@ export default async function RenewalCaseDetailPage({
   const hasQuoteDraft = Boolean(renewalCase.quoteDraft)
   const quoteDecisionComplete = quoteStatusKey === 'approved' || quoteStatusKey === 'rejected'
   const casePurpose =
-    'Run the end-to-end case workflow and decide which quote actions should feed the Baseline Quote.'
+    'Run the end-to-end renewal workflow and decide which quote actions should feed the baseline quote.'
   const caseNextStep = quoteInsights.needsRefresh
     ? 'In Section A, click Regenerate Insights + AI Rationale, then apply refreshed actions in Section C.'
-    : 'Apply top quote insights in Section C, then open Scenario Quotes for comparison.'
+    : 'Apply top quote insights in Section C, then open Scenario Studio for comparison.'
 
   return (
     <div className="page">
@@ -46,10 +47,10 @@ export default async function RenewalCaseDetailPage({
         <div className="renewal-workspace-main">
           <div className="renewal-workspace-title-row">
             <div>
-              <h1 className="renewal-workspace-title">Case Decision Board</h1>
+              <h1 className="renewal-workspace-title">Renewal Command Center</h1>
               <p className="renewal-workspace-subtitle">
-                Compare subscription baseline with AI outputs, regenerate insights, and apply the
-                right quote actions with clear traceability.
+                Compare subscription baseline with ML-assisted outputs, refresh quote insights, and
+                move the right commercial actions forward with clear traceability.
               </p>
               <div className="page-header-guidance" style={{ marginTop: 10 }}>
                 <p className="page-header-purpose">
@@ -87,7 +88,7 @@ export default async function RenewalCaseDetailPage({
           <div className="renewal-action-panel">
             <div className="renewal-action-panel-head">
               <div className="small muted" style={{ fontWeight: 700 }}>
-                Case Actions
+                Command Actions
               </div>
               <div className="small muted">
                 Approval Required: {renewalCase.recalculationMeta.approvalRequired ? 'Yes' : 'No'}
@@ -98,14 +99,14 @@ export default async function RenewalCaseDetailPage({
               <div className="renewal-quote-link-row">
                 <div>
                   <div className="small muted" style={{ fontWeight: 600 }}>
-                    Linked Renewal Quote
+                    Linked Quote
                   </div>
                   <div className="small muted">
                     {renewalCase.quoteDraft.quoteNumber} · {renewalCase.quoteDraft.totalNetAmountFormatted}
                   </div>
                 </div>
                 <Link className="button-link" href={`/quote-drafts/${renewalCase.quoteDraft.id}`}>
-                  Open Baseline Quote Draft
+                  Open Baseline Quote
                 </Link>
               </div>
             ) : (
@@ -115,15 +116,15 @@ export default async function RenewalCaseDetailPage({
             )}
 
             <div className="small muted">
-              Final Approve/Reject/Request Revision actions are available in Quote Draft Board.
+              Final approve, reject, and revision actions are completed in Quote Review Center.
             </div>
           </div>
         </div>
       </section>
 
       <WorkflowJourney
-        title="Case Workflow Progress"
-        subtitle="Use this path to move from case decisioning to a final quote outcome."
+        title="Renewal Workflow"
+        subtitle="Use this path to move from renewal decisioning to a final quote outcome."
         steps={[
           {
             id: 'subscriptions',
@@ -134,14 +135,14 @@ export default async function RenewalCaseDetailPage({
           },
           {
             id: 'decision-workspace',
-            label: 'Case Decision Board',
+            label: 'Renewal Command Center',
             description: 'Run recommendation, regenerate insights, and review AI guidance.',
             href: `/renewal-cases/${renewalCase.id}`,
             state: 'current',
           },
           {
             id: 'scenario-workspace',
-            label: 'Scenario Quotes',
+            label: 'Scenario Studio',
             description: hasQuoteDraft
               ? 'Compare alternative scenario quotes against baseline.'
               : 'Link or generate a baseline quote to enable scenario comparison.',
@@ -150,7 +151,7 @@ export default async function RenewalCaseDetailPage({
           },
           {
             id: 'quote-review',
-            label: 'Quote Draft Board',
+            label: 'Quote Review Center',
             description: hasQuoteDraft
               ? quoteDecisionComplete
                 ? 'Final quote decision has been submitted.'
@@ -166,7 +167,7 @@ export default async function RenewalCaseDetailPage({
       <section className="card case-workflow-section">
         <div className="case-workflow-header">
           <div className="case-workflow-kicker">Section A</div>
-          <h3 className="panel-title">Scenario + Run Workflow</h3>
+          <h3 className="panel-title">Run Renewal Workflow</h3>
           <p className="section-subtitle">
             Select scenario, then run the workflow. AI Live is the primary path for end-to-end
             execution. Manual controls are available for step-by-step walkthroughs.
@@ -283,7 +284,7 @@ export default async function RenewalCaseDetailPage({
           <div className="case-workflow-kicker">Section C</div>
           <h3 className="panel-title">Quote Insights (Apply Actions)</h3>
           <p className="section-subtitle">
-            Apply selected quote insights to the Baseline Quote. Use Scenario Workspace first if you
+            Apply selected quote insights to the baseline quote. Use Scenario Studio first if you
             need alternate commercial comparisons.
           </p>
         </div>
@@ -291,19 +292,19 @@ export default async function RenewalCaseDetailPage({
         <ActionRail
           primary={
             <Link className="button-link" href={`/scenario-quotes/${renewalCase.id}`}>
-              Open Scenario Quotes
+              Open Scenario Studio
             </Link>
           }
           secondary={
             renewalCase.quoteDraft ? (
               <Link className="button-secondary" href={`/quote-drafts/${renewalCase.quoteDraft.id}`}>
-                Open Baseline Quote Draft
+              Open Baseline Quote
               </Link>
             ) : undefined
           }
           tertiary={
             <Link className="button-tertiary" href="/quote-drafts">
-              Open Quote Draft Board
+              Open Quote Review Center
             </Link>
           }
           hint="Scenario comparison is read-only. Baseline Quote remains the editable source."
@@ -322,13 +323,15 @@ export default async function RenewalCaseDetailPage({
       <section className="card case-workflow-section">
         <div className="case-workflow-header">
           <div className="case-workflow-kicker">Section D</div>
-          <h3 className="panel-title">Review + Rationale Workspace</h3>
+          <h3 className="panel-title">Review Intelligence</h3>
           <p className="section-subtitle">
             Validate bundle analysis, review AI guidance, and inspect decision history before final
             quote approval.
           </p>
         </div>
       </section>
+
+      <DecisionRunTracePanel run={renewalCase.latestDecisionRun} />
 
       <RenewalCaseReviewWorkspace
         analysis={renewalCase.analysis}

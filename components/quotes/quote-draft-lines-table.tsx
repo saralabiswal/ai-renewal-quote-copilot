@@ -2,17 +2,8 @@
 
 import React, { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { labelize } from '@/lib/format/risk'
 import { QuoteDraftLineView } from '@/types/quote-draft'
-
-function labelize(value: string | null) {
-  if (!value) return null
-
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
 
 function deltaClass(value: string | null) {
   if (!value) return 'delta-neutral'

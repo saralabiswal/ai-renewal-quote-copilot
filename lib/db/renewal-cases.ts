@@ -10,6 +10,7 @@ import {
   RenewalSubscriptionBaselineListItem,
   RenewalCaseAnalysisView,
   RenewalCaseItemView,
+  DecisionRunTraceView,
   ReviewDecisionView,
   RecommendationNarrativeView,
   RecommendationChangeView,
@@ -35,6 +36,20 @@ function parseJsonObject<T>(value: string | null | undefined): T | null {
   }
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value == null || value === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function nullableBoolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
 function normalizeRecommendationChange(
   value: RecommendationChangeView | null,
   fallbackScenarioKey: string,
@@ -54,8 +69,161 @@ function normalizeRecommendationChange(
       recommendedAction: value.next?.recommendedAction ?? null,
       requiresApproval: value.next?.requiresApproval ?? null,
     },
+    ruleBaseline: value.ruleBaseline ?? null,
+    ml: value.ml
+      ? {
+          mode: value.ml.mode ?? 'RULES_ONLY',
+          status: value.ml.status ?? 'DISABLED',
+          affectsRecommendation: Boolean(value.ml.affectsRecommendation),
+          modelName: value.ml.modelName ?? null,
+          modelVersion: value.ml.modelVersion ?? null,
+          bundleRiskScore:
+            value.ml.bundleRiskScore == null ? null : Number(value.ml.bundleRiskScore),
+          error: value.ml.error ?? null,
+          itemPredictions: Array.isArray(value.ml.itemPredictions)
+            ? value.ml.itemPredictions.map((item) => ({
+                itemId: String(item.itemId ?? ''),
+                riskScore: item.riskScore == null ? null : Number(item.riskScore),
+                riskProbability:
+                  item.riskProbability == null ? null : Number(item.riskProbability),
+                expansionScore:
+                  item.expansionScore == null ? null : Number(item.expansionScore),
+                expansionProbability:
+                  item.expansionProbability == null ? null : Number(item.expansionProbability),
+                topFeatures: Array.isArray(item.topFeatures) ? item.topFeatures.map(String) : [],
+              }))
+            : [],
+        }
+      : null,
     driverChanges: Array.isArray(value.driverChanges) ? value.driverChanges : [],
+    decisionRunId: value.decisionRunId ?? null,
     recalculatedAt: value.recalculatedAt ?? null,
+  }
+}
+
+function normalizeDecisionRun(row: {
+  id: string
+  runType: string
+  mode: string
+  status: string
+  scenarioKey: string | null
+  createdAt: Date
+  ruleEngineVersion: string | null
+  policyVersion: string | null
+  featureSchemaVersion: string | null
+  mlMode: string | null
+  mlModelName: string | null
+  mlModelVersion: string | null
+  ruleInputJson: string | null
+  featureSnapshotJson: string | null
+  ruleOutputJson: string | null
+  mlOutputJson: string | null
+  finalOutputJson: string | null
+  guardrailSummaryJson: string | null
+}): DecisionRunTraceView {
+  const ruleInput = asRecord(parseJsonObject<unknown>(row.ruleInputJson))
+  const featureSnapshot = asRecord(parseJsonObject<unknown>(row.featureSnapshotJson))
+  const ruleInputAccount = asRecord(ruleInput?.account)
+  const ruleInputItems = Array.isArray(ruleInput?.items) ? ruleInput.items : []
+  const featureSnapshotItems = Array.isArray(featureSnapshot?.items) ? featureSnapshot.items : []
+  const ruleOutput = asRecord(parseJsonObject<unknown>(row.ruleOutputJson))
+  const mlOutput = asRecord(parseJsonObject<unknown>(row.mlOutputJson))
+  const finalOutput = asRecord(parseJsonObject<unknown>(row.finalOutputJson))
+  const guardrailSummary = asRecord(parseJsonObject<unknown>(row.guardrailSummaryJson))
+  const guardrailResults = Array.isArray(guardrailSummary?.guardrailResults)
+    ? guardrailSummary.guardrailResults.map(String)
+    : []
+  const itemPredictions = Array.isArray(mlOutput?.itemPredictions)
+    ? mlOutput.itemPredictions
+    : []
+
+  return {
+    id: row.id,
+    runType: labelize(row.runType),
+    mode: labelize(row.mode),
+    status: labelize(row.status),
+    scenarioKey: row.scenarioKey,
+    createdAt: formatDateTime(row.createdAt) ?? formatDate(row.createdAt),
+    ruleEngineVersion: row.ruleEngineVersion,
+    policyVersion: row.policyVersion,
+    featureSchemaVersion: row.featureSchemaVersion,
+    mlMode: row.mlMode,
+    mlModelName: row.mlModelName,
+    mlModelVersion: row.mlModelVersion,
+    ruleInputSummary: ruleInput
+      ? {
+          itemCount: ruleInputItems.length,
+          accountSegment:
+            typeof ruleInputAccount?.segment === 'string' ? ruleInputAccount.segment : null,
+        }
+      : null,
+    featureSnapshotSummary: featureSnapshot
+      ? {
+          featureSchemaVersion:
+            typeof featureSnapshot.featureSchemaVersion === 'string'
+              ? featureSnapshot.featureSchemaVersion
+              : null,
+          itemCount: featureSnapshotItems.length,
+          generatedAt:
+            typeof featureSnapshot.generatedAt === 'string' ? featureSnapshot.generatedAt : null,
+        }
+      : null,
+    ruleOutputSummary: ruleOutput
+      ? {
+          riskScore: nullableNumber(ruleOutput.riskScore),
+          riskLevel: typeof ruleOutput.riskLevel === 'string' ? ruleOutput.riskLevel : null,
+          recommendedAction:
+            typeof ruleOutput.recommendedAction === 'string' ? ruleOutput.recommendedAction : null,
+          approvalRequired: nullableBoolean(ruleOutput.approvalRequired),
+        }
+      : null,
+    mlOutputSummary: mlOutput
+      ? {
+          status: typeof mlOutput.status === 'string' ? mlOutput.status : null,
+          mode: typeof mlOutput.mode === 'string' ? mlOutput.mode : row.mlMode,
+          modelName:
+            typeof mlOutput.modelName === 'string' ? mlOutput.modelName : row.mlModelName,
+          modelVersion:
+            typeof mlOutput.modelVersion === 'string'
+              ? mlOutput.modelVersion
+              : row.mlModelVersion,
+          generatedAt:
+            typeof mlOutput.generatedAt === 'string' ? mlOutput.generatedAt : null,
+          bundleRiskScore: nullableNumber(mlOutput.bundleRiskScore),
+          itemPredictionCount: itemPredictions.length,
+          error: typeof mlOutput.error === 'string' ? mlOutput.error : null,
+          itemPredictions: itemPredictions.map((item) => {
+            const record = asRecord(item)
+            return {
+              itemId: typeof record?.itemId === 'string' ? record.itemId : '—',
+              riskScore: nullableNumber(record?.riskScore),
+              riskProbability: nullableNumber(record?.riskProbability),
+              expansionScore: nullableNumber(record?.expansionScore),
+              expansionProbability: nullableNumber(record?.expansionProbability),
+              topFeatures: Array.isArray(record?.topFeatures)
+                ? record.topFeatures.map(String)
+                : [],
+            }
+          }),
+        }
+      : null,
+    finalOutputSummary: finalOutput
+      ? {
+          riskScore: nullableNumber(finalOutput.riskScore),
+          riskLevel: typeof finalOutput.riskLevel === 'string' ? finalOutput.riskLevel : null,
+          recommendedAction:
+            typeof finalOutput.recommendedAction === 'string'
+              ? finalOutput.recommendedAction
+              : null,
+          approvalRequired: nullableBoolean(finalOutput.approvalRequired),
+        }
+      : null,
+    guardrailSummary: guardrailSummary
+      ? {
+          approvalRequiredCount: nullableNumber(guardrailSummary.approvalRequiredCount) ?? 0,
+          guardrailResults,
+        }
+      : null,
   }
 }
 
@@ -113,6 +281,26 @@ export async function getRenewalCases(): Promise<RenewalCaseListItem[]> {
           },
         },
       },
+      quoteScenarios: {
+        select: {
+          scenarioQuote: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      },
+      decisionRuns: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: {
+          mode: true,
+          mlMode: true,
+          mlModelName: true,
+          mlModelVersion: true,
+          mlOutputJson: true,
+        },
+      },
     },
     orderBy: [{ riskScore: 'desc' }, { caseNumber: 'asc' }],
   })
@@ -125,6 +313,11 @@ export async function getRenewalCases(): Promise<RenewalCaseListItem[]> {
       ? sumLineNetAmounts(row.quoteDraft.lines)
       : null
     const proposedArr = proposedArrFromQuote ?? Number(row.bundleProposedArr ?? 0)
+    const latestRun = row.decisionRuns[0]
+    const latestMlOutput = asRecord(parseJsonObject<unknown>(latestRun?.mlOutputJson))
+    const latestMlStatus = typeof latestMlOutput?.status === 'string' ? latestMlOutput.status : null
+    const latestMlAffectsRecommendation =
+      latestRun?.mode === 'HYBRID_RULES_ML' && latestMlStatus === 'OK'
 
     return {
       id: row.id,
@@ -149,8 +342,17 @@ export async function getRenewalCases(): Promise<RenewalCaseListItem[]> {
       itemCount: row.items.length,
       quoteDraftId: row.quoteDraft?.id ?? null,
       quoteNumber: row.quoteDraft?.quoteNumber ?? null,
+      scenarioQuoteCount: row.quoteScenarios.filter((scenario) => scenario.scenarioQuote).length,
+      quoteScenariosNeedRefresh: row.quoteScenariosNeedRefresh,
       quoteTrackLabel: quoteTrack.label,
       quoteTrackDescription: quoteTrack.description,
+      latestDecisionRunMode: latestRun?.mode ?? null,
+      latestDecisionRunMlMode: latestRun?.mlMode ?? null,
+      latestDecisionRunMlStatus: latestMlStatus,
+      latestDecisionRunMlAffectsRecommendation: latestMlOutput ? latestMlAffectsRecommendation : null,
+      latestDecisionRunMlModelName: latestRun?.mlModelName ?? null,
+      latestDecisionRunMlModelVersion: latestRun?.mlModelVersion ?? null,
+      latestDecisionRunMlBundleRiskScore: nullableNumber(latestMlOutput?.bundleRiskScore),
     }
   })
 }
@@ -248,12 +450,19 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
           },
         },
       },
+      decisionRuns: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
     },
   })
 
   if (!row) return null
 
   const analysisRow = row.analyses[0]
+  const latestDecisionRun = row.decisionRuns[0]
+    ? normalizeDecisionRun(row.decisionRuns[0])
+    : null
   const analysis: RenewalCaseAnalysisView | null = analysisRow
     ? {
         recommendedActionLabel: labelize(analysisRow.recommendedAction),
@@ -383,6 +592,7 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
     updatedAtLabel: formatDateTime(analysisRow?.createdAt),
     approvalRequired: analysisRow?.approvalRequired ?? row.requiresApproval ?? false,
     drivers: analysisRow ? parseJsonArray(analysisRow.primaryDriversJson) : [],
+    ml: recommendationChange?.ml ?? null,
   }
 
   return {
@@ -422,6 +632,7 @@ export async function getRenewalCaseById(caseId: string): Promise<RenewalCaseDet
     ],
     analysis,
     recalculationMeta,
+    latestDecisionRun,
     items,
     narrative,
     aiExecutiveSummary,

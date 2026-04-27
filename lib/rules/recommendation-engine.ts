@@ -1,4 +1,4 @@
-import { roundMoney, toNumber, uniqueStrings } from './helpers'
+import { riskLevelFromScore, roundMoney, toNumber, uniqueStrings } from './helpers'
 import { applyPricingGuardrails } from './pricing-guardrails'
 import { scoreRenewalCaseItem } from './renewal-scoring'
 import type {
@@ -10,6 +10,11 @@ import type {
   RenewalCaseEngineInput,
   RenewalCaseEngineOutput,
 } from './types'
+
+export type RenewalCaseEngineOptions = {
+  itemRiskScoreOverrides?: Record<string, number>
+  riskDriverSuffixByItemId?: Record<string, string[]>
+}
 
 function determineDisposition(input: RenewalCaseEngineInput['items'][number], riskScore: number): {
   disposition: RecommendedDisposition
@@ -93,14 +98,31 @@ function summarizeBundle(
   return `${accountName} is a low-risk renewal bundle with stable adoption and no material policy exceptions.`
 }
 
-export function evaluateRenewalCase(input: RenewalCaseEngineInput): RenewalCaseEngineOutput {
+export function evaluateRenewalCase(
+  input: RenewalCaseEngineInput,
+  options: RenewalCaseEngineOptions = {},
+): RenewalCaseEngineOutput {
   const itemResults: ItemRiskResult[] = input.items.map((item) => {
     const scored = scoreRenewalCaseItem(item)
-    const recommendation = determineDisposition(item, scored.riskScore)
+    const overrideScore = options.itemRiskScoreOverrides?.[item.id]
+    const effectiveScore =
+      overrideScore == null || !Number.isFinite(overrideScore)
+        ? scored.riskScore
+        : Math.max(0, Math.min(100, Math.round(overrideScore)))
+    const effectiveScored = {
+      ...scored,
+      riskScore: effectiveScore,
+      riskLevel: riskLevelFromScore(effectiveScore),
+      drivers: [
+        ...scored.drivers,
+        ...(options.riskDriverSuffixByItemId?.[item.id] ?? []),
+      ],
+    }
+    const recommendation = determineDisposition(item, effectiveScored.riskScore)
     const priced = applyPricingGuardrails(item, recommendation.targetDiscountPercent, recommendation.proposedQuantity)
 
     return {
-      ...scored,
+      ...effectiveScored,
       recommendedDisposition: recommendation.disposition,
       recommendedDiscountPercent: priced.recommendedDiscountPercent,
       proposedQuantity: priced.proposedQuantity,

@@ -77,7 +77,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   return {
     metrics: [
-      { label: 'Bundled Renewal Cases', value: String(cases.length) },
+      { label: 'Renewal Portfolio', value: String(cases.length) },
       {
         label: 'High-Risk Cases',
         value: String(cases.filter((c) => c.riskLevel === 'HIGH').length),

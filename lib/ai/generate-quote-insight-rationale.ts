@@ -46,7 +46,7 @@ export async function generateQuoteInsightRationale(
 
   const client = getOpenAIClient()
   if (!client) {
-    return fallbackResult(fallbackQuoteInsightNarrative(input), 'quote-insight-fallback-v1')
+    return fallbackResult(fallbackQuoteInsightNarrative(input), 'local-quote-insight-rationale-v1')
   }
 
   const response = await client.responses.create({
