@@ -7265,3 +7265,605 @@ select,
     grid-template-columns: 1fr;
   }
 }
+
+/* Redwood-inspired app-wide theme layer: warm enterprise neutrals with restrained Oracle red accents. */
+:root {
+  --redwood-bg: #f7f6f2;
+  --redwood-bg-raised: #fbfaf7;
+  --redwood-surface: #fffefa;
+  --redwood-surface-subtle: #f1f0eb;
+  --redwood-border: #ddd8cf;
+  --redwood-border-strong: #cfc7bb;
+  --redwood-ink: #211f1d;
+  --redwood-muted: #625d57;
+  --redwood-muted-2: #827a70;
+  --redwood-red: #c74634;
+  --redwood-red-dark: #9f3327;
+  --redwood-red-soft: #f8e9e5;
+  --redwood-blue: #315f72;
+  --redwood-blue-soft: #e7f0f2;
+  --redwood-green: #2f6f4e;
+  --redwood-green-soft: #e8f3eb;
+  --redwood-amber: #8b6220;
+  --redwood-amber-soft: #fbf1dd;
+  --redwood-danger: #9e2f25;
+  --redwood-danger-soft: #fae8e5;
+  --bg: var(--redwood-bg);
+  --surface: var(--redwood-surface);
+  --surface-muted: var(--redwood-surface-subtle);
+  --border: var(--redwood-border);
+  --text: var(--redwood-ink);
+  --text-muted: var(--redwood-muted);
+  --accent: var(--redwood-red);
+  --accent-strong: var(--redwood-red-dark);
+  --accent-soft: var(--redwood-red-soft);
+  --success-bg: var(--redwood-green-soft);
+  --success-text: var(--redwood-green);
+  --warn-bg: var(--redwood-amber-soft);
+  --warn-text: var(--redwood-amber);
+  --danger-bg: var(--redwood-danger-soft);
+  --danger-text: var(--redwood-danger);
+  --info-bg: var(--redwood-blue-soft);
+  --info-text: var(--redwood-blue);
+  --app-line: var(--redwood-border);
+  --app-panel: var(--redwood-surface);
+  --app-panel-muted: var(--redwood-bg-raised);
+  --app-ink: var(--redwood-ink);
+  --app-muted: var(--redwood-muted);
+}
+
+html,
+body {
+  background:
+    radial-gradient(860px 300px at 100% -18%, rgba(199, 70, 52, 0.075), transparent 66%),
+    linear-gradient(180deg, #fbfaf7 0%, var(--redwood-bg) 48%, #f3f1eb 100%);
+  color: var(--redwood-ink);
+}
+
+.main {
+  background:
+    linear-gradient(180deg, rgba(255, 254, 250, 0.72) 0%, rgba(247, 246, 242, 0.78) 100%),
+    var(--redwood-bg);
+}
+
+.sidebar,
+.topbar {
+  background: rgba(255, 254, 250, 0.96);
+  border-color: var(--redwood-border);
+}
+
+.topbar {
+  box-shadow: 0 1px 0 rgba(33, 31, 29, 0.03);
+}
+
+.brand-title,
+.topbar-home,
+.page-header h1,
+.dashboard-title,
+.renewal-workspace-title,
+.quote-review-title,
+.section-title,
+.panel-title {
+  color: var(--redwood-ink);
+}
+
+.brand-subtitle,
+.topbar-next-step,
+.topbar-context-label,
+.topbar-context-value,
+.page-header-description,
+.page-header-purpose,
+.page-header-next,
+.section-subtitle,
+.muted,
+.small.muted {
+  color: var(--redwood-muted);
+}
+
+.topbar-context-entity,
+.secondary-link,
+.table-link,
+.settings-eyebrow,
+.workflow-step-link {
+  color: var(--redwood-red-dark);
+}
+
+.card,
+.page-header,
+.renewal-workspace-hero,
+.quote-review-hero,
+.technical-hero-band,
+.settings-primary-tabs,
+.settings-ml-readiness-section,
+.settings-readiness-card,
+.settings-mode-option,
+.settings-mode-selected-summary,
+.settings-compact-item,
+.settings-metric-card,
+.settings-path-block,
+.policy-workspace-shell,
+.policy-side-card,
+.policy-mode-banner,
+.case-board-mode-banner,
+.case-board-mode-card,
+.story-lane-card,
+.subscription-account-card,
+.attention-item,
+.activity-item,
+.opportunity-card,
+.summary-card,
+.technical-metric-card,
+.technical-model-card,
+.technical-eval-card,
+.technical-candidate-card,
+.technical-mode-card,
+.technical-callout,
+.decision-trace-metric,
+.decision-trace-section,
+.decision-trace-subsection,
+.guidance-section,
+.guidance-metadata-item,
+.quote-review-actions,
+.renewal-action-panel,
+.scenario-compare-shell,
+.scenario-commercial-strip,
+.scenario-selection-strip,
+.scenario-nav-button,
+.quote-insight-primary,
+.quote-insight-details,
+.quote-insight-evidence,
+.quote-traceability,
+.what-changed-block,
+.what-changed-stat,
+.coach-card,
+.workflow-journey-step,
+.ai-workflow-runner,
+.manual-workflow-shell {
+  border-color: var(--redwood-border);
+  background: var(--redwood-surface);
+  box-shadow: 0 1px 2px rgba(33, 31, 29, 0.035);
+}
+
+.page-header {
+  background: transparent;
+  border-bottom-color: var(--redwood-border);
+  box-shadow: none;
+}
+
+.renewal-workspace-hero,
+.quote-review-hero,
+.technical-hero-band,
+.settings-mode-hero,
+.settings-text-generation-panel,
+.policy-workspace-shell {
+  background:
+    radial-gradient(620px 160px at 100% -38%, rgba(199, 70, 52, 0.075), transparent 76%),
+    var(--redwood-surface);
+}
+
+.nav-link,
+.nav-step-label,
+.story-lane-chip,
+.quote-scenario-meta,
+.scenario-index-count,
+.policy-chip,
+.technical-pill,
+.technical-stack-flow span,
+.workflow-step-state,
+.badge.default {
+  border-color: var(--redwood-border);
+  background: var(--redwood-bg-raised);
+  color: var(--redwood-muted);
+}
+
+.nav-link.active,
+.nav-link:hover,
+.settings-tab:hover,
+.workspace-tab:hover,
+.scenario-nav-button:hover,
+.attention-item:hover {
+  border-color: var(--redwood-border-strong);
+  background: #f1eee8;
+  color: var(--redwood-ink);
+}
+
+.nav-link.active .nav-step-label,
+.settings-tab.active,
+.workspace-tab.active,
+.policy-tab.active,
+.scenario-nav-button.active,
+.workflow-journey-step.current,
+.workflow-step-state.current,
+.case-board-chip.current,
+.settings-mode-option.selected {
+  border-color: #d9a79d;
+  background: var(--redwood-red-soft);
+  color: var(--redwood-red-dark);
+}
+
+.settings-mode-option.selected {
+  box-shadow: 0 0 0 2px rgba(199, 70, 52, 0.14);
+}
+
+.button-link,
+.button-primary {
+  border-color: var(--redwood-red-dark);
+  background: linear-gradient(180deg, #cf5a49 0%, var(--redwood-red) 100%);
+  color: #fffefa;
+  box-shadow: 0 8px 18px rgba(159, 51, 39, 0.16);
+}
+
+.button-link:hover,
+.button-primary:hover {
+  border-color: #84291f;
+  background: linear-gradient(180deg, var(--redwood-red) 0%, var(--redwood-red-dark) 100%);
+}
+
+.button-secondary,
+.button-secondary-sm,
+.quote-line-control,
+.policy-tab,
+.settings-tab,
+.workspace-tab {
+  border-color: var(--redwood-border);
+  background: #f3f1eb;
+  color: var(--redwood-ink);
+}
+
+.button-secondary:hover,
+.button-secondary-sm:hover,
+.quote-line-control:hover {
+  border-color: var(--redwood-border-strong);
+  background: #ebe7df;
+}
+
+.button-tertiary,
+.ai-prompt-toggle.active,
+.policy-view-toggle.active {
+  border-color: #ddb2aa;
+  background: var(--redwood-red-soft);
+  color: var(--redwood-red-dark);
+}
+
+.button-success,
+.button-add-quote {
+  border-color: #2d6548;
+  background: #357b56;
+  color: #fffefa;
+}
+
+.button-warning,
+.button-warn {
+  border-color: #b7812a;
+  background: var(--redwood-amber-soft);
+  color: var(--redwood-amber);
+}
+
+.button-danger {
+  border-color: var(--redwood-danger);
+  background: var(--redwood-danger);
+  color: #fffefa;
+}
+
+.button-apply-renewal-line {
+  border-color: var(--redwood-red-dark);
+  background: var(--redwood-red);
+  color: #fffefa;
+}
+
+.badge.info,
+.trace-badge-source,
+.quote-line-guide,
+.storyboard-guide,
+.case-workflow-mode-note,
+.scenario-preferred-summary,
+.quote-change-strip-narrative {
+  border-color: #bfd2d8;
+  background: var(--redwood-blue-soft);
+  color: var(--redwood-blue);
+}
+
+.case-board-chip.shadow,
+.story-lane-urgency-chip.medium,
+.quote-line-control.active,
+.policy-view-toggle.active,
+.case-board-chip.current {
+  border-color: #bfd2d8;
+  background: var(--redwood-blue-soft);
+  color: var(--redwood-blue);
+}
+
+.badge.success,
+.workflow-journey-step.complete,
+.workflow-step-state.complete,
+.case-board-chip.hybrid,
+.scenario-selection-strip.is-preferred,
+.what-changed-column-added,
+.what-changed-stat-after,
+.what-changed-field-after,
+.technical-candidate-card.selected {
+  border-color: #bcd8c6;
+  background: var(--redwood-green-soft);
+  color: var(--redwood-green);
+}
+
+.badge.warn,
+.quote-scenario-meta-warn,
+.scenario-index-count-warn,
+.story-lane-urgency-chip.high,
+.scenario-state-callout-warn,
+.what-changed-stat-before,
+.what-changed-field-before {
+  border-color: #e2c58d;
+  background: var(--redwood-amber-soft);
+  color: var(--redwood-amber);
+}
+
+.story-lane-card.story-lane-urgency-high {
+  border-color: #e2c58d;
+}
+
+.story-lane-card.story-lane-urgency-medium {
+  border-color: #bfd2d8;
+}
+
+.story-lane-card:not([open]) .story-lane-hint,
+.story-lane-card:not([open]) .story-lane-hint strong {
+  color: var(--redwood-red-dark);
+}
+
+.badge.danger,
+.ai-step-item.error,
+.what-changed-column-removed {
+  border-color: #e0aaa2;
+  background: var(--redwood-danger-soft);
+  color: var(--redwood-danger);
+}
+
+.table-wrapper,
+.table-wrap,
+.coach-table-wrap,
+.scenario-compare-table-wrap,
+.decision-trace-table-wrapper {
+  border-color: var(--redwood-border);
+  background: var(--redwood-surface);
+}
+
+.table th,
+.data-table th,
+.decision-trace-table th,
+.coach-table th,
+.scenario-compare-table th {
+  background: #ede9e1;
+  color: var(--redwood-muted);
+  border-color: var(--redwood-border);
+}
+
+.table td,
+.data-table td,
+.decision-trace-table td,
+.coach-table td,
+.scenario-compare-table td {
+  border-color: #ebe7df;
+  color: #2d2a27;
+}
+
+.table tbody tr:nth-child(even) td,
+.data-table tbody tr:nth-child(even) td {
+  background: #fbfaf7;
+}
+
+.table tbody tr:hover td,
+.data-table tbody tr:hover td {
+  background: #f4f1eb;
+}
+
+.ai-workflow-runner,
+.ai-scenario-shell,
+.ai-stream-shell,
+.ai-prompt-drawer,
+.policy-prompt-card,
+.quote-insight-prompt-details,
+.quote-insight-prompt-code,
+.quote-insight-prompt-history-item,
+.quote-insight-primary,
+.quote-insight-evidence,
+.coach-card,
+.scenario-compare-shell {
+  background: #fbfaf7;
+  border-color: var(--redwood-border);
+}
+
+.ai-progress-track {
+  background: #e4ded4;
+}
+
+.ai-progress-fill {
+  background: linear-gradient(90deg, var(--redwood-red) 0%, #d18b5b 100%);
+}
+
+.ai-status-dot.running,
+.quote-line-guide-dot-updated {
+  background: var(--redwood-red);
+}
+
+.quote-line-row-changed td:first-child,
+.quote-line-row-ai td:first-child {
+  box-shadow: inset 3px 0 0 var(--redwood-red);
+}
+
+.quote-line-row-baseline td:first-child {
+  box-shadow: inset 3px 0 0 var(--redwood-border-strong);
+}
+
+.input,
+select,
+.policy-select,
+.scenario-selector-input {
+  border-color: var(--redwood-border);
+  background:
+    linear-gradient(45deg, transparent 50%, var(--redwood-muted) 50%) calc(100% - 17px) 50% / 5px 5px no-repeat,
+    linear-gradient(135deg, var(--redwood-muted) 50%, transparent 50%) calc(100% - 12px) 50% / 5px 5px no-repeat,
+    var(--redwood-surface);
+  color: var(--redwood-ink);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--redwood-red);
+  outline-offset: 2px;
+}
+
+/* Typography standards pass: dense enterprise UI scale without tiny demo-app labels. */
+.topbar-home,
+.topbar-home strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.brand-title {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.brand-subtitle {
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.nav-link-title {
+  font-size: 13px;
+  line-height: 1.28;
+}
+
+.nav-link-hint {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.nav-group-title,
+.nav-step-label,
+.topbar-context-label,
+.settings-eyebrow,
+.technical-subheading,
+.stat-label,
+.summary-label,
+.policy-select-label,
+.quote-insight-step-label,
+.what-changed-stat-label,
+.what-changed-field-name,
+.scenario-commercial-title {
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.page-header h1,
+.renewal-workspace-title,
+.quote-review-title,
+.dashboard-title,
+.dashboard-hero-title {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.page-header-description,
+.renewal-workspace-subtitle,
+.quote-review-subtitle,
+.dashboard-subtitle,
+.section-subtitle {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.page-header-purpose,
+.page-header-next,
+.topbar-next-step {
+  font-size: 12.5px;
+  line-height: 1.42;
+}
+
+.section-title,
+.panel-title,
+.settings-readiness-card-head h3,
+.decision-trace-section-title,
+.guidance-section-title,
+.quote-insight-section-title,
+.technical-model-card h3,
+.technical-eval-card h3,
+.technical-candidate-card h3,
+.technical-mode-card h3 {
+  font-size: 16px;
+  line-height: 1.28;
+}
+
+.settings-mode-hero-title h2,
+.technical-hero-band h2 {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.table th,
+.data-table th,
+.decision-trace-table th,
+.coach-table th,
+.scenario-compare-table th {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.table td,
+.data-table td,
+.decision-trace-table td,
+.coach-table td,
+.scenario-compare-table td {
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.button-primary,
+.button-secondary,
+.button-tertiary,
+.button-link,
+.button-secondary-sm,
+.button-success,
+.button-warning,
+.button-danger,
+.button-add-quote,
+.button-apply-renewal-line,
+.button-warn {
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+.settings-mode-selected-summary .button-link {
+  min-width: 136px;
+  white-space: nowrap;
+}
+
+.badge,
+.scenario-chip,
+.settings-mode-readiness,
+.quote-scenario-meta,
+.scenario-index-count,
+.story-lane-chip,
+.technical-pill,
+.technical-stack-flow span,
+.policy-chip,
+.workflow-step-state {
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.small,
+.activity-time,
+.empty-note,
+.scenario-selector-state,
+.technical-metric-detail {
+  font-size: 12px;
+  line-height: 1.35;
+}
