@@ -14,6 +14,7 @@ import { RecalculateButton } from '@/components/renewal-cases/recalculate-button
 import { RegenerateInsightsAiButton } from '@/components/renewal-cases/regenerate-insights-ai-button'
 import { RenewalCaseReviewWorkspace } from '@/components/renewal-cases/review-workspace'
 import { WhatChangedSummary } from '@/components/renewal-cases/what-changed-summary'
+import { FormattedAiText } from '@/components/ui/formatted-ai-text'
 import type { QuoteInsightView } from '@/lib/db/quote-insights'
 import type { RenewalCaseDetailView } from '@/types/renewal-case'
 
@@ -274,7 +275,9 @@ export function CommandCenterWorkspace({
           <section className="card command-reasoning-preview">
             <div className="command-reasoning-title">What Changed Reasoning</div>
             <div className="guidance-section-content">
-              {renewalCase.reasoningWhatChanged?.content ?? (
+              {renewalCase.reasoningWhatChanged?.content ? (
+                <FormattedAiText text={renewalCase.reasoningWhatChanged.content} />
+              ) : (
                 <span className="muted">
                   Run Full AI Review Guidance to generate evidence-backed change reasoning.
                 </span>

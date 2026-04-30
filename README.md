@@ -266,8 +266,11 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `ML_RECOMMENDATION_MODE` | No | `HYBRID_RULES_ML` | Default recommendation mode before runtime setting is saved. |
 | `ML_PYTHON_BIN` | No | `.venv-ml/bin/python` | Python executable used for local prediction. |
 | `ML_SERVICE_URL` | No | empty | Optional local HTTP ML service URL. |
-| `OPENAI_API_KEY` | No | empty | Enables live text generation when configured. |
-| `OPENAI_MODEL` | No | `gpt-5.3` | Text generation model label. |
+| `AI_PROVIDER` | No | `openai` | Text generation provider. Set to `ollama` for local Ollama generation. |
+| `OPENAI_API_KEY` | No | empty | Enables hosted OpenAI text generation when `AI_PROVIDER=openai`. |
+| `OPENAI_MODEL` | No | `gpt-5.3` | OpenAI text generation model label. |
+| `OLLAMA_BASE_URL` | No | `http://localhost:11434/v1` | Local Ollama OpenAI-compatible endpoint. |
+| `OLLAMA_MODEL` | No | `llama3.1` | Ollama model label used when `AI_PROVIDER=ollama`. |
 | `OPENAI_MOCK_MODE` | No | `0` | Forces deterministic mock AI text output when enabled. |
 
 ---

@@ -1,6 +1,7 @@
 import { AddQuoteInsightToQuoteButton } from '@/components/renewal-cases/add-quote-insight-to-quote-button'
 import { Badge } from '@/components/ui/badge'
 import { buildQuoteInsightInput, quoteInsightInstructions } from '@/lib/ai/prompts'
+import { sanitizeAiText } from '@/lib/ai/text-format'
 import { labelize } from '@/lib/format/risk'
 
 type QuoteInsightView = {
@@ -306,7 +307,7 @@ export function QuoteInsightsPanel({
                           <div className="small muted">
                             {isLocalRationale
                               ? 'Execution path: Local deterministic rationale'
-                              : `Current model: ${item.aiModelLabel ?? 'Runtime OPENAI_MODEL'}`}
+                              : `Current model: ${item.aiModelLabel ?? 'Runtime text generation model'}`}
                           </div>
                         </div>
                       </div>
@@ -415,7 +416,9 @@ export function QuoteInsightsPanel({
                             </p>
                           )
                         ) : (
-                          <p className="opportunity-ai-explanation">{item.aiExplanation}</p>
+                          <p className="opportunity-ai-explanation">
+                            {sanitizeAiText(item.aiExplanation)}
+                          </p>
                         )}
                       </div>
 
@@ -779,6 +782,7 @@ type ParsedAiNarrative = {
 
 function parseAiNarrativeSections(content: string | null): ParsedAiNarrative | null {
   if (!content) return null
+  const sanitizedContent = sanitizeAiText(content)
 
   const sections: Record<AiNarrativeSectionKey, string[]> = {
     decision: [],
@@ -789,7 +793,7 @@ function parseAiNarrativeSections(content: string | null): ParsedAiNarrative | n
   const unstructured: string[] = []
   let currentSection: AiNarrativeSectionKey | null = null
 
-  for (const rawLine of content.split(/\r?\n/)) {
+  for (const rawLine of sanitizedContent.split(/\r?\n/)) {
     const line = rawLine.trim()
     if (!line) {
       if (currentSection && sections[currentSection].length > 0) {
@@ -853,6 +857,6 @@ function matchAiNarrativeHeading(
 }
 
 function normalizeNarrativeText(lines: string[]) {
-  const joined = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+  const joined = sanitizeAiText(lines.join('\n'))
   return joined.length > 0 ? joined : null
 }

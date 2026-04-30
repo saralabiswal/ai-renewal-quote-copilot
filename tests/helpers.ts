@@ -34,6 +34,14 @@ export async function waitForPageStable(page: Page) {
   await page.waitForLoadState('networkidle')
 }
 
+export async function openCommandTab(page: Page, tabName: string | RegExp) {
+  const tab = page.getByRole('button', { name: tabName })
+  if ((await tab.count()) > 0) {
+    await tab.first().click()
+    await waitForPageStable(page)
+  }
+}
+
 type ClickInsightActionOptions = {
   allowAlreadyApplied?: boolean
 }
@@ -43,6 +51,8 @@ export async function clickInsightAction(
   titleText: string,
   options: ClickInsightActionOptions = {},
 ) {
+  await openCommandTab(page, /Apply Quote Actions/i)
+
   const card = page.locator('.opportunity-card').filter({
     has: page.locator(`.opportunity-title:text-is("${titleText}")`),
   })

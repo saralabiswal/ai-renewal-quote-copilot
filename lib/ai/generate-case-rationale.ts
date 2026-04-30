@@ -1,7 +1,8 @@
-import { getAiModel, getOpenAIClient } from './client'
+import { getAiClient, getAiModel } from './client'
 import { fallbackResult } from './fallback'
 import { generateMockCaseRationale, isOpenAiMockModeEnabled } from './mock-mode'
 import { buildCaseRationaleInput, caseRationaleInstructions } from './prompts'
+import { sanitizeAiText } from './text-format'
 import type { AiTextResult, CaseRationaleInput } from './types'
 
 function fallbackCaseNarrative(input: CaseRationaleInput) {
@@ -27,20 +28,20 @@ export async function generateCaseRationale(input: CaseRationaleInput): Promise<
     })
   }
 
-  const client = getOpenAIClient()
-  if (!client) {
+  const aiRuntime = getAiClient()
+  if (!aiRuntime) {
     return fallbackResult(fallbackCaseNarrative(input))
   }
 
-  const response = await client.responses.create({
-    model,
+  const response = await aiRuntime.client.responses.create({
+    model: aiRuntime.model,
     instructions,
     input: promptInput,
   })
 
   return {
-    mode: 'OPENAI',
-    modelLabel: model,
-    content: response.output_text.trim(),
+    mode: aiRuntime.mode,
+    modelLabel: aiRuntime.model,
+    content: sanitizeAiText(response.output_text),
   }
 }

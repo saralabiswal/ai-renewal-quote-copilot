@@ -1,7 +1,8 @@
-import { getAiModel, getOpenAIClient } from './client'
+import { getAiClient, getAiModel } from './client'
 import { fallbackResult } from './fallback'
 import { generateMockReasoningEvidence, isOpenAiMockModeEnabled } from './mock-mode'
 import { buildReasoningEvidenceInput, reasoningInstructions } from './prompts'
+import { sanitizeAiText } from './text-format'
 import type { AiTextResult, ReasoningEvidenceInput } from './types'
 
 function fallbackReasoning(input: ReasoningEvidenceInput) {
@@ -47,20 +48,20 @@ export async function generateReasoningEvidence(
     })
   }
 
-  const client = getOpenAIClient()
-  if (!client) {
+  const aiRuntime = getAiClient()
+  if (!aiRuntime) {
     return fallbackResult(fallbackReasoning(input), 'local-reasoning-evidence-v1')
   }
 
-  const response = await client.responses.create({
-    model,
+  const response = await aiRuntime.client.responses.create({
+    model: aiRuntime.model,
     instructions,
     input: promptInput,
   })
 
   return {
-    mode: 'OPENAI',
-    modelLabel: model,
-    content: response.output_text.trim(),
+    mode: aiRuntime.mode,
+    modelLabel: aiRuntime.model,
+    content: sanitizeAiText(response.output_text),
   }
 }

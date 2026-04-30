@@ -1,4 +1,4 @@
-export type AiGenerationMode = 'OPENAI' | 'FALLBACK'
+export type AiGenerationMode = 'OPENAI' | 'OLLAMA' | 'FALLBACK'
 
 export type CaseRationaleInput = {
   accountName: string

@@ -1,5 +1,5 @@
 import { test, expect, APIRequestContext } from '@playwright/test'
-import { waitForPageStable } from './helpers'
+import { openCommandTab, waitForPageStable } from './helpers'
 
 const GENERATED_SCENARIO_CASE_IDS = [
   'rcase_aster_commerce',
@@ -92,6 +92,7 @@ test('recalculate recommendation sets case under review and marks insights stale
 
   await page.goto('/renewal-cases/rcase_apex_mfg')
   await waitForPageStable(page)
+  await openCommandTab(page, /Apply Quote Actions/i)
   await expect(page.getByText('Quote Insights may be outdated')).toBeVisible()
 })
 
@@ -105,6 +106,7 @@ test('decision trace logs rules-only recalculation metadata', async ({ page, req
 
   await page.goto('/renewal-cases/rcase_apex_mfg')
   await waitForPageStable(page)
+  await openCommandTab(page, /Inspect Evidence/i)
 
   const tracePanel = page.locator('section.card').filter({
     has: page.getByRole('heading', { name: 'Decision Trace' }),
@@ -160,6 +162,7 @@ test('recalculate quote insights clears stale warning and shows regenerated time
 
   await page.goto('/renewal-cases/rcase_northstar_telecom')
   await waitForPageStable(page)
+  await openCommandTab(page, /Apply Quote Actions/i)
   await expect(page.getByText('Quote Insights may be outdated')).toBeVisible()
 
   const insightsResponse = await request.post(
@@ -172,6 +175,7 @@ test('recalculate quote insights clears stale warning and shows regenerated time
 
   await page.reload()
   await waitForPageStable(page)
+  await openCommandTab(page, /Apply Quote Actions/i)
 
   await expect(page.getByText('Quote Insights may be outdated')).toHaveCount(0)
   await expect(page.getByText(/Last regenerated:/i)).toBeVisible()
@@ -227,6 +231,7 @@ test('quote review decision updates quote status and review history', async ({ p
 
   await page.goto('/renewal-cases/rcase_harbor_fin')
   await waitForPageStable(page)
+  await openCommandTab(page, /Finalize Review/i)
 
   await page.getByRole('button', { name: /Review History/i }).click()
 

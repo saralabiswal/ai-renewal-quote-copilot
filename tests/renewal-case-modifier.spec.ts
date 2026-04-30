@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test'
-import { waitForPageStable } from './helpers'
+import { openCommandTab, waitForPageStable } from './helpers'
 
 test('modifier insight updates existing renewal line instead of creating a new line', async ({
   page,
 }) => {
   await page.goto('/renewal-cases/rcase_bluepeak')
   await waitForPageStable(page)
+  await openCommandTab(page, /Apply Quote Actions/i)
 
   const modifierTitle = 'Protect NetSuite renewal with a controlled concession'
   const appliedCard = page.locator('.opportunity-card').filter({

@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/layout/page-header'
 import { MlSettingsForm } from '@/components/settings/ml-settings-form'
 import { SettingsPrimaryTabs } from '@/components/settings/settings-primary-tabs'
 import { Badge } from '@/components/ui/badge'
+import { getAiModel, getAiProvider } from '@/lib/ai/client'
 import { labelize } from '@/lib/format/risk'
 import { getMlRuntimeConfig, mlModeLabel } from '@/lib/ml/config'
 
@@ -44,9 +45,13 @@ function displayRuntimePath(value: string | null | undefined) {
 }
 
 export default function SettingsPage() {
+  const aiProvider = getAiProvider()
+  const selectedAiModel = getAiModel()
   const openAiApiKeyConfigured = Boolean(process.env.OPENAI_API_KEY?.trim())
-  const openAiModel = process.env.OPENAI_MODEL || 'gpt-5.3'
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1'
   const openAiMockModeEnabled = isEnabled(process.env.OPENAI_MOCK_MODE)
+  const liveTextGenerationConfigured =
+    aiProvider === 'OLLAMA' || (aiProvider === 'OPENAI' && openAiApiKeyConfigured)
   const mlConfig = getMlRuntimeConfig()
   const localMlReady = mlConfig.modelExists && mlConfig.predictionScriptExists
   const selectedModeAffectsRecommendations = mlConfig.affectsRecommendations
@@ -116,22 +121,26 @@ export default function SettingsPage() {
             <div>
               <div className="settings-eyebrow">Optional Text Generation</div>
               <div className="settings-mode-hero-title">
-                <h2>OpenAI Narrative Runtime</h2>
-                <Badge tone={openAiApiKeyConfigured || openAiMockModeEnabled ? 'success' : 'warn'}>
-                  {openAiApiKeyConfigured
-                    ? 'API configured'
-                    : openAiMockModeEnabled
-                      ? 'Mock enabled'
+                <h2>Narrative Runtime</h2>
+                <Badge tone={liveTextGenerationConfigured || openAiMockModeEnabled ? 'success' : 'warn'}>
+                  {openAiMockModeEnabled
+                    ? 'Mock enabled'
+                    : liveTextGenerationConfigured
+                      ? `${aiProvider} selected`
                       : 'Local fallback'}
                 </Badge>
               </div>
               <p>
                 This controls narrative and rationale generation only. The standalone renewal-risk
-                ML model, recommendation scoring, and guardrails do not require OpenAI.
+                ML model, recommendation scoring, and guardrails do not require a hosted LLM.
               </p>
             </div>
 
             <div className="settings-compact-grid">
+              <div className="settings-compact-item">
+                <span>AI_PROVIDER</span>
+                <strong>{aiProvider.toLowerCase()}</strong>
+              </div>
               <div className="settings-compact-item">
                 <span>OPENAI_API_KEY</span>
                 <Badge tone={openAiApiKeyConfigured ? 'success' : 'warn'}>
@@ -139,8 +148,12 @@ export default function SettingsPage() {
                 </Badge>
               </div>
               <div className="settings-compact-item">
-                <span>OPENAI_MODEL</span>
-                <strong>{openAiModel}</strong>
+                <span>{aiProvider === 'OLLAMA' ? 'OLLAMA_MODEL' : 'OPENAI_MODEL'}</span>
+                <strong>{selectedAiModel}</strong>
+              </div>
+              <div className="settings-compact-item">
+                <span>OLLAMA_BASE_URL</span>
+                <strong>{aiProvider === 'OLLAMA' ? ollamaBaseUrl : 'Not active'}</strong>
               </div>
               <div className="settings-compact-item">
                 <span>OPENAI_MOCK_MODE</span>
@@ -151,9 +164,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="settings-text-generation-note">
-              <strong>Fallback behavior:</strong> when no API key or mock mode is configured, quote
-              insight rationales use the local deterministic rationale path and are labeled that way
-              in the case UI.
+              <strong>Fallback behavior:</strong> when OpenAI is selected without an API key, quote
+              insight rationales use the local deterministic rationale path. When Ollama is selected,
+              make sure the local Ollama service is running and the selected model has been pulled.
             </div>
           </section>
         }

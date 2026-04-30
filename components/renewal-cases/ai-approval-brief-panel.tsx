@@ -1,3 +1,4 @@
+import { FormattedAiText } from '@/components/ui/formatted-ai-text'
 import type { RecommendationNarrativeView } from '@/types/renewal-case'
 
 export function AiApprovalBriefPanel({
@@ -17,7 +18,7 @@ export function AiApprovalBriefPanel({
           </div>
 
           <div style={{ marginTop: 16, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-            {narrative.content}
+            <FormattedAiText text={narrative.content} />
           </div>
         </>
       ) : (

@@ -20,6 +20,11 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 120_000,
+    env: {
+      ...process.env,
+      AI_PROVIDER: 'openai',
+      OPENAI_MOCK_MODE: '1',
+    },
   },
 
   projects: [

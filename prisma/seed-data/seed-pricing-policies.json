@@ -37,7 +37,7 @@
   },
   {
     "id": "pp_enterprise_ai_data",
-    "name": "Enterprise AI Data Policy",
+    "name": "Enterprise AI / Data Policy",
     "accountSegment": "ENTERPRISE",
     "productFamily": "AI / Data",
     "maxAutoDiscountPercent": 15,
@@ -121,7 +121,7 @@
   },
   {
     "id": "pp_strategic_ai_data",
-    "name": "Strategic AI Data Policy",
+    "name": "Strategic AI / Data Policy",
     "accountSegment": "STRATEGIC",
     "productFamily": "AI / Data",
     "maxAutoDiscountPercent": 13,
@@ -205,7 +205,7 @@
   },
   {
     "id": "pp_midmarket_ai_data",
-    "name": "Mid-Market AI Data Policy",
+    "name": "Mid-Market AI / Data Policy",
     "accountSegment": "MID_MARKET",
     "productFamily": "AI / Data",
     "maxAutoDiscountPercent": 18,

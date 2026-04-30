@@ -60,12 +60,13 @@ test('policy studio end-to-end visual flow tab renders a self-explanatory journe
   await page.getByRole('button', { name: /End-to-End Visual Flow/i }).click()
   await waitForPageStable(page)
 
-  await expect(page.getByRole('heading', { name: /End-to-End Flow:/i })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Subscription Signals Ingested/i })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Risk Scoring Rules Applied/i })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Recommendation Rule Selected/i })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Quote Insight Generated/i })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /Reviewer Action Outcome/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Explainable Renewal Decision Flow/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Recommendation Engine/i })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Quote Insight Engine/i })).toBeVisible()
+  await expect(page.getByText(/Read case signals/i)).toBeVisible()
+  await expect(page.getByText(/Score each renewal line/i)).toBeVisible()
+  await expect(page.getByText(/Map disposition to insight type/i)).toBeVisible()
+  await expect(page.getByText(/Create quote actions and scenarios/i)).toBeVisible()
 })
 
 test('policy studio prompt governance tab shows versioned prompt packs and guardrails', async ({

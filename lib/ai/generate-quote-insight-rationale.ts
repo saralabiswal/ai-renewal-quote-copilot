@@ -1,10 +1,11 @@
-import { getAiModel, getOpenAIClient } from './client'
+import { getAiClient, getAiModel } from './client'
 import { fallbackResult } from './fallback'
 import {
   generateMockQuoteInsightRationale,
   isOpenAiMockModeEnabled,
 } from './mock-mode'
 import { buildQuoteInsightInput, quoteInsightInstructions } from './prompts'
+import { sanitizeAiText } from './text-format'
 import type { AiTextResult, QuoteInsightRationaleInput } from './types'
 
 function fallbackQuoteInsightNarrative(input: QuoteInsightRationaleInput) {
@@ -44,21 +45,21 @@ export async function generateQuoteInsightRationale(
     })
   }
 
-  const client = getOpenAIClient()
-  if (!client) {
+  const aiRuntime = getAiClient()
+  if (!aiRuntime) {
     return fallbackResult(fallbackQuoteInsightNarrative(input), 'local-quote-insight-rationale-v1')
   }
 
-  const response = await client.responses.create({
-    model,
+  const response = await aiRuntime.client.responses.create({
+    model: aiRuntime.model,
     instructions,
     input: promptInput,
   })
 
   return {
-    mode: 'OPENAI',
-    modelLabel: model,
-    content: response.output_text.trim(),
+    mode: aiRuntime.mode,
+    modelLabel: aiRuntime.model,
+    content: sanitizeAiText(response.output_text),
   }
 }
 

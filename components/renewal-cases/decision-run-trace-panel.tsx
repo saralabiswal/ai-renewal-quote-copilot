@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { FormattedAiText } from '@/components/ui/formatted-ai-text'
 import { labelize } from '@/lib/format/risk'
 import type { DecisionRunTraceView, RecommendationNarrativeView } from '@/types/renewal-case'
 
@@ -66,7 +67,9 @@ export function DecisionRunTracePanel({
               remain the auditable source of truth.
             </p>
             <div className="guidance-section-content" style={{ marginTop: 10 }}>
-              {reasoning?.content ?? (
+              {reasoning?.content ? (
+                <FormattedAiText text={reasoning.content} />
+              ) : (
                 <span className="muted">
                   No reasoning narrative has been generated yet. Run Full AI Review Guidance to
                   create the explanation layer.

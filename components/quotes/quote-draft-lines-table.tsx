@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { FormattedAiText } from '@/components/ui/formatted-ai-text'
 import { labelize } from '@/lib/format/risk'
 import { QuoteDraftLineView } from '@/types/quote-draft'
 
@@ -278,7 +279,9 @@ export function QuoteDraftLinesTable({ lines }: { lines: QuoteDraftLineView[] })
                         {line.traceability.aiExplanation ? (
                           <div className="quote-traceability-block">
                             <div className="quote-traceability-label">AI Reviewer Rationale</div>
-                            <div>{line.traceability.aiExplanation}</div>
+                            <div>
+                              <FormattedAiText text={line.traceability.aiExplanation} />
+                            </div>
                           </div>
                         ) : line.traceability.sourceQuoteInsightId ? (
                           <div className="quote-traceability-block">

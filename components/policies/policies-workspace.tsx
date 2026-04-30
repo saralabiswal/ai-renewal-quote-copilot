@@ -271,6 +271,243 @@ function RuleFlowMap({
   )
 }
 
+function ExplainableDecisionDiagram({ example }: { example: WorkedExampleView }) {
+  return (
+    <section className="policy-explainability-diagram" aria-label="Explainable renewal decision flow">
+      <div className="policy-explainability-head">
+        <div>
+          <h3 className="panel-title">Explainable Renewal Decision Flow</h3>
+          <p className="section-subtitle">
+            Recommendation rules determine risk, action, and approval posture. Quote insight rules
+            turn those outputs into suggested quote actions and read-only scenario quote options.
+          </p>
+        </div>
+        <Badge tone="info">Policy Studio Diagram</Badge>
+      </div>
+
+      <div className="policy-engine-diagram-grid">
+        <article className="policy-engine-diagram-card">
+          <div className="policy-engine-diagram-card-head">
+            <div>
+              <h4>Recommendation Engine</h4>
+              <p>Calculates case posture from subscription signals and policy rules.</p>
+            </div>
+            <span className="policy-chip">Rules + optional ML</span>
+          </div>
+          <div className="policy-engine-stage-list">
+            <EngineStage
+              id="1"
+              title="Read case signals"
+              detail="Usage, active users, login trend, support burden, Sev1 incidents, CSAT, payment risk, adoption band, product family, and pricing policy."
+            />
+            <EngineStage
+              id="2"
+              title="Score each renewal line"
+              detail="Rule risk score is computed per subscription line. In ML-assisted mode, model risk is blended with rule risk."
+            />
+            <EngineStage
+              id="3"
+              title="Assign line disposition"
+              detail="Line becomes renew, expand, renew with concession, or escalate based on risk thresholds, usage capacity, and severe incidents."
+            />
+            <EngineStage
+              id="4"
+              title="Roll up bundle action"
+              detail="Escalation beats concession, concession beats expansion, and expansion beats renew-as-is. Pricing guardrails decide approval."
+              chips={['recommendedAction', 'riskLevel', 'requiresApproval']}
+            />
+          </div>
+        </article>
+
+        <article className="policy-engine-diagram-card">
+          <div className="policy-engine-diagram-card-head">
+            <div>
+              <h4>Quote Insight Engine</h4>
+              <p>Translates decision output into quote actions reviewers can inspect.</p>
+            </div>
+            <span className="policy-chip">Actionable evidence</span>
+          </div>
+          <div className="policy-engine-stage-list">
+            <EngineStage
+              id="5"
+              title="Map disposition to insight type"
+              detail="Expand becomes expansion, concession becomes concession, margin signals become margin recovery, and fallback becomes renew-as-is."
+            />
+            <EngineStage
+              id="6"
+              title="Add strategic opportunities"
+              detail="Eligible accounts can receive additive cross-sell, data modernization, or hybrid deployment suggestions."
+            />
+            <EngineStage
+              id="7"
+              title="Score and explain"
+              detail="Each insight gets confidence, fit, ARR impact, structured evidence, reason codes, and optional narrative rationale."
+            />
+            <EngineStage
+              id="8"
+              title="Create quote actions and scenarios"
+              detail="Insights can be applied to the editable baseline quote or grouped into read-only scenario quote alternatives."
+              chips={['quoteInsights', 'quoteActions', 'scenarioQuotes']}
+            />
+          </div>
+        </article>
+      </div>
+
+      <div className="policy-evidence-rail">
+        <EvidenceTile
+          title="Guardrails Stay Final"
+          detail="Discount thresholds, floor price checks, and Sev1 escalation rules decide approval posture before quote review."
+          tone="policy"
+        />
+        <EvidenceTile
+          title="ML Is Evidence"
+          detail="ML can influence risk in assisted mode, but deterministic thresholds and guardrails still shape actions."
+          tone="ml"
+        />
+        <EvidenceTile
+          title="Traceable Outputs"
+          detail="Rule output, ML output, final output, drivers, reason codes, and quote deltas remain visible for inspection."
+          tone="trace"
+        />
+        <EvidenceTile
+          title="Human Approval"
+          detail="Reviewers approve, reject, or inspect evidence before final quote execution. Scenario quotes remain read-only."
+          tone="human"
+        />
+      </div>
+
+      <div className="policy-runner-flow">
+        <div className="policy-runner-flow-head">
+          <h4>Example Runner Flow</h4>
+          <p>
+            Current example: {example.sourceContext.accountName} / {example.product.name}
+          </p>
+        </div>
+        <div className="policy-runner-flow-track">
+          <RunnerNode
+            label="Signals"
+            value={`${formatPercent(example.inputs.usagePercentOfEntitlement)} usage`}
+            detail={`${example.inputs.ticketCount90d} tickets, CSAT ${example.inputs.csatScore.toFixed(1)}`}
+          />
+          <RunnerNode
+            label="Risk"
+            value={`${example.scoring.finalRiskLevel} ${example.scoring.finalRiskScore}`}
+            detail={example.scoring.topContributors[0]?.signal ?? 'Rule score computed'}
+          />
+          <RunnerNode
+            label="Recommendation"
+            value={example.recommendation.disposition}
+            detail={`ARR impact ${formatSignedCurrency(example.recommendation.arrDelta)}`}
+          />
+          <RunnerNode
+            label="Guardrail"
+            value={example.guardrails.finalGuardrailResult}
+            detail={example.guardrails.approvalRequired ? 'Approval required' : 'Within policy'}
+          />
+          <RunnerNode
+            label="Quote Insight"
+            value={example.quoteInsight.insightType}
+            detail={`Confidence ${example.quoteInsight.confidenceScore}, fit ${example.quoteInsight.fitScore}`}
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function EngineStage({
+  id,
+  title,
+  detail,
+  chips = [],
+}: {
+  id: string
+  title: string
+  detail: string
+  chips?: string[]
+}) {
+  return (
+    <div className="policy-engine-stage">
+      <span className="policy-engine-stage-id">{id}</span>
+      <div>
+        <strong>{title}</strong>
+        <p>{detail}</p>
+        {chips.length > 0 ? (
+          <div className="policy-chip-wrap">
+            {chips.map((chip) => (
+              <span key={chip} className="policy-chip">
+                {chip}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function EvidenceTile({
+  title,
+  detail,
+  tone,
+}: {
+  title: string
+  detail: string
+  tone: 'policy' | 'ml' | 'trace' | 'human'
+}) {
+  return (
+    <article className={`policy-evidence-tile ${tone}`}>
+      <h4>{title}</h4>
+      <p>{detail}</p>
+    </article>
+  )
+}
+
+function RunnerNode({
+  label,
+  value,
+  detail,
+}: {
+  label: string
+  value: string
+  detail: string
+}) {
+  return (
+    <article className="policy-runner-node">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{detail}</p>
+    </article>
+  )
+}
+
+function EngineSticker({
+  label,
+  tone = 'rules',
+}: {
+  label: string
+  tone?: 'data' | 'rules' | 'guardrail' | 'insight' | 'review'
+}) {
+  return <span className={`policy-engine-sticker ${tone}`}>{label}</span>
+}
+
+function StepMarker({
+  step,
+  engineLabel,
+  tone,
+}: {
+  step: string
+  engineLabel: string
+  tone: 'data' | 'rules' | 'guardrail' | 'insight' | 'review'
+}) {
+  return (
+    <span className="policy-step-marker">
+      <span className="policy-step-number">{step}</span>
+      <EngineSticker label={engineLabel} tone={tone} />
+    </span>
+  )
+}
+
 export function PoliciesWorkspace({
   mlMode,
   mlEnabled,
@@ -588,6 +825,10 @@ export function PoliciesWorkspace({
               <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
                 Mapping Quick View
               </div>
+              <p className="small muted" style={{ marginTop: 0, marginBottom: 10, lineHeight: 1.45 }}>
+                Recommendation outputs on the left are translated into quote insight types on the
+                right, which then drive suggested quote actions and scenario quotes.
+              </p>
               <div className="policy-chip-wrap">
                 <span className="policy-chip">EXPAND -&gt; EXPANSION</span>
                 <span className="policy-chip">PRICE_ADJUST -&gt; MARGIN_RECOVERY</span>
@@ -713,10 +954,12 @@ export function PoliciesWorkspace({
 
       {activeTab === 'journey' ? (
         <div className="policy-example-stack">
+          <ExplainableDecisionDiagram example={workedExample} />
+
           <section className="policy-example-hero">
             <div>
               <h3 className="panel-title" style={{ marginBottom: 6 }}>
-                End-to-End Flow: {workedExample.product.name}
+                Detailed Runner Flow: {workedExample.product.name}
               </h3>
               <p className="section-subtitle" style={{ marginTop: 0 }}>
                 One self-explanatory path from subscription signals to quote insight output and
@@ -759,7 +1002,7 @@ export function PoliciesWorkspace({
           <ol className="policy-journey-list">
             <li className="policy-journey-step">
               <div className="policy-journey-head">
-                <span>1</span>
+                <StepMarker step="1" engineLabel="Source Data" tone="data" />
                 <h4>Subscription Signals Ingested</h4>
               </div>
               <p>
@@ -797,7 +1040,7 @@ export function PoliciesWorkspace({
 
             <li className="policy-journey-step">
               <div className="policy-journey-head">
-                <span>2</span>
+                <StepMarker step="2" engineLabel="Recommendation Engine" tone="rules" />
                 <h4>Risk Scoring Rules Applied</h4>
               </div>
               <p>
@@ -816,7 +1059,7 @@ export function PoliciesWorkspace({
 
             <li className="policy-journey-step">
               <div className="policy-journey-head">
-                <span>3</span>
+                <StepMarker step="3" engineLabel="Recommendation Engine" tone="rules" />
                 <h4>Recommendation Rule Selected</h4>
               </div>
               <p>{workedExample.recommendation.ruleTriggered}</p>
@@ -842,7 +1085,7 @@ export function PoliciesWorkspace({
 
             <li className="policy-journey-step">
               <div className="policy-journey-head">
-                <span>4</span>
+                <StepMarker step="4" engineLabel="Pricing Guardrails" tone="guardrail" />
                 <h4>Guardrails Checked</h4>
               </div>
               <div className="policy-journey-checks">
@@ -862,7 +1105,7 @@ export function PoliciesWorkspace({
 
             <li className="policy-journey-step">
               <div className="policy-journey-head">
-                <span>5</span>
+                <StepMarker step="5" engineLabel="Quote Insight Engine" tone="insight" />
                 <h4>Quote Insight Generated</h4>
               </div>
               <p>{workedExample.quoteInsight.mappingRule}</p>
@@ -888,7 +1131,7 @@ export function PoliciesWorkspace({
 
             <li className="policy-journey-step">
               <div className="policy-journey-head">
-                <span>6</span>
+                <StepMarker step="6" engineLabel="Human Workflow" tone="review" />
                 <h4>Reviewer Action Outcome</h4>
               </div>
               <p>

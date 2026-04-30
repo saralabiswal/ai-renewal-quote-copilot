@@ -4,9 +4,11 @@ import {
   buildCaseExecutiveSummaryInput,
   buildCaseRationaleInput,
   buildQuoteInsightInput,
+  buildReasoningEvidenceInput,
   caseExecutiveSummaryInstructions,
   caseRationaleInstructions,
   quoteInsightInstructions,
+  reasoningInstructions,
 } from '@/lib/ai/prompts'
 
 export type PromptStageId = 'recalculate' | 'insights_ai' | 'full_ai'
@@ -161,6 +163,26 @@ const APPROVAL_BRIEF_TEMPLATE = buildApprovalBriefInput({
   proposedArrFormatted: '{{PROPOSED_ARR}}',
 })
 
+const REASONING_EVIDENCE_TEMPLATE = buildReasoningEvidenceInput({
+  accountName: '{{ACCOUNT_NAME}}',
+  caseNumber: '{{CASE_NUMBER}}',
+  reasoningType: 'DECISION_TRACE',
+  recommendationMode: '{{RECOMMENDATION_MODE}}',
+  scenarioKey: '{{SCENARIO_KEY}}',
+  recommendedAction: '{{RECOMMENDED_ACTION}}',
+  riskLevel: '{{RISK_LEVEL}}',
+  approvalRequired: true,
+  approvalReason: '{{APPROVAL_REASON}}',
+  ruleSummary: ['{{RULE_EVIDENCE_1}}', '{{RULE_EVIDENCE_2}}'],
+  mlSummary: ['{{ML_EVIDENCE_1}}', '{{ML_EVIDENCE_2}}'],
+  finalSummary: ['{{FINAL_OUTPUT_1}}', '{{FINAL_OUTPUT_2}}'],
+  guardrailSummary: ['{{GUARDRAIL_1}}', '{{GUARDRAIL_2}}'],
+  quoteInsightSummary: ['{{QUOTE_INSIGHT_1}}', '{{QUOTE_INSIGHT_2}}'],
+  quoteDeltaSummary: ['{{QUOTE_DELTA_1}}', '{{QUOTE_DELTA_2}}'],
+  changeSummary: ['{{CHANGE_1}}', '{{CHANGE_2}}'],
+  evidenceReferences: ['{{REFERENCE_1}}', '{{REFERENCE_2}}'],
+})
+
 function stableHash(value: string) {
   let hash = 2166136261
   for (let idx = 0; idx < value.length; idx += 1) {
@@ -228,13 +250,13 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
     businessSummary:
       'Transforms structured signal evidence into a clear Decision / Why / Commercial Impact / What Changed narrative for each quote insight.',
     owner: 'AI Workflow Team',
-    modelLabel: 'Runtime OPENAI_MODEL',
+    modelLabel: 'Runtime text generation model',
     temperature: 'default',
     visibilityNote: 'Raw prompt text is shown for internal demo and policy-authorized users.',
     redactionNote: 'Sensitive variables are masked in variable previews and contextual drawers.',
     sourcePath: 'lib/ai/prompts.ts#quoteInsightInstructions',
-    version: 'v3.1',
-    lastUpdated: '2026-04-21',
+    version: 'v3.2',
+    lastUpdated: '2026-04-29',
     systemPrompt: quoteInsightInstructions(),
     inputTemplate: QUOTE_INSIGHT_INPUT_TEMPLATE,
     variables: [
@@ -246,6 +268,17 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
       { key: 'fit_score', label: 'Fit Score', exampleValue: 79, sensitivity: 'public' },
     ],
     history: [
+      {
+        version: 'v3.2',
+        releasedAt: '2026-04-29',
+        changeSummary: 'Cleaned output contract for local and hosted model consistency.',
+        diff: {
+          modified: [
+            'System prompt now requires plain text only with no Markdown decoration.',
+            'Heading contract now calls for exact plain-text heading lines.',
+          ],
+        },
+      },
       {
         version: 'v3.1',
         releasedAt: '2026-04-21',
@@ -276,13 +309,13 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
     businessSummary:
       'Creates a short executive snapshot of current renewal posture, risk, and reviewer takeaway.',
     owner: 'AI Workflow Team',
-    modelLabel: 'Runtime OPENAI_MODEL',
+    modelLabel: 'Runtime text generation model',
     temperature: 'default',
     visibilityNote: 'Internal governance view only. Includes policy-sensitive summary framing.',
     redactionNote: 'Case/account identifiers are masked in non-admin previews.',
     sourcePath: 'lib/ai/prompts.ts#caseExecutiveSummaryInstructions',
-    version: 'v2.2',
-    lastUpdated: '2026-04-21',
+    version: 'v2.3',
+    lastUpdated: '2026-04-29',
     systemPrompt: caseExecutiveSummaryInstructions(),
     inputTemplate: CASE_EXECUTIVE_SUMMARY_TEMPLATE,
     variables: [
@@ -293,6 +326,17 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
       { key: 'approval_required', label: 'Approval Required', exampleValue: true, sensitivity: 'public' },
     ],
     history: [
+      {
+        version: 'v2.3',
+        releasedAt: '2026-04-29',
+        changeSummary: 'Cleaned formatting instructions to reduce Markdown artifacts in generated summaries.',
+        diff: {
+          modified: [
+            'System prompt now requires plain text only.',
+            'Input contract now asks for one summary paragraph followed by two plain hyphen bullets.',
+          ],
+        },
+      },
       {
         version: 'v2.2',
         releasedAt: '2026-04-21',
@@ -320,13 +364,13 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
     businessSummary:
       'Builds a structured explanation of why the recommendation is commercially defensible based on bundle and line evidence.',
     owner: 'AI Workflow Team',
-    modelLabel: 'Runtime OPENAI_MODEL',
+    modelLabel: 'Runtime text generation model',
     temperature: 'default',
     visibilityNote: 'Internal governance view only. Intended for reviewer workflow transparency.',
     redactionNote: 'Case/account identifiers are masked in non-admin previews.',
     sourcePath: 'lib/ai/prompts.ts#caseRationaleInstructions',
-    version: 'v2.4',
-    lastUpdated: '2026-04-21',
+    version: 'v2.5',
+    lastUpdated: '2026-04-29',
     systemPrompt: caseRationaleInstructions(),
     inputTemplate: CASE_RATIONALE_TEMPLATE,
     variables: [
@@ -336,6 +380,17 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
       { key: 'item_summary_1', label: 'Item Summary', exampleValue: 'Fusion Apps requires targeted concession to retain seats.', sensitivity: 'public' },
     ],
     history: [
+      {
+        version: 'v2.5',
+        releasedAt: '2026-04-29',
+        changeSummary: 'Cleaned rationale output rules for consistent plain-text reviewer copy.',
+        diff: {
+          modified: [
+            'System prompt now blocks Markdown decoration.',
+            'Input contract now asks for two paragraphs followed by three plain hyphen bullets with no headings.',
+          ],
+        },
+      },
       {
         version: 'v2.4',
         releasedAt: '2026-04-21',
@@ -363,13 +418,13 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
     businessSummary:
       'Summarizes situation, why approval is needed, and suggested reviewer posture for approval-required cases.',
     owner: 'AI Workflow Team',
-    modelLabel: 'Runtime OPENAI_MODEL',
+    modelLabel: 'Runtime text generation model',
     temperature: 'default',
     visibilityNote: 'Visible to approval workflow roles. Guardrails and ARR posture are emphasized.',
     redactionNote: 'Case number and account references are partially masked by default.',
     sourcePath: 'lib/ai/prompts.ts#approvalBriefInstructions',
-    version: 'v1.9',
-    lastUpdated: '2026-04-21',
+    version: 'v2.0',
+    lastUpdated: '2026-04-29',
     systemPrompt: approvalBriefInstructions(),
     inputTemplate: APPROVAL_BRIEF_TEMPLATE,
     variables: [
@@ -380,6 +435,17 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
       { key: 'proposed_arr', label: 'Proposed ARR', exampleValue: '$1,198,000', sensitivity: 'public' },
     ],
     history: [
+      {
+        version: 'v2.0',
+        releasedAt: '2026-04-29',
+        changeSummary: 'Cleaned approval brief prompt for plain-text headings and concise reviewer posture.',
+        diff: {
+          modified: [
+            'System prompt now requires plain text only.',
+            'Input contract now specifies exact heading lines and sentence count under each heading.',
+          ],
+        },
+      },
       {
         version: 'v1.9',
         releasedAt: '2026-04-21',
@@ -394,6 +460,47 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
         changeSummary: 'Added ARR movement context to approval recommendation.',
         diff: {
           added: ['Current ARR and proposed ARR formatted variables.'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'reasoning-evidence',
+    stage: 'full_ai',
+    stageLabel: STAGE_META.full_ai.label,
+    name: 'Reasoning Evidence Prompt',
+    purpose: 'Explains the decision trace using rule, ML, quote, guardrail, and change evidence.',
+    businessSummary:
+      'Produces an auditable reviewer explanation that separates deterministic evidence, model evidence, guardrails, and the final human-review action.',
+    owner: 'AI Workflow Team',
+    modelLabel: 'Runtime text generation model',
+    temperature: 'default',
+    visibilityNote: 'Internal governance view only. Intended to show how AI text summarizes decision evidence without making the decision.',
+    redactionNote: 'Case/account identifiers and evidence references are masked in non-admin previews.',
+    sourcePath: 'lib/ai/prompts.ts#reasoningInstructions',
+    version: 'v1.0',
+    lastUpdated: '2026-04-29',
+    systemPrompt: reasoningInstructions(),
+    inputTemplate: REASONING_EVIDENCE_TEMPLATE,
+    variables: [
+      { key: 'account_name', label: 'Account Name', exampleValue: 'Aster Commerce', sensitivity: 'sensitive' },
+      { key: 'case_number', label: 'Case Number', exampleValue: 'RC-ACCT-1016', sensitivity: 'sensitive' },
+      { key: 'scenario_key', label: 'Scenario Key', exampleValue: 'RETENTION_OFFER', sensitivity: 'public' },
+      { key: 'recommended_action', label: 'Recommended Action', exampleValue: 'RENEW_WITH_CONCESSION', sensitivity: 'public' },
+      { key: 'rule_evidence_1', label: 'Rule Evidence', exampleValue: 'Usage trend breached retention threshold.', sensitivity: 'public' },
+      { key: 'ml_evidence_1', label: 'ML Evidence', exampleValue: 'Churn propensity moved above medium-risk band.', sensitivity: 'public' },
+    ],
+    history: [
+      {
+        version: 'v1.0',
+        releasedAt: '2026-04-29',
+        changeSummary: 'Added reasoning evidence prompt to governance catalog and standardized clean plain-text output.',
+        diff: {
+          added: ['Governance artifact for the runtime reasoning-evidence prompt.'],
+          modified: [
+            'System prompt now requires plain text only.',
+            'Output contract clarifies that the AI text generator is not the final decision maker.',
+          ],
         },
       },
     ],

@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { waitForPageStable } from './helpers'
+import { openCommandTab, waitForPageStable } from './helpers'
 
 test('additive insight creates a new quote line', async ({ page }) => {
   await page.goto('/renewal-cases/rcase_quantum_grid')
   await waitForPageStable(page)
+  await openCommandTab(page, /Apply Quote Actions/i)
 
   const additiveCard = page
     .locator('.opportunity-card')

@@ -1,4 +1,4 @@
-import { getAiModel, getOpenAIClient } from './client'
+import { getAiClient, getAiModel } from './client'
 import { fallbackResult } from './fallback'
 import {
   generateMockCaseExecutiveSummary,
@@ -8,6 +8,7 @@ import {
   buildCaseExecutiveSummaryInput,
   caseExecutiveSummaryInstructions,
 } from './prompts'
+import { sanitizeAiText } from './text-format'
 import type { AiTextResult, CaseRationaleInput } from './types'
 
 function fallbackCaseExecutiveSummary(input: CaseRationaleInput) {
@@ -38,20 +39,20 @@ export async function generateCaseExecutiveSummary(
     })
   }
 
-  const client = getOpenAIClient()
-  if (!client) {
+  const aiRuntime = getAiClient()
+  if (!aiRuntime) {
     return fallbackResult(fallbackCaseExecutiveSummary(input), 'executive-summary-fallback-v1')
   }
 
-  const response = await client.responses.create({
-    model,
+  const response = await aiRuntime.client.responses.create({
+    model: aiRuntime.model,
     instructions,
     input: promptInput,
   })
 
   return {
-    mode: 'OPENAI',
-    modelLabel: model,
-    content: response.output_text.trim(),
+    mode: aiRuntime.mode,
+    modelLabel: aiRuntime.model,
+    content: sanitizeAiText(response.output_text),
   }
 }
