@@ -1724,6 +1724,88 @@ button {
   line-height: 1.4;
 }
 
+.policy-data-model-details {
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.policy-data-model-details-head h4,
+.policy-data-model-details-head p {
+  margin: 0;
+}
+
+.policy-data-model-details-head h4 {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.policy-data-model-details-head p {
+  margin-top: 4px;
+  color: #52657c;
+  font-size: 0.84rem;
+}
+
+.policy-data-model-detail-table {
+  display: grid;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.policy-data-model-detail-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(260px, 1.1fr) minmax(280px, 1.2fr);
+  gap: 0;
+  border-top: 1px solid #e5edf6;
+}
+
+.policy-data-model-detail-row:first-child {
+  border-top: 0;
+}
+
+.policy-data-model-detail-row.header {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.policy-data-model-detail-row > * {
+  padding: 10px 12px;
+  border-left: 1px solid #e5edf6;
+}
+
+.policy-data-model-detail-row > *:first-child {
+  border-left: 0;
+}
+
+.policy-data-model-detail-row strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+.policy-data-model-detail-row div span {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.policy-data-model-detail-row p {
+  margin: 0;
+  color: #334155;
+  font-size: 0.8rem;
+  line-height: 1.42;
+}
+
 .policy-example-stack {
   display: grid;
   gap: 10px;
@@ -5262,6 +5344,35 @@ summary:focus-visible {
 
   .policy-data-model-lanes {
     grid-template-columns: 1fr;
+  }
+
+  .policy-data-model-detail-table {
+    border: 0;
+    gap: 8px;
+  }
+
+  .policy-data-model-detail-row,
+  .policy-data-model-detail-row.header {
+    grid-template-columns: 1fr;
+  }
+
+  .policy-data-model-detail-row.header {
+    display: none;
+  }
+
+  .policy-data-model-detail-row {
+    border: 1px solid #dbe3ef;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .policy-data-model-detail-row > * {
+    border-left: 0;
+    border-top: 1px solid #e5edf6;
+  }
+
+  .policy-data-model-detail-row > *:first-child {
+    border-top: 0;
   }
 }
 

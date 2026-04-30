@@ -485,6 +485,7 @@ type DataModelNode = {
   table: string
   description: string
   stores: string[]
+  usedFor: string
 }
 
 const DATA_MODEL_GROUPS: Array<{
@@ -504,16 +505,19 @@ const DATA_MODEL_GROUPS: Array<{
         table: 'Account',
         description: 'Customer profile and ownership context.',
         stores: ['segment', 'industry', 'region', 'health signals'],
+        usedFor: 'Anchors renewal cases, subscriptions, ownership context, and customer-level triage.',
       },
       {
         table: 'Product',
         description: 'Product catalog used by subscriptions and quote outputs.',
         stores: ['SKU', 'family', 'charge model', 'active flag'],
+        usedFor: 'Normalizes product identity across subscriptions, policies, quote insights, and quote lines.',
       },
       {
         table: 'Subscription',
         description: 'Current contracted lines that are being renewed.',
         stores: ['term dates', 'quantity', 'price', 'discount', 'ARR'],
+        usedFor: 'Provides the commercial baseline for renewal case items and scenario quote generation.',
       },
     ],
   },
@@ -527,11 +531,13 @@ const DATA_MODEL_GROUPS: Array<{
         table: 'SubscriptionMetricSnapshot',
         description: 'Point-in-time usage and customer-health telemetry.',
         stores: ['usage %', 'active users', 'tickets', 'CSAT', 'payment risk'],
+        usedFor: 'Feeds risk scoring, expansion eligibility, ML features, and quote insight evidence.',
       },
       {
         table: 'PricingPolicy',
         description: 'Segment and product-family pricing thresholds.',
         stores: ['max discount', 'approval threshold', 'floor price', 'Sev1 gate'],
+        usedFor: 'Applies governed discount, floor-price, expansion, and escalation guardrails.',
       },
     ],
   },
@@ -545,11 +551,13 @@ const DATA_MODEL_GROUPS: Array<{
         table: 'RenewalCase',
         description: 'Bundle-level renewal workspace for an account and renewal window.',
         stores: ['recommended action', 'risk', 'ARR delta', 'approval state'],
+        usedFor: 'Drives the command center, scenario selection, quote insight refresh, and review state.',
       },
       {
         table: 'RenewalCaseItem',
         description: 'Subscription lines included in the renewal case.',
         stores: ['line disposition', 'risk score', 'proposed terms', 'line ARR'],
+        usedFor: 'Stores line-level recommendation output used by quote insights and scenario quote lines.',
       },
     ],
   },
@@ -563,21 +571,25 @@ const DATA_MODEL_GROUPS: Array<{
         table: 'DecisionRun',
         description: 'Full audit snapshot for each recalculation.',
         stores: ['rule input/output', 'ML output', 'final output', 'guardrails'],
+        usedFor: 'Powers decision trace, audit review, and rule-versus-ML explainability.',
       },
       {
         table: 'RenewalCaseAnalysis',
         description: 'Versioned case-level explanation.',
         stores: ['drivers', 'pricing posture', 'bundle summary'],
+        usedFor: 'Explains bundle-level risk, pricing posture, and recommendation rationale.',
       },
       {
         table: 'RenewalCaseItemAnalysis',
         description: 'Versioned line-level explanation.',
         stores: ['rationale', 'guardrail result', 'driver summary'],
+        usedFor: 'Explains each subscription line recommendation and guardrail outcome.',
       },
       {
         table: 'RecommendationNarrative',
         description: 'Generated reviewer-ready narratives.',
         stores: ['executive summary', 'approval brief', 'reasoning text'],
+        usedFor: 'Displays AI-assisted summaries, approval briefs, and reviewer-facing reasoning.',
       },
     ],
   },
@@ -591,36 +603,43 @@ const DATA_MODEL_GROUPS: Array<{
         table: 'QuoteInsight',
         description: 'Suggested commercial actions generated from recommendation output.',
         stores: ['insight type', 'confidence', 'fit', 'ARR impact', 'evidence JSON'],
+        usedFor: 'Bridges recommendations into quote actions, scenario sources, and structured evidence.',
       },
       {
         table: 'QuoteDraft',
         description: 'Editable baseline quote linked to the renewal case.',
         stores: ['quote number', 'status', 'currency', 'totals'],
+        usedFor: 'Holds the working quote that reviewers can edit, approve, reject, or revise.',
       },
       {
         table: 'QuoteDraftLine',
         description: 'Editable quote line items.',
         stores: ['product', 'quantity', 'pricing', 'source insight'],
+        usedFor: 'Represents editable commercial lines and tracks whether a quote insight created or updated them.',
       },
       {
         table: 'QuoteScenario',
         description: 'Scenario option metadata used for scenario selection.',
         stores: ['scenario key', 'strategy type', 'rank', 'source insights'],
+        usedFor: 'Builds the scenario selection list and explains the strategy behind each option.',
       },
       {
         table: 'ScenarioQuote',
         description: 'Read-only generated quote for a selected scenario.',
         stores: ['scenario totals', 'currency', 'generation metadata'],
+        usedFor: 'Stores scenario-level quote totals for comparison against the baseline quote.',
       },
       {
         table: 'ScenarioQuoteLine',
         description: 'Line-level detail inside a scenario quote.',
         stores: ['product', 'quantity', 'price', 'source insight'],
+        usedFor: 'Shows how each scenario quote line was derived from baseline lines and insights.',
       },
       {
         table: 'ReviewDecision',
         description: 'Human approval and review history.',
         stores: ['decision', 'reviewer', 'comment', 'timestamp'],
+        usedFor: 'Records human decisions for audit, review history, and final quote governance.',
       },
     ],
   },
@@ -702,6 +721,32 @@ function DataModelFlowDiagram() {
           </p>
         </article>
       </div>
+
+      <section className="policy-data-model-details" aria-label="Data model table details">
+        <div className="policy-data-model-details-head">
+          <h4>Table Details</h4>
+          <p>Compact reference for what each table stores and where it is used in the workflow.</p>
+        </div>
+        <div className="policy-data-model-detail-table">
+          <div className="policy-data-model-detail-row header">
+            <span>Table</span>
+            <span>What It Stores</span>
+            <span>Where It Is Used</span>
+          </div>
+          {DATA_MODEL_GROUPS.flatMap((group) =>
+            group.tables.map((table) => (
+              <div key={`${group.id}-${table.table}`} className="policy-data-model-detail-row">
+                <div>
+                  <strong>{table.table}</strong>
+                  <span>{group.title}</span>
+                </div>
+                <p>{table.description} Stores {table.stores.join(', ')}.</p>
+                <p>{table.usedFor}</p>
+              </div>
+            )),
+          )}
+        </div>
+      </section>
     </section>
   )
 }
