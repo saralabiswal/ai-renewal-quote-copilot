@@ -13,7 +13,7 @@ type AiClientConfig = {
 let singleton: AiClientConfig | null = null
 
 function normalizeProvider(value: string | undefined): LiveAiProvider {
-  return value?.trim().toUpperCase() === 'OLLAMA' ? 'OLLAMA' : 'OPENAI'
+  return value?.trim().toUpperCase() === 'OPENAI' ? 'OPENAI' : 'OLLAMA'
 }
 
 export function getAiProvider(): LiveAiProvider {
