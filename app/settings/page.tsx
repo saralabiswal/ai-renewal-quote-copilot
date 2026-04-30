@@ -62,7 +62,7 @@ export default function SettingsPage() {
     <div className="page">
       <PageHeader
         title="Settings"
-        description="Runtime controls for recommendation mode, standalone ML readiness, and optional text-generation configuration."
+        description="Runtime controls for recommendation mode, standalone ML readiness, and the Ollama-default LLM provider."
         purpose="Choose how recommendation and quote insight workflows behave before running case recalculation."
         nextStep="Set Recommendation Mode first, then confirm local model and runtime readiness."
       />
@@ -119,9 +119,9 @@ export default function SettingsPage() {
         textGeneration={
           <section className="settings-text-generation-panel">
             <div>
-              <div className="settings-eyebrow">Optional Text Generation</div>
+              <div className="settings-eyebrow">LLM Provider</div>
               <div className="settings-mode-hero-title">
-                <h2>Narrative Runtime</h2>
+                <h2>LLM Runtime</h2>
                 <Badge tone={liveTextGenerationConfigured || openAiMockModeEnabled ? 'success' : 'warn'}>
                   {openAiMockModeEnabled
                     ? 'Mock enabled'
@@ -131,8 +131,8 @@ export default function SettingsPage() {
                 </Badge>
               </div>
               <p>
-                This controls narrative and rationale generation only. The standalone renewal-risk
-                ML model, recommendation scoring, and guardrails do not require a hosted LLM.
+                This configures the LLM provider for AI-assisted workflows. Rules, ML scoring, and
+                pricing guardrails remain governed controls as LLM usage evolves.
               </p>
             </div>
 
@@ -177,8 +177,8 @@ export default function SettingsPage() {
           <div>
             <h2 className="section-title">Standalone ML Recommendation Readiness</h2>
             <p className="section-subtitle">
-              Applies to recommendation scoring and quote insight ML evidence only. Optional text
-              generation is configured in the top tab and does not use this model registry.
+              Applies to recommendation scoring and quote insight ML evidence. LLM provider
+              readiness is configured in the top tab.
             </p>
           </div>
         </div>

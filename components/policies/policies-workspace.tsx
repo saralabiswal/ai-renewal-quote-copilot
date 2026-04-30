@@ -16,7 +16,7 @@ import type {
   WorkedExampleView,
 } from '@/lib/policies/worked-example'
 
-type TabId = 'recommendation' | 'insight' | 'example' | 'journey' | 'prompts'
+type TabId = 'recommendation' | 'insight' | 'example' | 'journey' | 'data-model' | 'prompts'
 const PROMPT_STAGES: PromptStageId[] = ['recalculate', 'insights_ai', 'full_ai']
 
 function mlModeLabel(mode: MlRecommendationMode) {
@@ -481,6 +481,231 @@ function RunnerNode({
   )
 }
 
+type DataModelNode = {
+  table: string
+  description: string
+  stores: string[]
+}
+
+const DATA_MODEL_GROUPS: Array<{
+  id: string
+  title: string
+  subtitle: string
+  tone: 'master' | 'input' | 'decision' | 'audit' | 'quote'
+  tables: DataModelNode[]
+}> = [
+  {
+    id: 'master',
+    title: 'Master Data',
+    subtitle: 'Reference records that define the customer, product, and commercial baseline.',
+    tone: 'master',
+    tables: [
+      {
+        table: 'Account',
+        description: 'Customer profile and ownership context.',
+        stores: ['segment', 'industry', 'region', 'health signals'],
+      },
+      {
+        table: 'Product',
+        description: 'Product catalog used by subscriptions and quote outputs.',
+        stores: ['SKU', 'family', 'charge model', 'active flag'],
+      },
+      {
+        table: 'Subscription',
+        description: 'Current contracted lines that are being renewed.',
+        stores: ['term dates', 'quantity', 'price', 'discount', 'ARR'],
+      },
+    ],
+  },
+  {
+    id: 'inputs',
+    title: 'Signals and Policies',
+    subtitle: 'Inputs consumed by the recommendation and pricing guardrail logic.',
+    tone: 'input',
+    tables: [
+      {
+        table: 'SubscriptionMetricSnapshot',
+        description: 'Point-in-time usage and customer-health telemetry.',
+        stores: ['usage %', 'active users', 'tickets', 'CSAT', 'payment risk'],
+      },
+      {
+        table: 'PricingPolicy',
+        description: 'Segment and product-family pricing thresholds.',
+        stores: ['max discount', 'approval threshold', 'floor price', 'Sev1 gate'],
+      },
+    ],
+  },
+  {
+    id: 'decision',
+    title: 'Renewal Workspace',
+    subtitle: 'Case and line-level state produced by recommendation workflows.',
+    tone: 'decision',
+    tables: [
+      {
+        table: 'RenewalCase',
+        description: 'Bundle-level renewal workspace for an account and renewal window.',
+        stores: ['recommended action', 'risk', 'ARR delta', 'approval state'],
+      },
+      {
+        table: 'RenewalCaseItem',
+        description: 'Subscription lines included in the renewal case.',
+        stores: ['line disposition', 'risk score', 'proposed terms', 'line ARR'],
+      },
+    ],
+  },
+  {
+    id: 'audit',
+    title: 'Explainability and Audit',
+    subtitle: 'Trace records that explain what the engines did and why.',
+    tone: 'audit',
+    tables: [
+      {
+        table: 'DecisionRun',
+        description: 'Full audit snapshot for each recalculation.',
+        stores: ['rule input/output', 'ML output', 'final output', 'guardrails'],
+      },
+      {
+        table: 'RenewalCaseAnalysis',
+        description: 'Versioned case-level explanation.',
+        stores: ['drivers', 'pricing posture', 'bundle summary'],
+      },
+      {
+        table: 'RenewalCaseItemAnalysis',
+        description: 'Versioned line-level explanation.',
+        stores: ['rationale', 'guardrail result', 'driver summary'],
+      },
+      {
+        table: 'RecommendationNarrative',
+        description: 'Generated reviewer-ready narratives.',
+        stores: ['executive summary', 'approval brief', 'reasoning text'],
+      },
+    ],
+  },
+  {
+    id: 'quote',
+    title: 'Quote Outputs',
+    subtitle: 'Actionable quote suggestions, editable drafts, scenario quotes, and review history.',
+    tone: 'quote',
+    tables: [
+      {
+        table: 'QuoteInsight',
+        description: 'Suggested commercial actions generated from recommendation output.',
+        stores: ['insight type', 'confidence', 'fit', 'ARR impact', 'evidence JSON'],
+      },
+      {
+        table: 'QuoteDraft',
+        description: 'Editable baseline quote linked to the renewal case.',
+        stores: ['quote number', 'status', 'currency', 'totals'],
+      },
+      {
+        table: 'QuoteDraftLine',
+        description: 'Editable quote line items.',
+        stores: ['product', 'quantity', 'pricing', 'source insight'],
+      },
+      {
+        table: 'QuoteScenario',
+        description: 'Scenario option metadata used for scenario selection.',
+        stores: ['scenario key', 'strategy type', 'rank', 'source insights'],
+      },
+      {
+        table: 'ScenarioQuote',
+        description: 'Read-only generated quote for a selected scenario.',
+        stores: ['scenario totals', 'currency', 'generation metadata'],
+      },
+      {
+        table: 'ScenarioQuoteLine',
+        description: 'Line-level detail inside a scenario quote.',
+        stores: ['product', 'quantity', 'price', 'source insight'],
+      },
+      {
+        table: 'ReviewDecision',
+        description: 'Human approval and review history.',
+        stores: ['decision', 'reviewer', 'comment', 'timestamp'],
+      },
+    ],
+  },
+]
+
+function DataModelFlowDiagram() {
+  return (
+    <section className="policy-data-model-diagram" aria-label="Technical data model flow">
+      <div className="policy-data-model-head">
+        <div>
+          <h3 className="panel-title">Technical Data Model Flow</h3>
+          <p className="section-subtitle">
+            How persisted tables move from customer baseline data into recommendations,
+            explainability, quote insights, draft quotes, and scenario quote outputs.
+          </p>
+        </div>
+        <Badge tone="info">Prisma / SQLite</Badge>
+      </div>
+
+      <div className="policy-data-model-flow">
+        {DATA_MODEL_GROUPS.map((group, index) => (
+          <article key={group.id} className={`policy-data-model-group ${group.tone}`}>
+            <div className="policy-data-model-group-head">
+              <span className="policy-data-model-step">{index + 1}</span>
+              <div>
+                <h4>{group.title}</h4>
+                <p>{group.subtitle}</p>
+              </div>
+            </div>
+            <div className="policy-data-model-table-list">
+              {group.tables.map((table) => (
+                <div key={table.table} className="policy-data-model-table">
+                  <strong>{table.table}</strong>
+                  <p>{table.description}</p>
+                  <div className="policy-chip-wrap">
+                    {table.stores.map((item) => (
+                      <span key={`${table.table}-${item}`} className="policy-chip">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="policy-data-model-lanes">
+        <article>
+          <span>Runtime Path</span>
+          <strong>
+            Account + Product + Subscription + Metrics + PricingPolicy -&gt; RenewalCase
+            / RenewalCaseItem -&gt; DecisionRun
+          </strong>
+          <p>
+            This is the governed recommendation path. The engines read structured inputs,
+            calculate line and bundle outcomes, then persist both final state and audit evidence.
+          </p>
+        </article>
+        <article>
+          <span>Quote Path</span>
+          <strong>
+            RenewalCaseItem -&gt; QuoteInsight -&gt; QuoteDraftLine or ScenarioQuoteLine
+          </strong>
+          <p>
+            Quote insights translate recommendations into commercial actions. Applied insights
+            update the editable quote, while scenario quotes remain generated read-only options.
+          </p>
+        </article>
+        <article>
+          <span>Explainability Path</span>
+          <strong>
+            DecisionRun + Analysis + Narrative + ReviewDecision
+          </strong>
+          <p>
+            Technical users can inspect rule inputs, outputs, guardrails, generated narratives,
+            and human decisions without relying on the UI summary alone.
+          </p>
+        </article>
+      </div>
+    </section>
+  )
+}
+
 function EngineSticker({
   label,
   tone = 'rules',
@@ -675,6 +900,14 @@ export function PoliciesWorkspace({
           aria-pressed={activeTab === 'journey'}
         >
           End-to-End Visual Flow
+        </button>
+        <button
+          type="button"
+          className={`policy-tab ${activeTab === 'data-model' ? 'active' : ''}`}
+          onClick={() => setActiveTab('data-model')}
+          aria-pressed={activeTab === 'data-model'}
+        >
+          Data Model Flow
         </button>
         <button
           type="button"
@@ -951,6 +1184,8 @@ export function PoliciesWorkspace({
           </aside>
         </div>
       ) : null}
+
+      {activeTab === 'data-model' ? <DataModelFlowDiagram /> : null}
 
       {activeTab === 'journey' ? (
         <div className="policy-example-stack">

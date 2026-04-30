@@ -32,7 +32,7 @@ export function SettingsPrimaryTabs({
           role="tab"
           aria-selected={activeTab === 'text-generation'}
         >
-          Optional Text Generation
+          LLM Provider
         </button>
       </div>
 

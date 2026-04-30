@@ -225,7 +225,7 @@ test.describe.serial('ML recommendation mode contracts', () => {
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     await expect(page.getByText('Recommendation Mode').first()).toBeVisible()
     await expect(page.getByRole('button', { name: /ML-Assisted Rules/i })).toBeVisible()
-    await expect(page.getByRole('tab', { name: 'Optional Text Generation' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'LLM Provider' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Apply ML Mode' })).toBeVisible()
     await expect(page.locator('body')).not.toContainText(/\/Users\/|\/home\/|\/Volumes\//)
 

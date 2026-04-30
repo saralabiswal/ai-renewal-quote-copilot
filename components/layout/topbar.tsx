@@ -62,7 +62,7 @@ function nextStepHint(pathname: string) {
     return 'Review standalone ML architecture, serving, evaluation, and decision trace evidence.'
   }
   if (pathname.startsWith('/settings')) {
-    return 'Set Recommendation Mode, then confirm local ML and optional AI readiness.'
+    return 'Set Recommendation Mode, then confirm local ML and Ollama LLM readiness.'
   }
   return 'Start in Renewal Command Center or Renewal Subscriptions.'
 }
