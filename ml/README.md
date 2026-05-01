@@ -4,11 +4,17 @@ This folder contains the local ML layer for AI Renewal Quote Copilot.
 
 The Next.js app defaults to ML-Assisted Rules. Deterministic rules still run first,
 ML assists risk scoring when the local artifact is approved and available, and pricing
-guardrails remain final. Settings supports:
+guardrails remain final. Settings separates ML recommendation mode from guarded LLM mode.
+
+Recommendation modes:
 
 1. `RULES_ONLY`: deterministic rules only.
 2. `ML_SHADOW`: run ML and store metadata without changing recommendations.
 3. `HYBRID_RULES_ML`: shown as ML-Assisted Rules in the UI; blends ML risk scores into recommendation scoring while pricing guardrails still win.
+
+Guarded LLM modes are configured separately in Settings. `LLM_ASSISTED_GUARDED`
+can influence selected candidates only when deterministic validators pass; it does
+not bypass pricing policy, approval routing, catalog boundaries, or quote math.
 
 ## Setup
 

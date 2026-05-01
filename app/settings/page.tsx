@@ -3,9 +3,12 @@ import { PageHeader } from '@/components/layout/page-header'
 import { MlSettingsForm } from '@/components/settings/ml-settings-form'
 import { SettingsPrimaryTabs } from '@/components/settings/settings-primary-tabs'
 import { Badge } from '@/components/ui/badge'
+import { ViewModeSwitch } from '@/components/ui/view-mode-switch'
+import { normalizeGovernanceRole } from '@/lib/auth/role-controls'
 import { getAiModel, getAiProvider } from '@/lib/ai/client'
 import { labelize } from '@/lib/format/risk'
 import { getMlRuntimeConfig, mlModeLabel } from '@/lib/ml/config'
+import { getRuntimeSettings } from '@/lib/settings/runtime-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +56,8 @@ export default function SettingsPage() {
   const liveTextGenerationConfigured =
     aiProvider === 'OLLAMA' || (aiProvider === 'OPENAI' && openAiApiKeyConfigured)
   const mlConfig = getMlRuntimeConfig()
+  const runtimeSettings = getRuntimeSettings()
+  const governanceRole = normalizeGovernanceRole(process.env.DEMO_USER_ROLE)
   const localMlReady = mlConfig.modelExists && mlConfig.predictionScriptExists
   const selectedModeAffectsRecommendations = mlConfig.affectsRecommendations
   const selectedModeOperational =
@@ -61,54 +66,133 @@ export default function SettingsPage() {
   return (
     <div className="page">
       <PageHeader
-        title="Settings"
-        description="Runtime controls for recommendation mode, standalone ML readiness, and the Ollama-default LLM provider."
-        purpose="Choose how recommendation and quote insight workflows behave before running case recalculation."
-        nextStep="Set Recommendation Mode first, then confirm local model and runtime readiness."
+        title="Decisioning Setup"
+        description="Simple runtime controls for recommendation mode, LLM provider, and governed AI behavior."
+        purpose="Confirm what is active before running renewal workflows."
+        nextStep="Use Business View for demo readiness. Use Technical View only when inspecting runtime internals."
       />
 
+      <ViewModeSwitch
+        business={
+          <div className="business-view-stack">
+            <section className="card">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Current Operating Posture</h2>
+                  <p className="section-subtitle">
+                    These are the controls that matter for a business demo. Rules remain final for
+                    pricing, approval routing, and quote math.
+                  </p>
+                </div>
+              </div>
+
+              <div className="business-summary-grid">
+                <article className="business-summary-card">
+                  <Badge tone={selectedModeOperational ? 'success' : 'warn'}>
+                    {selectedModeOperational ? 'Ready' : 'Needs Attention'}
+                  </Badge>
+                  <h3>Recommendation Engine</h3>
+                  <p>
+                    Running in {mlModeLabel(mlConfig.mode)}.{' '}
+                    {selectedModeAffectsRecommendations
+                      ? 'ML can assist risk and action selection after recalculation.'
+                      : 'Rules remain the final recommendation authority.'}
+                  </p>
+                </article>
+
+                <article className="business-summary-card">
+                  <Badge tone={liveTextGenerationConfigured || openAiMockModeEnabled ? 'success' : 'warn'}>
+                    {openAiMockModeEnabled
+                      ? 'Mock Ready'
+                      : liveTextGenerationConfigured
+                        ? 'Ready'
+                        : 'Fallback'}
+                  </Badge>
+                  <h3>LLM Runtime</h3>
+                  <p>
+                    {aiProvider === 'OLLAMA'
+                      ? `Ollama is selected with ${selectedAiModel}.`
+                      : `OpenAI is selected with ${openAiApiKeyConfigured ? 'an API key configured' : 'fallback behavior active'}.`}
+                  </p>
+                </article>
+
+                <article className="business-summary-card">
+                  <Badge
+                    tone={
+                      runtimeSettings.guardedDecisioningMode === 'LLM_ASSISTED_GUARDED'
+                        ? 'success'
+                        : 'info'
+                    }
+                  >
+                    {labelize(runtimeSettings.guardedDecisioningMode)}
+                  </Badge>
+                  <h3>Guarded LLM</h3>
+                  <p>
+                    LLM reasoning stays inside validated candidates. It cannot invent products,
+                    bypass approvals, or change deterministic pricing math.
+                  </p>
+                </article>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Business Readiness Checklist</h2>
+                  <p className="section-subtitle">
+                    Use this quick check before running the demo workflow.
+                  </p>
+                </div>
+              </div>
+              <div className="business-flow">
+                <div className="business-flow-step">
+                  <span>1</span>
+                  <strong>Recommendation Mode</strong>
+                  <p>{mlModeLabel(mlConfig.mode)} is active for future recalculations.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>2</span>
+                  <strong>LLM Provider</strong>
+                  <p>{aiProvider === 'OLLAMA' ? 'Local Ollama first.' : 'OpenAI selected.'}</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>3</span>
+                  <strong>ML Artifact</strong>
+                  <p>{localMlReady ? 'Local model and script are ready.' : 'ML artifact needs attention.'}</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>4</span>
+                  <strong>Guardrails</strong>
+                  <p>Pricing and approvals remain deterministic.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>5</span>
+                  <strong>Audit</strong>
+                  <p>Decision runs can be exported and replay-checked.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>6</span>
+                  <strong>Next</strong>
+                  <p>Open a renewal case and run the workflow.</p>
+                </div>
+              </div>
+            </section>
+
+            <div className="business-callout">
+              Technical mode contains provider environment values, model registry details,
+              governance role gates, and evaluation metrics.
+            </div>
+          </div>
+        }
+        technical={
+          <>
       <SettingsPrimaryTabs
         recommendation={
-          <section className="settings-mode-hero">
-            <div className="settings-mode-hero-main">
-              <div className="settings-eyebrow">Recommendation Mode</div>
-              <div className="settings-mode-hero-title">
-                <h2>{mlModeLabel(mlConfig.mode)}</h2>
-                <Badge tone={selectedModeOperational ? 'success' : 'warn'}>
-                  {selectedModeOperational ? 'Operational' : 'Needs Attention'}
-                </Badge>
-              </div>
-              <p>
-                This is the control that decides whether future recalculations are rules-only,
-                shadow-observed, or ML-assisted. Existing case results remain persisted until
-                the workflow is recalculated.
-              </p>
-              <div className="settings-mode-impact-strip">
-                <div>
-                  <span>Recommendation</span>
-                  <strong>
-                    {selectedModeAffectsRecommendations
-                      ? 'ML can affect risk and action'
-                      : 'Rules remain authoritative'}
-                  </strong>
-                </div>
-                <div>
-                  <span>Quote Insight</span>
-                  <strong>
-                    {mlConfig.mode === 'RULES_ONLY'
-                      ? 'No ML evidence'
-                      : 'ML evidence available after recalculation'}
-                  </strong>
-                </div>
-                <div>
-                  <span>Guardrails</span>
-                  <strong>Pricing policy remains final</strong>
-                </div>
-              </div>
-            </div>
-
+          <section className="settings-mode-hero settings-mode-hero-wizard">
             <MlSettingsForm
               initialMode={mlConfig.mode}
+              initialGuardedMode={runtimeSettings.guardedDecisioningMode}
+              initialGovernanceRole={governanceRole}
               shadowApproved={mlConfig.registryApprovedForShadow}
               hybridApproved={mlConfig.registryApprovedForHybrid}
               modelExists={mlConfig.modelExists}
@@ -172,17 +256,20 @@ export default function SettingsPage() {
         }
       />
 
-      <section className="settings-ml-readiness-section">
-        <div className="section-header">
+      <details className="settings-ml-readiness-section settings-technical-details">
+        <summary className="settings-technical-details-head">
           <div>
             <h2 className="section-title">Standalone ML Recommendation Readiness</h2>
             <p className="section-subtitle">
-              Applies to recommendation scoring and quote insight ML evidence. LLM provider
-              readiness is configured in the top tab.
+              Model artifact, registry, approval gates, and evaluation metrics.
             </p>
           </div>
-        </div>
+          <Badge tone={localMlReady ? 'success' : 'warn'}>
+            {localMlReady ? 'Ready' : 'Needs Attention'}
+          </Badge>
+        </summary>
 
+        <div className="settings-technical-details-body">
         <div className="settings-readiness-grid">
           <div className="settings-readiness-card">
             <div className="settings-readiness-card-head">
@@ -300,7 +387,11 @@ export default function SettingsPage() {
             </div>
           ) : null}
         </div>
-      </section>
+        </div>
+      </details>
+          </>
+        }
+      />
     </div>
   )
 }

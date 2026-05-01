@@ -2,7 +2,7 @@
 
 AI Renewal Quote Copilot is a standalone revenue transformation demo for enterprise SaaS revenue teams. It shows how deterministic pricing policy, local open-source ML models, GenAI narrative generation, quote insight automation, and human approval workflows combine into one auditable renewal decision system.
 
-The current default experience is **ML-Assisted Rules**: rules remain the policy system of record, a local ML model influences renewal risk scoring, pricing guardrails remain final, and every workflow run leaves auditable decision evidence.
+The current default experience is **ML-Assisted Rules with guarded LLM support**: rules remain the policy system of record, a local ML model influences renewal risk scoring, pricing guardrails remain final, Ollama is the default local LLM provider, and every workflow run leaves auditable decision evidence.
 
 ---
 
@@ -29,7 +29,7 @@ AI Renewal Quote Copilot demonstrates an AI-native renewal workflow backed by de
 
 **Deterministic AI decision orchestration combines rules and ML evidence** to produce governed renewal recommendations. In ML-Assisted Rules mode, the rule engine remains the policy system of record while ML risk evidence influences the final recommendation score.
 
-**GenAI generates reviewer-ready explanations** for recommendations, quote insights, approval briefs, and executive summaries. Prompt inputs, fallback behavior, and generated narratives remain visible for audit.
+**GenAI generates reviewer-ready explanations and guarded candidate critique** for recommendations, quote insights, approval briefs, and executive summaries. Prompt inputs, fallback behavior, guarded validator outcomes, and generated narratives remain visible for audit.
 
 The result is a complete renewal decision workflow:
 
@@ -37,8 +37,8 @@ The result is a complete renewal decision workflow:
 - Quote insights convert recommendation outputs into structured quote actions.
 - Scenario Studio generates read-only commercial alternatives for comparison.
 - Quote Review Center keeps final approval human-controlled.
-- Decision Trace shows rule output, ML output, final recommendation, guardrails, model metadata, and the evidence used.
-- AI Architecture and Settings expose model readiness, registry approval, evaluation metrics, serving mode, and runtime recommendation mode.
+- Decision Trace shows settings used, rule output, ML output, guarded LLM mode, final recommendation, guardrails, model metadata, and the evidence used.
+- AI Architecture and Settings expose model readiness, registry approval, evaluation metrics, serving mode, runtime recommendation mode, LLM provider, and guarded decisioning mode.
 
 This makes the app more than a UI demo. It is a standalone AI/ML-backed renewal decision system that shows how enterprise teams can combine predictive ML, GenAI explanation, deterministic guardrails, and human review in one auditable workflow.
 
@@ -51,7 +51,8 @@ This makes the app more than a UI demo. It is a standalone AI/ML-backed renewal 
 
 ```text
 Settings
-  -> choose Recommendation Mode and confirm ML readiness
+  -> choose Recommendation Mode, Governance Role, and Guarded LLM Mode
+  -> confirm ML readiness and LLM provider only when needed
 
 Policy Studio
   -> inspect rules, worked examples, prompts, and ML-assisted behavior
@@ -81,7 +82,29 @@ Quote Review Center
 | `ML_SHADOW` | Shadow Mode | ML scores are captured for audit and comparison. Rules remain final. |
 | `HYBRID_RULES_ML` | ML-Assisted Rules | Rule risk and ML risk are blended for the recommendation. Pricing guardrails remain final. |
 
-The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtime changes are made from `Settings` by selecting a mode and clicking `Apply ML Mode`.
+The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtime changes are made from `Settings -> Technical View -> Recommendation Mode` by using the 1-2-3 setting flow and clicking `Apply Settings`.
+
+## Guarded LLM Modes
+
+Guarded LLM mode controls how the LLM participates in recommendation and quote insight decisioning. It is separate from the recommendation mode.
+
+| Mode | UI Label | Behavior |
+| --- | --- | --- |
+| `RULES_ONLY` | Rules Only | No LLM critique or ranking is used in the decision run. |
+| `LLM_CRITIC_SHADOW` | LLM Critic Shadow | LLM critiques the deterministic decision, but final output remains unchanged. |
+| `LLM_RANKING_SHADOW` | LLM Ranking Shadow | LLM ranks allowed candidates in shadow mode; validator output is recorded for comparison. |
+| `LLM_ASSISTED_GUARDED` | LLM-Assisted Guarded | LLM can influence selected candidates only when deterministic validators and policy checks pass. |
+| `HUMAN_APPROVAL_REQUIRED` | Human Approval Required | LLM supports the decision while exception posture routes to human approval. |
+
+Restricted modes are role-gated in the demo. `LLM_ASSISTED_GUARDED` requires AI Governance Admin or Revenue Ops Admin authority. `HUMAN_APPROVAL_REQUIRED` requires AI Governance Admin or Deal Desk Admin authority.
+
+The recommended demo setting is:
+
+- Recommendation: `ML-Assisted Rules`
+- Governance Role: `AI Governance Admin`
+- Guarded LLM: `LLM-Assisted Guarded`
+
+Even in guarded mode, pricing math, approval routing, catalog boundaries, and policy guardrails remain deterministic.
 
 ---
 
@@ -93,7 +116,8 @@ The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtim
 4. If ML is enabled, the app builds a versioned feature snapshot and calls the local ML predictor.
 5. In ML-Assisted Rules mode, each item risk score is blended as `70% rule risk + 30% ML risk`.
 6. The final bundle recommendation is recalculated from the effective item risk scores.
-7. Decision Trace records the rule baseline, feature snapshot, ML output, final output, guardrails, model version, policy version, and feature schema.
+7. Guarded LLM finalization may critique/rank candidates, but it can change the selected candidate only if deterministic validation passes.
+8. Decision Trace records the settings used, rule baseline, evidence snapshot, feature snapshot, ML output, guarded validator/finalizer output, final output, guardrails, model version, policy version, and feature schema.
 
 More detail: [AI Architecture](docs/technical-architecture.md)
 
@@ -129,7 +153,8 @@ flowchart LR
     Rules[Recommendation Rules]
     Decision[Decision Orchestrator]
     Insights[Quote Insight Engine]
-    AI[Optional Text Generation]
+    AI[Ollama/OpenAI Text + Guarded JSON]
+    Guarded[Guarded Validators]
   end
 
   subgraph ML[Standalone Local ML]
@@ -154,6 +179,7 @@ flowchart LR
   Predict --> Registry
   Predict --> Models
   Insights --> Decision
+  Decision --> AI --> Guarded --> Decision
   AI --> Insights
   Domain --> Prisma --> SQLite
 ```
@@ -192,6 +218,8 @@ First-run seed data is designed for a complete standalone walkthrough:
 - Scenario Studio shows per-case scenario counts before the user opens a case.
 - The baseline quote remains the editable execution source; scenario quotes are read-only comparison artifacts.
 - Default Recommendation Mode is ML-Assisted Rules.
+- Default text generation provider is Ollama, with OpenAI available by configuration.
+- Guarded decisioning mode can be selected in Settings and is audited in Decision Trace.
 
 ---
 
@@ -264,6 +292,8 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Yes | `file:./dev.db` | Local SQLite database. |
 | `ML_RECOMMENDATION_MODE` | No | `HYBRID_RULES_ML` | Default recommendation mode before runtime setting is saved. |
+| `GUARDED_DECISIONING_MODE` | No | `LLM_CRITIC_SHADOW` | Default guarded LLM mode before runtime setting is saved. Use Settings to choose `LLM_ASSISTED_GUARDED` for the guarded demo posture. |
+| `DEMO_USER_ROLE` | No | `AI_GOVERNANCE_ADMIN` | Demo role used for guarded mode authorization when no request header is provided. |
 | `ML_PYTHON_BIN` | No | `.venv-ml/bin/python` | Python executable used for local prediction. |
 | `ML_SERVICE_URL` | No | empty | Optional local HTTP ML service URL. |
 | `AI_PROVIDER` | No | `ollama` | Text generation provider. Ollama is the local default; set to `openai` for hosted OpenAI generation. |
@@ -272,6 +302,7 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434/v1` | Local Ollama OpenAI-compatible endpoint. |
 | `OLLAMA_MODEL` | No | `llama3.1` | Ollama model label used when `AI_PROVIDER=ollama`. |
 | `OPENAI_MOCK_MODE` | No | `0` | Forces deterministic mock AI text output when enabled. |
+| `LLM_JSON_TIMEOUT_MS` | No | `3500` | Timeout for guarded JSON LLM calls before deterministic fallback is used. |
 
 ---
 
@@ -291,6 +322,12 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `npm run ml:predict` | Run stdin/stdout predictor. |
 | `npm run ml:serve` | Start optional local ML prediction service. |
 | `npm run test:scenario:coverage` | Validate scenario generation coverage. |
+| `npm run test:guarded-decisioning` | Validate guarded validator behavior. |
+| `npm run test:guarded-finalizer` | Validate validator-gated recommendation finalization. |
+| `npm run test:quote-insight-finalizer` | Validate guarded quote insight prioritization. |
+| `npm run test:decision-replay` | Validate deterministic replay checks for decision traces. |
+| `npm run test:role-controls` | Validate guarded mode role gates. |
+| `npm run test:policy-runtime` | Validate policy runtime rule evaluation. |
 | `npm run test:e2e` | Run Playwright tests. |
 | `npm run test:e2e:contracts` | Run workflow and traceability regression subset. |
 | `make standalone` | Install Node/Python dependencies, seed DB, train/evaluate ML, and lint. |
@@ -312,9 +349,9 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 
 For a technical review, start with:
 
-1. **Settings** — show Recommendation Mode and ML readiness.
+1. **Settings** — show the 1-2-3 decisioning setup: Recommendation Mode, Governance Role, and Guarded LLM Mode.
 2. **AI Architecture** — show model selection, metrics, registry, and serving boundary.
-3. **Renewal Command Center** — run the workflow and inspect Decision Trace.
+3. **Renewal Command Center** — run the workflow and inspect Decision Trace, including Settings Used and guarded finalizer result.
 4. **Quote Insights** — show structured evidence and ML metadata.
 5. **Quote Review Center** — show human approval and final quote decision.
 

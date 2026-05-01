@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { verifyDecisionRunReplay } from '@/lib/decision/replay-verifier'
 import { formatCurrency } from '@/lib/format/currency'
 import { formatDate } from '@/lib/format/date'
 import { formatPercent } from '@/lib/format/percent'
@@ -111,11 +112,26 @@ function normalizeDecisionRun(row: {
   ruleEngineVersion: string | null
   policyVersion: string | null
   featureSchemaVersion: string | null
+  evidenceSnapshotVersion: string | null
   mlMode: string | null
   mlModelName: string | null
   mlModelVersion: string | null
   ruleInputJson: string | null
   featureSnapshotJson: string | null
+  evidenceSnapshotJson: string | null
+  decisionCandidatesJson: string | null
+  llmProposalJson: string | null
+  validationResultJson: string | null
+  policyTraceJson: string | null
+  llmCritiqueJson: string | null
+  llmRankingJson: string | null
+  quoteInsightCandidatesJson: string | null
+  quoteInsightValidationJson: string | null
+  quoteInsightFinalizerJson: string | null
+  replayMetadataJson: string | null
+  telemetryJson: string | null
+  governanceJson: string | null
+  finalizerJson: string | null
   ruleOutputJson: string | null
   mlOutputJson: string | null
   finalOutputJson: string | null
@@ -123,9 +139,29 @@ function normalizeDecisionRun(row: {
 }): DecisionRunTraceView {
   const ruleInput = asRecord(parseJsonObject<unknown>(row.ruleInputJson))
   const featureSnapshot = asRecord(parseJsonObject<unknown>(row.featureSnapshotJson))
+  const evidenceSnapshot = asRecord(parseJsonObject<unknown>(row.evidenceSnapshotJson))
+  const decisionCandidates = asRecord(parseJsonObject<unknown>(row.decisionCandidatesJson))
+  const validationResult = asRecord(parseJsonObject<unknown>(row.validationResultJson))
+  const policyTrace = asRecord(parseJsonObject<unknown>(row.policyTraceJson))
+  const llmCritique = asRecord(parseJsonObject<unknown>(row.llmCritiqueJson))
+  const llmRanking = asRecord(parseJsonObject<unknown>(row.llmRankingJson))
+  const llmCritiqueOutput = asRecord(llmCritique?.output)
+  const llmRankingOutput = asRecord(llmRanking?.output)
+  const llmRankingValidation = asRecord(llmRankingOutput?.validation)
+  const quoteInsightCandidates = asRecord(parseJsonObject<unknown>(row.quoteInsightCandidatesJson))
+  const quoteInsightValidation = asRecord(parseJsonObject<unknown>(row.quoteInsightValidationJson))
+  const quoteInsightFinalizer = asRecord(parseJsonObject<unknown>(row.quoteInsightFinalizerJson))
+  const replayVerification = verifyDecisionRunReplay(row)
+  const telemetry = asRecord(parseJsonObject<unknown>(row.telemetryJson))
+  const governance = asRecord(parseJsonObject<unknown>(row.governanceJson))
+  const finalizer = asRecord(parseJsonObject<unknown>(row.finalizerJson))
+  const governanceReleaseGates = asRecord(governance?.releaseGates)
+  const governanceRoleControls = asRecord(governance?.roleControls)
+  const governanceDriftMonitors = asRecord(governance?.driftMonitors)
   const ruleInputAccount = asRecord(ruleInput?.account)
   const ruleInputItems = Array.isArray(ruleInput?.items) ? ruleInput.items : []
   const featureSnapshotItems = Array.isArray(featureSnapshot?.items) ? featureSnapshot.items : []
+  const evidenceQuality = asRecord(evidenceSnapshot?.quality)
   const ruleOutput = asRecord(parseJsonObject<unknown>(row.ruleOutputJson))
   const mlOutput = asRecord(parseJsonObject<unknown>(row.mlOutputJson))
   const finalOutput = asRecord(parseJsonObject<unknown>(row.finalOutputJson))
@@ -136,6 +172,8 @@ function normalizeDecisionRun(row: {
   const itemPredictions = Array.isArray(mlOutput?.itemPredictions)
     ? mlOutput.itemPredictions
     : []
+  const policyTraceSummary = asRecord(policyTrace?.summary)
+  const policyRuleHits = Array.isArray(policyTrace?.ruleHits) ? policyTrace.ruleHits : []
 
   return {
     id: row.id,
@@ -147,6 +185,7 @@ function normalizeDecisionRun(row: {
     ruleEngineVersion: row.ruleEngineVersion,
     policyVersion: row.policyVersion,
     featureSchemaVersion: row.featureSchemaVersion,
+    evidenceSnapshotVersion: row.evidenceSnapshotVersion,
     mlMode: row.mlMode,
     mlModelName: row.mlModelName,
     mlModelVersion: row.mlModelVersion,
@@ -166,6 +205,249 @@ function normalizeDecisionRun(row: {
           itemCount: featureSnapshotItems.length,
           generatedAt:
             typeof featureSnapshot.generatedAt === 'string' ? featureSnapshot.generatedAt : null,
+      }
+      : null,
+    evidenceSummary: evidenceSnapshot
+      ? {
+          evidenceSnapshotVersion:
+            typeof evidenceSnapshot.evidenceSnapshotVersion === 'string'
+              ? evidenceSnapshot.evidenceSnapshotVersion
+              : row.evidenceSnapshotVersion,
+          signalCount: nullableNumber(evidenceQuality?.signalCount) ?? 0,
+          completenessScore: nullableNumber(evidenceQuality?.completenessScore),
+          confidenceScore: nullableNumber(evidenceQuality?.confidenceScore),
+          missingCount: nullableNumber(evidenceQuality?.missingCount) ?? 0,
+          staleCount: nullableNumber(evidenceQuality?.staleCount) ?? 0,
+        }
+      : null,
+    candidateSummary: decisionCandidates
+      ? {
+          ruleWinner:
+            typeof decisionCandidates.ruleWinner === 'string' ? decisionCandidates.ruleWinner : null,
+          allowedCandidates: Array.isArray(decisionCandidates.allowedCandidates)
+            ? decisionCandidates.allowedCandidates.map(String)
+            : [],
+          blockedCandidates: Array.isArray(decisionCandidates.blockedCandidates)
+            ? decisionCandidates.blockedCandidates.map(String)
+            : [],
+          candidateCount: Array.isArray(decisionCandidates.candidates)
+            ? decisionCandidates.candidates.length
+            : 0,
+        }
+      : null,
+    validationSummary: validationResult
+      ? {
+          status: typeof validationResult.status === 'string' ? validationResult.status : null,
+          proposalSource:
+            typeof validationResult.proposalSource === 'string'
+              ? validationResult.proposalSource
+              : null,
+          selectedCandidate:
+            typeof validationResult.selectedCandidate === 'string'
+              ? validationResult.selectedCandidate
+              : null,
+          acceptedCandidate:
+            typeof validationResult.acceptedCandidate === 'string'
+              ? validationResult.acceptedCandidate
+              : null,
+          fallbackUsed: nullableBoolean(validationResult.fallbackUsed),
+          confidence: nullableNumber(validationResult.confidence),
+          checks: Array.isArray(validationResult.checks)
+            ? validationResult.checks.map((item) => {
+                const record = asRecord(item)
+                return {
+                  name: typeof record?.name === 'string' ? record.name : 'Unknown',
+                  status: typeof record?.status === 'string' ? record.status : 'UNKNOWN',
+                  detail: typeof record?.detail === 'string' ? record.detail : '',
+                }
+              })
+            : [],
+          rejectionReasons: Array.isArray(validationResult.rejectionReasons)
+            ? validationResult.rejectionReasons.map(String)
+            : [],
+        }
+      : null,
+    policyTraceSummary: policyTrace
+      ? {
+          policyRuntimeVersion:
+            typeof policyTrace.policyRuntimeVersion === 'string'
+              ? policyTrace.policyRuntimeVersion
+              : null,
+          policyRegistryId:
+            typeof policyTrace.policyRegistryId === 'string' ? policyTrace.policyRegistryId : null,
+          artifactCount: nullableNumber(policyTraceSummary?.artifactCount) ?? 0,
+          ruleHitCount: nullableNumber(policyTraceSummary?.ruleHitCount) ?? 0,
+          appliedCount: nullableNumber(policyTraceSummary?.appliedCount) ?? 0,
+          warningCount: nullableNumber(policyTraceSummary?.warningCount) ?? 0,
+          blockedCount: nullableNumber(policyTraceSummary?.blockedCount) ?? 0,
+          approvalRequiredCount: nullableNumber(policyTraceSummary?.approvalRequiredCount) ?? 0,
+          ruleHits: policyRuleHits.slice(0, 8).map((item) => {
+            const record = asRecord(item)
+            return {
+              policyId: typeof record?.policyId === 'string' ? record.policyId : 'unknown-policy',
+              ruleId: typeof record?.ruleId === 'string' ? record.ruleId : 'unknown-rule',
+              scope: typeof record?.scope === 'string' ? record.scope : 'UNKNOWN',
+              subjectId: typeof record?.subjectId === 'string' ? record.subjectId : '—',
+              outcome: typeof record?.outcome === 'string' ? record.outcome : 'UNKNOWN',
+              detail: typeof record?.detail === 'string' ? record.detail : '',
+            }
+          }),
+        }
+      : null,
+    llmShadowSummary: llmCritique || llmRanking
+      ? {
+          critiqueStatus:
+            typeof asRecord(llmCritiqueOutput?.validation)?.status === 'string'
+              ? String(asRecord(llmCritiqueOutput?.validation)?.status)
+              : null,
+          critiqueQuality:
+            typeof llmCritiqueOutput?.decisionQuality === 'string'
+              ? llmCritiqueOutput.decisionQuality
+              : null,
+          rankingStatus:
+            typeof llmRankingValidation?.status === 'string' ? llmRankingValidation.status : null,
+          rankingSelectedCandidate:
+            typeof llmRankingOutput?.selectedCandidate === 'string'
+              ? llmRankingOutput.selectedCandidate
+              : null,
+          rankingAgreesWithRules:
+            typeof llmRankingOutput?.selectedCandidate === 'string' &&
+            typeof llmRankingOutput?.ruleWinner === 'string'
+              ? llmRankingOutput.selectedCandidate === llmRankingOutput.ruleWinner
+              : null,
+          promptVersion:
+            typeof llmRankingOutput?.promptVersion === 'string'
+              ? llmRankingOutput.promptVersion
+              : typeof llmCritiqueOutput?.promptVersion === 'string'
+                ? llmCritiqueOutput.promptVersion
+                : null,
+          critiqueGeneratedBy:
+            typeof llmCritiqueOutput?.generatedBy === 'string'
+              ? llmCritiqueOutput.generatedBy
+              : null,
+          rankingGeneratedBy:
+            typeof llmRankingOutput?.generatedBy === 'string'
+              ? llmRankingOutput.generatedBy
+              : null,
+          modelLabel:
+            typeof llmRankingOutput?.modelLabel === 'string'
+              ? llmRankingOutput.modelLabel
+              : typeof llmCritiqueOutput?.modelLabel === 'string'
+                ? llmCritiqueOutput.modelLabel
+                : null,
+          fallbackReason:
+            typeof llmRankingOutput?.fallbackReason === 'string'
+              ? llmRankingOutput.fallbackReason
+              : typeof llmCritiqueOutput?.fallbackReason === 'string'
+                ? llmCritiqueOutput.fallbackReason
+                : null,
+        }
+      : null,
+    quoteInsightCandidateSummary: quoteInsightCandidates || quoteInsightValidation
+      ? {
+          candidateCount: Array.isArray(quoteInsightCandidates?.candidates)
+            ? quoteInsightCandidates.candidates.length
+            : 0,
+          acceptedCount: Array.isArray(quoteInsightValidation?.acceptedCandidateIds)
+            ? quoteInsightValidation.acceptedCandidateIds.length
+            : 0,
+          rejectedCount: Array.isArray(quoteInsightValidation?.rejectedCandidateIds)
+            ? quoteInsightValidation.rejectedCandidateIds.length
+            : 0,
+          validationStatus:
+            typeof quoteInsightValidation?.status === 'string'
+              ? quoteInsightValidation.status
+              : null,
+          finalizerSource:
+            typeof quoteInsightFinalizer?.finalStateSource === 'string'
+              ? quoteInsightFinalizer.finalStateSource
+              : null,
+          prioritizedCount: Array.isArray(quoteInsightFinalizer?.prioritizedCandidateIds)
+            ? quoteInsightFinalizer.prioritizedCandidateIds.length
+            : 0,
+          approvalRequiredCount: Array.isArray(quoteInsightFinalizer?.approvalRequiredCandidateIds)
+            ? quoteInsightFinalizer.approvalRequiredCandidateIds.length
+            : 0,
+          fallbackUsed: nullableBoolean(quoteInsightFinalizer?.fallbackUsed),
+          checks: Array.isArray(quoteInsightFinalizer?.checks)
+            ? quoteInsightFinalizer.checks.map((item) => {
+                const record = asRecord(item)
+                return {
+                  name: typeof record?.name === 'string' ? record.name : 'Unknown',
+                  status: typeof record?.status === 'string' ? record.status : 'UNKNOWN',
+                  detail: typeof record?.detail === 'string' ? record.detail : '',
+                }
+              })
+            : [],
+        }
+      : null,
+    replayVerificationSummary: replayVerification
+      ? {
+          status: replayVerification.status,
+          deterministicReplaySupported: replayVerification.deterministicReplaySupported,
+          checkCount: replayVerification.checks.length,
+          failedCount: replayVerification.checks.filter((check) => check.status === 'FAILED').length,
+          warningCount: replayVerification.checks.filter((check) => check.status === 'WARN').length,
+          replayedAction: replayVerification.replayedRuleOutput?.recommendedAction ?? null,
+          persistedRuleAction: replayVerification.persistedRuleOutput?.recommendedAction ?? null,
+          persistedFinalAction: replayVerification.persistedFinalOutput?.recommendedAction ?? null,
+          checks: replayVerification.checks,
+        }
+      : null,
+    governanceSummary: governance
+      ? {
+          guardedModeAllowed: nullableBoolean(governanceReleaseGates?.guardedModeAllowedForThisRun),
+          minimumShadowPassRate: nullableNumber(governanceReleaseGates?.minimumShadowPassRate),
+          roleControls: governanceRoleControls
+            ? Object.entries(governanceRoleControls).map(
+                ([key, value]) => `${labelize(key)}: ${Array.isArray(value) ? value.join(', ') : String(value)}`,
+              )
+            : [],
+          driftMonitors: governanceDriftMonitors
+            ? Object.entries(governanceDriftMonitors).map(
+                ([key, value]) => `${labelize(key)}: ${String(value)}`,
+              )
+            : [],
+        }
+      : null,
+    telemetrySummary: telemetry
+      ? {
+          llmShadowPassRate: nullableNumber(telemetry.llmShadowPassRate),
+          validationRejected: nullableBoolean(telemetry.validationRejected),
+          fallbackUsed: nullableBoolean(telemetry.fallbackUsed),
+          staleEvidenceRate: nullableNumber(telemetry.staleEvidenceRate),
+          policyWarningCount: nullableNumber(telemetry.policyWarningCount),
+          policyBlockedCount: nullableNumber(telemetry.policyBlockedCount),
+        }
+      : null,
+    finalizerSummary: finalizer
+      ? {
+          mode: typeof finalizer.mode === 'string' ? finalizer.mode : null,
+          ruleWinner: typeof finalizer.ruleWinner === 'string' ? finalizer.ruleWinner : null,
+          llmSelectedCandidate:
+            typeof finalizer.llmSelectedCandidate === 'string'
+              ? finalizer.llmSelectedCandidate
+              : null,
+          acceptedCandidate:
+            typeof finalizer.acceptedCandidate === 'string' ? finalizer.acceptedCandidate : null,
+          finalCandidate:
+            typeof finalizer.finalCandidate === 'string' ? finalizer.finalCandidate : null,
+          finalStateSource:
+            typeof finalizer.finalStateSource === 'string' ? finalizer.finalStateSource : null,
+          recommendationOverrideApplied: nullableBoolean(finalizer.recommendationOverrideApplied),
+          fallbackUsed: nullableBoolean(finalizer.fallbackUsed),
+          fallbackReason:
+            typeof finalizer.fallbackReason === 'string' ? finalizer.fallbackReason : null,
+          checks: Array.isArray(finalizer.checks)
+            ? finalizer.checks.map((item) => {
+                const record = asRecord(item)
+                return {
+                  name: typeof record?.name === 'string' ? record.name : 'Unknown',
+                  status: typeof record?.status === 'string' ? record.status : 'UNKNOWN',
+                  detail: typeof record?.detail === 'string' ? record.detail : '',
+                }
+              })
+            : [],
         }
       : null,
     ruleOutputSummary: ruleOutput

@@ -26,9 +26,11 @@ function formatProbability(value: number | null | undefined) {
 }
 
 export function DecisionRunTracePanel({
+  caseId,
   run,
   reasoning,
 }: {
+  caseId: string
   run: DecisionRunTraceView | null
   reasoning?: RecommendationNarrativeView | null
 }) {
@@ -42,6 +44,15 @@ export function DecisionRunTracePanel({
             guardrails.
           </p>
         </div>
+        {run ? (
+          <a
+            className="button-secondary-sm"
+            href={`/api/renewal-cases/${caseId}/decision-audit?download=1`}
+            download={`decision-audit-${caseId}.json`}
+          >
+            Export Audit JSON
+          </a>
+        ) : null}
       </div>
 
       {!run ? (
@@ -51,14 +62,7 @@ export function DecisionRunTracePanel({
         </div>
       ) : (
         <>
-          <div className="decision-trace-grid">
-            <TraceMetric label="Run ID" value={run.id} />
-            <TraceMetric label="Run Type" value={formatLabel(run.runType)} />
-            <TraceMetric label="Mode" value={formatLabel(run.mode)} />
-            <TraceMetric label="Status" value={formatLabel(run.status)} />
-            <TraceMetric label="Scenario" value={formatLabel(run.scenarioKey ?? 'BASE_CASE')} />
-            <TraceMetric label="Created" value={run.createdAt} />
-          </div>
+          <DecisionRunStory run={run} />
 
           <div className="decision-trace-subsection">
             <div className="decision-trace-section-title">Reasoning View</div>
@@ -83,17 +87,67 @@ export function DecisionRunTracePanel({
             ) : null}
           </div>
 
-          <div className="decision-trace-columns">
-            <TraceSection title="Rules Input">
-              <TraceRow label="Items" value={String(run.ruleInputSummary?.itemCount ?? '—')} />
+          <details className="decision-trace-technical">
+            <summary>
+              <span>Technical Audit Details</span>
+              <span className="muted">Run ID {run.id}</span>
+            </summary>
+            <div className="decision-trace-technical-body">
+              <div className="decision-trace-grid">
+                <TraceMetric label="Run ID" value={run.id} />
+                <TraceMetric label="Run Type" value={formatLabel(run.runType)} />
+                <TraceMetric label="Mode" value={formatLabel(run.mode)} />
+                <TraceMetric label="Status" value={formatLabel(run.status)} />
+                <TraceMetric label="Scenario" value={formatLabel(run.scenarioKey ?? 'BASE_CASE')} />
+                <TraceMetric label="Created" value={run.createdAt} />
+              </div>
+
+              <div className="decision-trace-columns">
+                <TraceSection title="Rules Input">
+                  <TraceRow label="Items" value={String(run.ruleInputSummary?.itemCount ?? '—')} />
+                  <TraceRow
+                    label="Segment"
+                    value={formatLabel(run.ruleInputSummary?.accountSegment)}
+                  />
+                  <TraceRow label="Feature Schema" value={run.featureSchemaVersion ?? '—'} />
+                  <TraceRow
+                    label="Snapshot Items"
+                    value={String(run.featureSnapshotSummary?.itemCount ?? '—')}
+                  />
+                </TraceSection>
+
+            <TraceSection title="Evidence Snapshot">
               <TraceRow
-                label="Segment"
-                value={formatLabel(run.ruleInputSummary?.accountSegment)}
+                label="Version"
+                value={run.evidenceSummary?.evidenceSnapshotVersion ?? run.evidenceSnapshotVersion ?? '—'}
               />
-              <TraceRow label="Feature Schema" value={run.featureSchemaVersion ?? '—'} />
               <TraceRow
-                label="Snapshot Items"
-                value={String(run.featureSnapshotSummary?.itemCount ?? '—')}
+                label="Signals"
+                value={String(run.evidenceSummary?.signalCount ?? '—')}
+              />
+              <TraceRow
+                label="Completeness"
+                value={
+                  run.evidenceSummary?.completenessScore == null
+                    ? '—'
+                    : `${run.evidenceSummary.completenessScore}%`
+                }
+              />
+              <TraceRow
+                label="Confidence"
+                value={
+                  run.evidenceSummary?.confidenceScore == null
+                    ? '—'
+                    : `${run.evidenceSummary.confidenceScore}%`
+                }
+              />
+              <TraceRow
+                label="Missing / Stale"
+                value={
+                  run.evidenceSummary
+                    ? `${run.evidenceSummary.missingCount} / ${run.evidenceSummary.staleCount}`
+                    : '—'
+                }
               />
             </TraceSection>
 
@@ -152,7 +206,404 @@ export function DecisionRunTracePanel({
                 value={formatBoolean(run.finalOutputSummary?.approvalRequired)}
               />
             </TraceSection>
-          </div>
+
+            <TraceSection title="Guarded Validator">
+              <TraceRow label="Status" value={formatLabel(run.validationSummary?.status)} />
+              <TraceRow
+                label="Proposal"
+                value={formatLabel(run.validationSummary?.proposalSource)}
+              />
+              <TraceRow
+                label="Selected"
+                value={formatLabel(run.validationSummary?.selectedCandidate)}
+              />
+              <TraceRow
+                label="Accepted"
+                value={formatLabel(run.validationSummary?.acceptedCandidate)}
+              />
+              <TraceRow
+                label="Fallback"
+                value={formatBoolean(run.validationSummary?.fallbackUsed)}
+              />
+            </TraceSection>
+
+            <TraceSection title="Policy Runtime">
+              <TraceRow
+                label="Registry"
+                value={run.policyTraceSummary?.policyRegistryId ?? run.policyVersion ?? '—'}
+              />
+              <TraceRow
+                label="Version"
+                value={run.policyTraceSummary?.policyRuntimeVersion ?? run.policyVersion ?? '—'}
+              />
+              <TraceRow
+                label="Artifacts"
+                value={String(run.policyTraceSummary?.artifactCount ?? '—')}
+              />
+              <TraceRow
+                label="Rule Hits"
+                value={String(run.policyTraceSummary?.ruleHitCount ?? '—')}
+              />
+              <TraceRow
+                label="Applied / Warn / Blocked"
+                value={
+                  run.policyTraceSummary
+                    ? `${run.policyTraceSummary.appliedCount} / ${run.policyTraceSummary.warningCount} / ${run.policyTraceSummary.blockedCount}`
+                    : '—'
+                }
+              />
+            </TraceSection>
+
+            <TraceSection title="LLM Shadow">
+              <TraceRow
+                label="Prompt"
+                value={run.llmShadowSummary?.promptVersion ?? '—'}
+              />
+              <TraceRow
+                label="Generated By"
+                value={formatLabel(
+                  run.llmShadowSummary?.rankingGeneratedBy ??
+                    run.llmShadowSummary?.critiqueGeneratedBy,
+                )}
+              />
+              <TraceRow
+                label="Model"
+                value={run.llmShadowSummary?.modelLabel ?? '—'}
+              />
+              <TraceRow
+                label="Critique"
+                value={formatLabel(run.llmShadowSummary?.critiqueQuality)}
+              />
+              <TraceRow
+                label="Ranking"
+                value={formatLabel(run.llmShadowSummary?.rankingSelectedCandidate)}
+              />
+              <TraceRow
+                label="Agrees With Rules"
+                value={formatBoolean(run.llmShadowSummary?.rankingAgreesWithRules)}
+              />
+              <TraceRow
+                label="Validation"
+                value={formatLabel(run.llmShadowSummary?.rankingStatus)}
+              />
+              {run.llmShadowSummary?.fallbackReason ? (
+                <TraceRow label="Fallback" value={run.llmShadowSummary.fallbackReason} />
+              ) : null}
+            </TraceSection>
+
+            <TraceSection title="Quote Insight Guard">
+              <TraceRow
+                label="Candidates"
+                value={String(run.quoteInsightCandidateSummary?.candidateCount ?? '—')}
+              />
+              <TraceRow
+                label="Accepted"
+                value={String(run.quoteInsightCandidateSummary?.acceptedCount ?? '—')}
+              />
+              <TraceRow
+                label="Rejected"
+                value={String(run.quoteInsightCandidateSummary?.rejectedCount ?? '—')}
+              />
+              <TraceRow
+                label="Validation"
+                value={formatLabel(run.quoteInsightCandidateSummary?.validationStatus)}
+              />
+              <TraceRow
+                label="Finalizer"
+                value={formatLabel(run.quoteInsightCandidateSummary?.finalizerSource)}
+              />
+              <TraceRow
+                label="Prioritized"
+                value={String(run.quoteInsightCandidateSummary?.prioritizedCount ?? '—')}
+              />
+              <TraceRow
+                label="Approval Items"
+                value={String(run.quoteInsightCandidateSummary?.approvalRequiredCount ?? '—')}
+              />
+            </TraceSection>
+
+            <TraceSection title="Governance">
+              <TraceRow
+                label="Guarded Enabled"
+                value={formatBoolean(run.governanceSummary?.guardedModeAllowed)}
+              />
+              <TraceRow
+                label="Shadow Pass Gate"
+                value={formatProbability(run.governanceSummary?.minimumShadowPassRate)}
+              />
+              <TraceRow
+                label="LLM Pass Rate"
+                value={formatProbability(run.telemetrySummary?.llmShadowPassRate)}
+              />
+              <TraceRow
+                label="Stale Evidence"
+                value={formatProbability(run.telemetrySummary?.staleEvidenceRate)}
+              />
+              <TraceRow
+                label="Policy Warn / Block"
+                value={
+                  run.telemetrySummary
+                    ? `${run.telemetrySummary.policyWarningCount ?? 0} / ${run.telemetrySummary.policyBlockedCount ?? 0}`
+                    : '—'
+                }
+              />
+            </TraceSection>
+
+            <TraceSection title="Replay Verification">
+              <TraceRow
+                label="Status"
+                value={formatLabel(run.replayVerificationSummary?.status)}
+              />
+              <TraceRow
+                label="Replay Supported"
+                value={formatBoolean(run.replayVerificationSummary?.deterministicReplaySupported)}
+              />
+              <TraceRow
+                label="Checks"
+                value={
+                  run.replayVerificationSummary
+                    ? `${run.replayVerificationSummary.checkCount} total`
+                    : '—'
+                }
+              />
+              <TraceRow
+                label="Failed / Warn"
+                value={
+                  run.replayVerificationSummary
+                    ? `${run.replayVerificationSummary.failedCount} / ${run.replayVerificationSummary.warningCount}`
+                    : '—'
+                }
+              />
+              <TraceRow
+                label="Replayed Action"
+                value={formatLabel(run.replayVerificationSummary?.replayedAction)}
+              />
+              <TraceRow
+                label="Final Action"
+                value={formatLabel(run.replayVerificationSummary?.persistedFinalAction)}
+              />
+            </TraceSection>
+
+            <TraceSection title="Guarded Finalizer">
+              <TraceRow
+                label="Mode"
+                value={formatLabel(run.finalizerSummary?.mode)}
+              />
+              <TraceRow
+                label="Rule Winner"
+                value={formatLabel(run.finalizerSummary?.ruleWinner)}
+              />
+              <TraceRow
+                label="LLM Selected"
+                value={formatLabel(run.finalizerSummary?.llmSelectedCandidate)}
+              />
+              <TraceRow
+                label="Final"
+                value={formatLabel(run.finalizerSummary?.finalCandidate)}
+              />
+              <TraceRow
+                label="Override"
+                value={formatBoolean(run.finalizerSummary?.recommendationOverrideApplied)}
+              />
+              <TraceRow
+                label="Source"
+                value={formatLabel(run.finalizerSummary?.finalStateSource)}
+              />
+            </TraceSection>
+              </div>
+
+              {run.candidateSummary ? (
+                <div className="decision-trace-subsection">
+                  <div className="decision-trace-section-title">Candidate Envelope</div>
+                  <div className="decision-trace-grid" style={{ marginTop: 10 }}>
+                    <TraceMetric
+                      label="Rule Winner"
+                      value={formatLabel(run.candidateSummary.ruleWinner)}
+                    />
+                    <TraceMetric
+                      label="Candidate Count"
+                      value={String(run.candidateSummary.candidateCount)}
+                    />
+                    <TraceMetric
+                      label="Allowed"
+                      value={
+                        run.candidateSummary.allowedCandidates.length
+                          ? run.candidateSummary.allowedCandidates.map(formatLabel).join(', ')
+                          : '—'
+                      }
+                    />
+                    <TraceMetric
+                      label="Blocked"
+                      value={
+                        run.candidateSummary.blockedCandidates.length
+                          ? run.candidateSummary.blockedCandidates.map(formatLabel).join(', ')
+                          : '—'
+                      }
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+          {run.validationSummary?.checks.length ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">Validator Checks</div>
+              <div className="decision-trace-table-wrapper">
+                <table className="decision-trace-table">
+                  <thead>
+                    <tr>
+                      <th>Check</th>
+                      <th>Status</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.validationSummary.checks.map((check) => (
+                      <tr key={check.name}>
+                        <td>{formatLabel(check.name)}</td>
+                        <td>{formatLabel(check.status)}</td>
+                        <td>{check.detail || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {run.policyTraceSummary?.ruleHits.length ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">Policy Rule Hits</div>
+              <div className="decision-trace-table-wrapper">
+                <table className="decision-trace-table">
+                  <thead>
+                    <tr>
+                      <th>Policy</th>
+                      <th>Rule</th>
+                      <th>Outcome</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.policyTraceSummary.ruleHits.map((hit) => (
+                      <tr key={`${hit.policyId}-${hit.ruleId}-${hit.subjectId}`}>
+                        <td>{formatLabel(hit.policyId)}</td>
+                        <td>{formatLabel(hit.ruleId)}</td>
+                        <td>{formatLabel(hit.outcome)}</td>
+                        <td>{hit.detail || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {run.governanceSummary ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">Governance Controls</div>
+              <div className="decision-trace-grid" style={{ marginTop: 10 }}>
+                <TraceMetric
+                  label="Role Controls"
+                  value={
+                    run.governanceSummary.roleControls.length
+                      ? run.governanceSummary.roleControls.join(' · ')
+                      : '—'
+                  }
+                />
+                <TraceMetric
+                  label="Drift Monitors"
+                  value={
+                    run.governanceSummary.driftMonitors.length
+                      ? run.governanceSummary.driftMonitors.join(' · ')
+                      : '—'
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {run.replayVerificationSummary?.checks.length ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">Replay Verification Checks</div>
+              <div className="decision-trace-table-wrapper">
+                <table className="decision-trace-table">
+                  <thead>
+                    <tr>
+                      <th>Check</th>
+                      <th>Status</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.replayVerificationSummary.checks.map((check) => (
+                      <tr key={check.name}>
+                        <td>{formatLabel(check.name)}</td>
+                        <td>{formatLabel(check.status)}</td>
+                        <td>{check.detail || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {run.finalizerSummary?.checks.length ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">Guarded Finalizer Checks</div>
+              <div className="decision-trace-table-wrapper">
+                <table className="decision-trace-table">
+                  <thead>
+                    <tr>
+                      <th>Check</th>
+                      <th>Status</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.finalizerSummary.checks.map((check) => (
+                      <tr key={check.name}>
+                        <td>{formatLabel(check.name)}</td>
+                        <td>{formatLabel(check.status)}</td>
+                        <td>{check.detail || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {run.finalizerSummary.fallbackReason ? (
+                <div className="small muted" style={{ marginTop: 8 }}>
+                  Fallback: {run.finalizerSummary.fallbackReason}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {run.quoteInsightCandidateSummary?.checks.length ? (
+            <div className="decision-trace-subsection">
+              <div className="decision-trace-section-title">Quote Insight Finalizer Checks</div>
+              <div className="decision-trace-table-wrapper">
+                <table className="decision-trace-table">
+                  <thead>
+                    <tr>
+                      <th>Check</th>
+                      <th>Status</th>
+                      <th>Detail</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {run.quoteInsightCandidateSummary.checks.map((check) => (
+                      <tr key={check.name}>
+                        <td>{formatLabel(check.name)}</td>
+                        <td>{formatLabel(check.status)}</td>
+                        <td>{check.detail || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
 
           {run.mlOutputSummary?.itemPredictions.length ? (
             <div className="decision-trace-subsection">
@@ -190,22 +641,24 @@ export function DecisionRunTracePanel({
             </div>
           ) : null}
 
-          <div className="decision-trace-footer">
-            <span>Rules: {run.ruleEngineVersion ?? '—'}</span>
-            <span>Policy: {run.policyVersion ?? '—'}</span>
-            <span>
-              Model:{' '}
-              {run.mlModelName && run.mlModelVersion
-                ? `${run.mlModelName} ${run.mlModelVersion}`
-                : '—'}
-            </span>
-            <span>
-              Guardrails:{' '}
-              {run.guardrailSummary?.guardrailResults.length
-                ? run.guardrailSummary.guardrailResults.map(formatLabel).join(', ')
-                : '—'}
-            </span>
-          </div>
+              <div className="decision-trace-footer">
+                <span>Rules: {run.ruleEngineVersion ?? '—'}</span>
+                <span>Policy: {run.policyVersion ?? '—'}</span>
+                <span>
+                  Model:{' '}
+                  {run.mlModelName && run.mlModelVersion
+                    ? `${run.mlModelName} ${run.mlModelVersion}`
+                    : '—'}
+                </span>
+                <span>
+                  Guardrails:{' '}
+                  {run.guardrailSummary?.guardrailResults.length
+                    ? run.guardrailSummary.guardrailResults.map(formatLabel).join(', ')
+                    : '—'}
+                </span>
+              </div>
+            </div>
+          </details>
         </>
       )}
     </section>
@@ -226,6 +679,187 @@ function formatTimestamp(value: string | null | undefined) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(parsed)
+}
+
+function modelLabel(run: DecisionRunTraceView) {
+  if (run.mlOutputSummary?.modelName && run.mlOutputSummary?.modelVersion) {
+    return `${run.mlOutputSummary.modelName} ${run.mlOutputSummary.modelVersion}`
+  }
+
+  if (run.mlModelName && run.mlModelVersion) {
+    return `${run.mlModelName} ${run.mlModelVersion}`
+  }
+
+  return '—'
+}
+
+function llmRoleLabel(run: DecisionRunTraceView) {
+  const status =
+    run.llmShadowSummary?.rankingStatus ?? run.llmShadowSummary?.critiqueStatus
+  const model = run.llmShadowSummary?.modelLabel
+
+  if (!status && !model) return 'No LLM shadow output logged'
+
+  return [
+    'Shadow only',
+    status ? `ranking validator ${formatLabel(status).toLowerCase()}` : null,
+    model ? `using ${model}` : null,
+  ]
+    .filter(Boolean)
+    .join('; ')
+}
+
+function guardedModeLabel(run: DecisionRunTraceView) {
+  return formatLabel(run.finalizerSummary?.mode)
+}
+
+function validationSummaryLabel(run: DecisionRunTraceView) {
+  const status = formatLabel(run.validationSummary?.status)
+  const accepted = formatLabel(run.validationSummary?.acceptedCandidate)
+  const selected = formatLabel(run.validationSummary?.selectedCandidate)
+
+  if (status === '—' && accepted === '—') return 'No validator result logged'
+
+  if (run.validationSummary?.fallbackUsed) {
+    if (selected === accepted) {
+      return `Validator rejected the candidate envelope, so the run retained ${accepted} as the rules fallback`
+    }
+
+    return `${selected} did not pass, so the run fell back to ${accepted}`
+  }
+
+  return `${status}; accepted ${accepted}`
+}
+
+function replaySummaryLabel(run: DecisionRunTraceView) {
+  const replay = run.replayVerificationSummary
+  if (!replay) return 'No replay verification logged'
+
+  if (replay.failedCount > 0) {
+    return `${formatLabel(replay.status)} with ${replay.failedCount} failed check(s)`
+  }
+
+  if (replay.warningCount > 0) {
+    return `${formatLabel(replay.status)} with ${replay.warningCount} warning(s)`
+  }
+
+  return `${formatLabel(replay.status)}; replayed action matched the stored final action`
+}
+
+function quoteInsightSummaryLabel(run: DecisionRunTraceView) {
+  const quote = run.quoteInsightCandidateSummary
+  if (!quote) return 'No quote insight guard result logged'
+
+  return `${quote.candidateCount} candidates, ${quote.acceptedCount} accepted, ${quote.rejectedCount} rejected, ${quote.prioritizedCount} prioritized`
+}
+
+function DecisionRunStory({ run }: { run: DecisionRunTraceView }) {
+  const ruleAction = formatLabel(run.ruleOutputSummary?.recommendedAction)
+  const finalAction = formatLabel(run.finalOutputSummary?.recommendedAction)
+  const finalRisk = formatLabel(run.finalOutputSummary?.riskLevel)
+  const finalSource = formatLabel(run.finalizerSummary?.finalStateSource)
+  const ruleHitCount = run.policyTraceSummary?.ruleHitCount ?? 0
+  const evidenceCount = run.evidenceSummary?.signalCount ?? 0
+  const itemCount = run.ruleInputSummary?.itemCount ?? 0
+  const mlStatus = formatLabel(run.mlOutputSummary?.status ?? 'DISABLED')
+  const mlMode = formatLabel(run.mlOutputSummary?.mode ?? run.mlMode)
+  const guardedMode = guardedModeLabel(run)
+  const bundleRisk = formatScore(run.mlOutputSummary?.bundleRiskScore)
+  const approvalText = formatBoolean(run.finalOutputSummary?.approvalRequired)
+
+  return (
+    <div className="decision-run-story">
+      <div className="decision-run-story-head">
+        <div>
+          <div className="decision-trace-section-title">This Run At A Glance</div>
+          <p className="small muted">
+            A plain-English view of the exact settings used and the decision this run produced.
+          </p>
+        </div>
+        <span className="decision-run-status">{formatLabel(run.status)}</span>
+      </div>
+
+      <div className="decision-run-story-grid">
+        <StoryCard title="Settings Used">
+          <StoryLine label="Scenario" value={formatLabel(run.scenarioKey ?? 'BASE_CASE')} />
+          <StoryLine label="Recommendation mode" value={formatLabel(run.mode)} />
+          <StoryLine label="ML setting" value={`${mlMode}; model ${modelLabel(run)}`} />
+          <StoryLine
+            label="Policy set"
+            value={run.policyTraceSummary?.policyRegistryId ?? run.policyVersion ?? '—'}
+          />
+          <StoryLine label="Evidence snapshot" value={run.evidenceSnapshotVersion ?? '—'} />
+          <StoryLine label="Guarded LLM mode" value={guardedMode} />
+          <StoryLine label="LLM role" value={llmRoleLabel(run)} />
+        </StoryCard>
+
+        <StoryCard title="What This Run Did">
+          <ol className="decision-run-steps">
+            <li>
+              Read {itemCount || '—'} renewal item(s) and {evidenceCount || '—'} evidence signals.
+            </li>
+            <li>
+              Applied {ruleHitCount || '—'} policy/rule hit(s); rules recommended {ruleAction}.
+            </li>
+            <li>
+              Evaluated ML in {mlMode} mode; status {mlStatus}
+              {bundleRisk !== '—' ? ` with bundle risk ${bundleRisk}` : ''}.
+            </li>
+            <li>Ran guarded LLM finalizer in {guardedMode} mode.</li>
+            <li>Validated the selected candidate: {validationSummaryLabel(run)}.</li>
+            <li>Checked quote insights: {quoteInsightSummaryLabel(run)}.</li>
+            <li>Ran deterministic replay: {replaySummaryLabel(run)}.</li>
+          </ol>
+        </StoryCard>
+
+        <StoryCard title="Run Result">
+          <div className="decision-run-result">
+            <div>
+              <span className="small muted">Final recommendation</span>
+              <strong>{finalAction}</strong>
+            </div>
+            <div>
+              <span className="small muted">Risk</span>
+              <strong>
+                {finalRisk} ({formatScore(run.finalOutputSummary?.riskScore)})
+              </strong>
+            </div>
+            <div>
+              <span className="small muted">Approval required</span>
+              <strong>{approvalText}</strong>
+            </div>
+            <div>
+              <span className="small muted">Final source</span>
+              <strong>{finalSource}</strong>
+            </div>
+          </div>
+          <p className="small muted decision-run-result-note">
+            {run.finalizerSummary?.recommendationOverrideApplied
+              ? 'The guarded finalizer changed the rule winner after validator checks passed.'
+              : 'The final recommendation stayed aligned to the deterministic rule result.'}
+          </p>
+        </StoryCard>
+      </div>
+    </div>
+  )
+}
+
+function StoryCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="decision-run-story-card">
+      <div className="decision-run-story-title">{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function StoryLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="decision-run-story-line">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
 }
 
 function TraceMetric({ label, value }: { label: string; value: string }) {

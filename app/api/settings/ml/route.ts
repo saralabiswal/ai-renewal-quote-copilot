@@ -1,17 +1,55 @@
 import { NextResponse } from 'next/server'
 import {
+  getRequestGovernanceRole,
+  validateRuntimeSettingsRoleChange,
+} from '@/lib/auth/role-controls'
+import {
+  getRuntimeSettings,
+  normalizeGuardedDecisioningMode,
   normalizeMlRecommendationMode,
   saveRuntimeSettings,
 } from '@/lib/settings/runtime-settings'
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { mlRecommendationMode?: unknown }
-    const settings = saveRuntimeSettings({
-      mlRecommendationMode: normalizeMlRecommendationMode(body.mlRecommendationMode),
+    const body = (await request.json()) as {
+      mlRecommendationMode?: unknown
+      guardedDecisioningMode?: unknown
+    }
+    const current = getRuntimeSettings()
+    const requestedSettings = {
+      ...current,
+      ...(body.mlRecommendationMode === undefined
+        ? {}
+        : { mlRecommendationMode: normalizeMlRecommendationMode(body.mlRecommendationMode) }),
+      ...(body.guardedDecisioningMode === undefined
+        ? {}
+        : {
+            guardedDecisioningMode: normalizeGuardedDecisioningMode(
+              body.guardedDecisioningMode,
+            ),
+          }),
+    }
+    const role = getRequestGovernanceRole(request)
+    const roleDecision = validateRuntimeSettingsRoleChange({
+      role,
+      current,
+      requested: requestedSettings,
     })
 
-    return NextResponse.json({ settings })
+    if (!roleDecision.allowed) {
+      return NextResponse.json(
+        {
+          error: roleDecision.reason,
+          roleDecision,
+        },
+        { status: 403 },
+      )
+    }
+
+    const settings = saveRuntimeSettings(requestedSettings)
+
+    return NextResponse.json({ settings, roleDecision })
   } catch (error) {
     return NextResponse.json(
       {

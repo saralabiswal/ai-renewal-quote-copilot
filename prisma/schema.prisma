@@ -166,12 +166,80 @@ model RenewalCase {
   quoteInsights   QuoteInsight[]
   quoteScenarios  QuoteScenario[]
   decisionRuns    DecisionRun[]
+  evidenceSnapshots EvidenceSnapshot[]
 
   @@index([accountId])
   @@index([status])
   @@index([evaluationDate])
   @@index([windowStartDate, windowEndDate])
   @@index([accountId, status])
+}
+
+model SignalDefinition {
+  id                    String   @id
+  signalKey             String   @unique
+  label                 String
+  dataType              String
+  unit                  String?
+  validRangeJson        String?
+  freshnessWindowDays   Int?
+  sourceCategory        String
+  description           String?
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  observations SignalObservation[]
+
+  @@index([sourceCategory])
+  @@index([isActive])
+}
+
+model EvidenceSnapshot {
+  id                      String   @id
+  renewalCaseId           String
+  decisionRunId           String?  @unique
+  evidenceSnapshotVersion String
+  scenarioKey             String?
+  generatedBy             String
+  qualityJson             String?
+  accountJson             String?
+  generatedAt             DateTime @default(now())
+  createdAt               DateTime @default(now())
+
+  renewalCase  RenewalCase @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+  decisionRun  DecisionRun? @relation(fields: [decisionRunId], references: [id], onDelete: SetNull)
+  observations SignalObservation[]
+
+  @@index([renewalCaseId])
+  @@index([decisionRunId])
+  @@index([scenarioKey])
+  @@index([generatedAt])
+}
+
+model SignalObservation {
+  id                 String   @id
+  evidenceSnapshotId String
+  signalDefinitionId String?
+  subjectType        String
+  subjectId          String
+  signalKey          String
+  valueJson          String?
+  unit               String?
+  sourceSystem       String
+  observedAt         DateTime?
+  freshnessStatus    String
+  confidence         Decimal?
+  lineageJson        String?
+  createdAt          DateTime @default(now())
+
+  evidenceSnapshot EvidenceSnapshot @relation(fields: [evidenceSnapshotId], references: [id], onDelete: Cascade)
+  signalDefinition SignalDefinition? @relation(fields: [signalDefinitionId], references: [id], onDelete: SetNull)
+
+  @@index([evidenceSnapshotId])
+  @@index([signalKey])
+  @@index([subjectType, subjectId])
+  @@index([freshnessStatus])
 }
 
 model RenewalCaseItem {
@@ -262,11 +330,26 @@ model DecisionRun {
   ruleEngineVersion     String?
   policyVersion         String?
   featureSchemaVersion  String?
+  evidenceSnapshotVersion String?
   mlMode                String?
   mlModelName           String?
   mlModelVersion        String?
   ruleInputJson         String?
   featureSnapshotJson   String?
+  evidenceSnapshotJson  String?
+  decisionCandidatesJson String?
+  llmProposalJson       String?
+  validationResultJson  String?
+  policyTraceJson       String?
+  llmCritiqueJson       String?
+  llmRankingJson        String?
+  quoteInsightCandidatesJson String?
+  quoteInsightValidationJson String?
+  quoteInsightFinalizerJson String?
+  replayMetadataJson    String?
+  telemetryJson         String?
+  governanceJson        String?
+  finalizerJson         String?
   ruleOutputJson        String?
   mlOutputJson          String?
   finalOutputJson       String?
@@ -274,6 +357,7 @@ model DecisionRun {
   createdAt             DateTime @default(now())
 
   renewalCase RenewalCase @relation(fields: [renewalCaseId], references: [id], onDelete: Cascade)
+  evidenceSnapshot EvidenceSnapshot?
 
   @@index([renewalCaseId])
   @@index([runType])

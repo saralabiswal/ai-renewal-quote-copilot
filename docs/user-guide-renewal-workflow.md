@@ -10,7 +10,7 @@ Reference case:
 - Baseline Quote Number: `Q-ACCT-1007`
 - Baseline Quote Draft ID: `qd_redwood_energy`
 
-The app is designed to run standalone with local data and local ML artifacts. The default recommendation mode is **ML-Assisted Rules**.
+The app is designed to run standalone with local data, local ML artifacts, and local-first LLM support through Ollama. The default recommendation posture is **ML-Assisted Rules** with deterministic pricing guardrails.
 
 ## 1. Start the App
 
@@ -34,20 +34,23 @@ The interface is intentionally organized like an operational enterprise console:
 
 ![Dashboard](assets/user-guide/01-dashboard.png)
 
-## 2. Confirm Settings and Recommendation Mode
+## 2. Confirm Decisioning Setup
 
 Open `Settings` from the sidebar.
 
-Use this page before a demo or review to confirm:
+Use `Business View` for the quick demo posture. Use `Technical View` when you need to change runtime settings.
 
-1. Recommendation Mode is set to `ML-Assisted Rules`.
-2. Local ML artifact is found.
-3. Model registry is registered.
-4. Shadow and ML-assist approval gates are enabled.
-5. Evaluation metrics are visible for the active local model.
-6. Optional text generation is configured separately from ML recommendation scoring.
+In `Technical View`, the Recommendation Mode tab is organized as a 1-2-3 flow:
 
-Click `Apply ML Mode` only when changing the selected mode.
+1. `Recommendation`: choose `ML-Assisted Rules` for the main demo.
+2. `Role`: choose `AI Governance Admin` when testing restricted guarded modes.
+3. `Guarded LLM`: choose `LLM-Assisted Guarded` when demonstrating validator-gated LLM influence.
+
+Click `Apply Settings` only when changing a selected setting. The selected settings summary shows exactly what will be applied.
+
+The long ML readiness section is collapsed by default. Expand it when you need to show local model artifact status, model registry, approval gates, and evaluation metrics.
+
+The LLM Provider tab shows the text-generation provider. Ollama is the local default; OpenAI can be selected by environment configuration.
 
 ![Settings](assets/user-guide/08-settings.png)
 
@@ -210,11 +213,11 @@ After quote review:
 
 For a VP engineering or architecture review:
 
-1. Start at `Settings` and show ML-Assisted Rules.
+1. Start at `Settings` and show ML-Assisted Rules, AI Governance Admin, and LLM-Assisted Guarded.
 2. Open `AI Architecture` and show model selection plus local artifacts.
 3. Open `Policy Studio` and show rule/guardrail transparency.
 4. Run the case workflow.
-5. Open Decision Trace and explain rule baseline vs ML output vs final output.
+5. Open Decision Trace and explain Settings Used, rule baseline, ML output, guarded LLM finalizer, and final output.
 6. Open Quote Insight structured evidence and show ML metadata.
 7. Open Quote Review Center and show the human approval endpoint.
 

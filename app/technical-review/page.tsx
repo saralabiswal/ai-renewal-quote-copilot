@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from 'fs'
 import path from 'path'
 import { PageHeader } from '@/components/layout/page-header'
 import { Badge } from '@/components/ui/badge'
+import { ViewModeSwitch } from '@/components/ui/view-mode-switch'
 import { labelize } from '@/lib/format/risk'
 import { getMlRuntimeConfig, mlModeLabel } from '@/lib/ml/config'
 import { prisma } from '@/lib/prisma'
@@ -358,12 +359,129 @@ export default async function TechnicalReviewPage() {
   return (
     <div className="page">
       <PageHeader
-        title="AI Architecture"
-        description="Evidence dashboard for the standalone AI/ML decision architecture: local data, trained models, serving mode, evaluation, and decision trace."
-        purpose="Give technical reviewers one place to inspect what is real in the app versus what is intentionally demo-scoped."
-        nextStep="Start with the architecture, then inspect dataset, registry, evaluation, and latest decision evidence."
+        title="AI Decision Flow"
+        description="Business-first explanation of how rules, ML, LLM reasoning, validators, and reviewers work together."
+        purpose="Explain what the AI can influence, what remains deterministic, and how the result is audited."
+        nextStep="Use Business View for the demo story. Use Technical View for model registry, evaluation, serving, and latest run evidence."
       />
 
+      <ViewModeSwitch
+        business={
+          <div className="business-view-stack">
+            <section className="card">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Enterprise AI Decision Flow</h2>
+                  <p className="section-subtitle">
+                    The system uses AI for reasoning and prioritization, but deterministic controls
+                    protect pricing, approvals, product boundaries, and persistence.
+                  </p>
+                </div>
+              </div>
+              <div className="business-flow">
+                <div className="business-flow-step">
+                  <span>1</span>
+                  <strong>Evidence</strong>
+                  <p>Subscription, usage, support, account, product, and pricing signals are frozen.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>2</span>
+                  <strong>Rules</strong>
+                  <p>Rules generate valid renewal candidates and quote insight options.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>3</span>
+                  <strong>ML</strong>
+                  <p>ML scores risk and expansion propensity as controlled evidence.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>4</span>
+                  <strong>LLM</strong>
+                  <p>LLM critiques or ranks candidates inside the allowed decision envelope.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>5</span>
+                  <strong>Validator</strong>
+                  <p>Deterministic checks accept, reject, or fall back to rules.</p>
+                </div>
+                <div className="business-flow-step">
+                  <span>6</span>
+                  <strong>Audit</strong>
+                  <p>The final result is persisted, replay-checked, and exportable.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">What To Trust</h2>
+                  <p className="section-subtitle">
+                    These are the simple guardrails that make the AI explainable and enterprise-safe.
+                  </p>
+                </div>
+              </div>
+              <div className="business-summary-grid">
+                <article className="business-summary-card">
+                  <Badge tone="success">Deterministic</Badge>
+                  <h3>Pricing and approvals stay controlled</h3>
+                  <p>LLM output cannot bypass pricing policy, approval routing, or product catalog validation.</p>
+                </article>
+                <article className="business-summary-card">
+                  <Badge tone="info">Bounded</Badge>
+                  <h3>LLM can reason only over candidates</h3>
+                  <p>The LLM can critique or rank options, but it cannot invent unsupported quote lines.</p>
+                </article>
+                <article className="business-summary-card">
+                  <Badge tone="default">Auditable</Badge>
+                  <h3>Every decision can be inspected</h3>
+                  <p>Evidence, policy, candidates, LLM proposal, validator result, and final output are stored.</p>
+                </article>
+              </div>
+            </section>
+
+            <section className="card">
+              <div className="section-header">
+                <div>
+                  <h2 className="section-title">Current Technical Readiness</h2>
+                  <p className="section-subtitle">
+                    Summary of the underlying architecture without exposing every artifact first.
+                  </p>
+                </div>
+              </div>
+              <div className="business-summary-grid">
+                <article className="business-summary-card">
+                  <Badge tone={dataset.exists ? 'success' : 'warn'}>
+                    {dataset.exists ? 'Ready' : 'Missing'}
+                  </Badge>
+                  <h3>Evidence Dataset</h3>
+                  <p>{dataset.exists ? `${dataset.rows} synthetic rows across ${dataset.cases} cases.` : 'Dataset artifact is missing.'}</p>
+                </article>
+                <article className="business-summary-card">
+                  <Badge tone={mlConfig.modelExists ? 'success' : 'warn'}>
+                    {mlConfig.modelExists ? 'Ready' : 'Missing'}
+                  </Badge>
+                  <h3>ML Model</h3>
+                  <p>{mlConfig.registryModelName ?? 'No registered model'} {mlConfig.registryModelVersion ?? ''}</p>
+                </article>
+                <article className="business-summary-card">
+                  <Badge tone={latestRun ? 'success' : 'warn'}>
+                    {latestRun ? 'Available' : 'No Run'}
+                  </Badge>
+                  <h3>Latest Audit Trail</h3>
+                  <p>{latestRun ? `Latest run ${latestRun.id} is available for technical inspection.` : 'Run a case workflow to create the first decision audit.'}</p>
+                </article>
+              </div>
+            </section>
+
+            <div className="business-callout">
+              Technical View contains model registry details, evaluation metrics, serving paths,
+              latest decision evidence, and known production boundaries.
+            </div>
+          </div>
+        }
+        technical={
+          <>
       <section className="technical-hero-band">
         <div>
           <div className="small muted">AI Decision Stack</div>
@@ -654,6 +772,9 @@ export default async function TechnicalReviewPage() {
           challenger evaluation, governance approval, and tenant-aware controls.
         </div>
       </Section>
+          </>
+        }
+      />
     </div>
   )
 }

@@ -28,7 +28,10 @@ Recording quality checklist:
 3. Hide bookmarks/extensions and enable Do Not Disturb.
 4. Keep zoom at 100%.
 5. Pause one second after each navigation before speaking.
-6. Confirm `Settings` shows Recommendation Mode as `ML-Assisted Rules`.
+6. Confirm `Settings` shows:
+   - Recommendation: `ML-Assisted Rules`
+   - Governance Role: `AI Governance Admin`
+   - Guarded LLM: `LLM-Assisted Guarded`
 
 ## 2. Suggested Recording Structure (Timestamped)
 
@@ -68,6 +71,22 @@ Screen:
 Talk track:
 
 1. “This is baseline commercial context, before AI workflow actions.”
+
+## Optional Setup Cutaway: Decisioning Setup
+
+Screen:
+
+1. Open `Settings`.
+2. Switch to `Technical View`.
+3. Show the 1-2-3 settings tabs:
+   - `Recommendation`
+   - `Role`
+   - `Guarded LLM`
+4. Show the selected settings summary.
+
+Talk track:
+
+1. “The runtime posture is explicit: ML-assisted recommendation scoring, governance-admin authority, and validator-gated LLM assistance. Pricing and approvals remain deterministic.”
 
 ## 2:15-3:00 Step 2: Renewal Command Center
 

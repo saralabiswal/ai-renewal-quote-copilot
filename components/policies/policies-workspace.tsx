@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import type { PolicyStudioSeedProfile, PricingPolicyView } from '@/lib/db/policies'
 import type { MlRecommendationMode } from '@/lib/ml/config'
+import { buildPolicyChangeControlPlan } from '@/lib/policies/policy-change-control'
 import {
   getPromptGovernanceCatalog,
   getPromptStageMeta,
@@ -16,7 +17,14 @@ import type {
   WorkedExampleView,
 } from '@/lib/policies/worked-example'
 
-type TabId = 'recommendation' | 'insight' | 'example' | 'journey' | 'data-model' | 'prompts'
+type TabId =
+  | 'recommendation'
+  | 'insight'
+  | 'example'
+  | 'journey'
+  | 'data-model'
+  | 'prompts'
+  | 'change-control'
 const PROMPT_STAGES: PromptStageId[] = ['recalculate', 'insights_ai', 'full_ai']
 
 function mlModeLabel(mode: MlRecommendationMode) {
@@ -104,6 +112,19 @@ function getDispositionTone(disposition: WorkedExampleView['recommendation']['di
   if (disposition === 'EXPAND') return 'info'
   if (disposition === 'ESCALATE') return 'danger'
   if (disposition === 'RENEW_WITH_CONCESSION') return 'warn'
+  return 'default'
+}
+
+function impactTone(impact: string): 'default' | 'info' | 'success' | 'warn' | 'danger' {
+  if (impact === 'HIGH') return 'danger'
+  if (impact === 'MEDIUM') return 'warn'
+  return 'default'
+}
+
+function statusTone(status: string): 'default' | 'info' | 'success' | 'warn' | 'danger' {
+  if (status === 'APPROVED') return 'success'
+  if (status === 'PENDING') return 'warn'
+  if (status === 'BLOCKED') return 'danger'
   return 'default'
 }
 
@@ -722,11 +743,11 @@ function DataModelFlowDiagram() {
         </article>
       </div>
 
-      <section className="policy-data-model-details" aria-label="Data model table details">
-        <div className="policy-data-model-details-head">
+      <details className="policy-data-model-details" aria-label="Data model table details">
+        <summary className="policy-data-model-details-head">
           <h4>Table Details</h4>
           <p>Compact reference for what each table stores and where it is used in the workflow.</p>
-        </div>
+        </summary>
         <div className="policy-data-model-detail-table">
           <div className="policy-data-model-detail-row header">
             <span>Table</span>
@@ -746,7 +767,7 @@ function DataModelFlowDiagram() {
             )),
           )}
         </div>
-      </section>
+      </details>
     </section>
   )
 }
@@ -828,6 +849,7 @@ export function PoliciesWorkspace({
       })),
     [promptCatalog],
   )
+  const changeControlPlan = useMemo(() => buildPolicyChangeControlPlan(), [])
 
   const fallbackWorkedExample = workedExamples[workedExampleOptions[0]?.id ?? 'fusion_apps']
   const workedExample =
@@ -977,6 +999,14 @@ export function PoliciesWorkspace({
           aria-pressed={activeTab === 'prompts'}
         >
           Prompt Governance
+        </button>
+        <button
+          type="button"
+          className={`policy-tab ${activeTab === 'change-control' ? 'active' : ''}`}
+          onClick={() => setActiveTab('change-control')}
+          aria-pressed={activeTab === 'change-control'}
+        >
+          Change Control
         </button>
       </div>
 
@@ -1221,6 +1251,145 @@ export function PoliciesWorkspace({
                     <div className="policy-guardrail-right">
                       <Badge tone="info">{artifact.version}</Badge>
                       <div className="small muted">{artifact.redactionNote}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {activeTab === 'change-control' ? (
+        <div className="policy-tab-layout">
+          <div className="policy-tab-main">
+            <section className="policy-prompt-overview">
+              <div>
+                <h3 className="panel-title" style={{ marginBottom: 6 }}>
+                  Policy Version Comparison
+                </h3>
+                <p className="section-subtitle" style={{ marginTop: 0 }}>
+                  Active registry compared with a proposed draft registry before tenant promotion.
+                </p>
+              </div>
+              <div className="policy-prompt-badges">
+                <Badge tone={statusTone(changeControlPlan.summary.promotionStatus)}>
+                  {changeControlPlan.summary.promotionStatus.replaceAll('_', ' ')}
+                </Badge>
+                <a
+                  className="button-secondary-sm"
+                  href="/api/policies/change-control?download=1"
+                  download={`${changeControlPlan.proposedRegistryId}-promotion-packet.json`}
+                >
+                  Export Promotion Packet
+                </a>
+              </div>
+            </section>
+
+            <div className="policy-prompt-grid">
+              {changeControlPlan.changes.map((change) => (
+                <article key={change.policyId} className="policy-prompt-card">
+                  <div className="policy-prompt-card-head">
+                    <div>
+                      <h5>{change.label}</h5>
+                      <p>{change.changeSummary}</p>
+                    </div>
+                    <div className="policy-prompt-badges">
+                      <Badge tone={impactTone(change.impact)}>{change.impact} impact</Badge>
+                      <Badge tone={change.changeType === 'UNCHANGED' ? 'default' : 'info'}>
+                        {change.changeType.replaceAll('_', ' ')}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="policy-prompt-meta-grid">
+                    <div>
+                      <span>Current</span>
+                      <strong>{change.currentVersion ?? 'New'}</strong>
+                    </div>
+                    <div>
+                      <span>Proposed</span>
+                      <strong>{change.proposedVersion}</strong>
+                    </div>
+                    <div>
+                      <span>Owner</span>
+                      <strong>{change.owner}</strong>
+                    </div>
+                    <div>
+                      <span>Reviewer Role</span>
+                      <strong>{change.reviewerRole}</strong>
+                    </div>
+                  </div>
+
+                  <div className="policy-source-list" style={{ marginTop: 12 }}>
+                    {change.sourceRefs.map((source) => (
+                      <code key={`${change.policyId}-${source}`}>{source}</code>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <aside className="policy-tab-side">
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Registry Promotion
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Current Registry</span>
+                <strong>{changeControlPlan.currentRegistryId}</strong>
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Proposed Registry</span>
+                <strong>{changeControlPlan.proposedRegistryId}</strong>
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Effective Date</span>
+                <strong>{changeControlPlan.proposedEffectiveDate}</strong>
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Tenant Scope</span>
+                <strong>{changeControlPlan.tenantScope}</strong>
+              </div>
+            </div>
+
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Change Summary
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Total Policies</span>
+                <strong>{changeControlPlan.summary.totalPolicies}</strong>
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Changed</span>
+                <strong>{changeControlPlan.summary.changedPolicies}</strong>
+              </div>
+              <div className="policy-threshold-kv">
+                <span>High Impact</span>
+                <strong>{changeControlPlan.summary.highImpactPolicies}</strong>
+              </div>
+              <div className="policy-threshold-kv">
+                <span>Approvals Required</span>
+                <strong>{changeControlPlan.summary.approvalsRequired}</strong>
+              </div>
+            </div>
+
+            <div className="policy-side-card">
+              <div className="small muted" style={{ fontWeight: 700, marginBottom: 8 }}>
+                Approval Workflow
+              </div>
+              <div className="policy-guardrail-list">
+                {changeControlPlan.approvalWorkflow.map((step) => (
+                  <div key={step.id} className="policy-guardrail-row">
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{step.label}</div>
+                      <div className="small muted">{step.detail}</div>
+                    </div>
+                    <div className="policy-guardrail-right">
+                      <Badge tone={statusTone(step.status)}>{step.status.replaceAll('_', ' ')}</Badge>
+                      <div className="small muted">{step.ownerRole}</div>
                     </div>
                   </div>
                 ))}

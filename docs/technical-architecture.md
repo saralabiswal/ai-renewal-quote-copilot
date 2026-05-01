@@ -2,13 +2,13 @@
 
 ## Executive Summary
 
-AI Renewal Quote Copilot is a standalone, local-first renewal decisioning application. It is built to show how enterprise SaaS renewal teams can combine deterministic policy, local open-source ML, optional LLM-generated narratives, and human approval into one auditable workflow.
+AI Renewal Quote Copilot is a standalone, local-first renewal decisioning application. It is built to show how enterprise SaaS renewal teams can combine deterministic policy, local open-source ML, local-first LLM support, guarded validators, and human approval into one auditable workflow.
 
 The core design principle is simple:
 
-> Rules determine policy eligibility and guardrails. ML improves risk and expansion evidence. Optional LLMs explain the decision in business language. Humans approve quote outcomes.
+> Rules determine policy eligibility and guardrails. ML improves risk and expansion evidence. Guarded LLMs can critique or rank candidates only inside validator boundaries. Humans approve quote outcomes.
 
-The app does not rely on an external data warehouse, external model service, or hosted LLM to run the core workflow. Local SQLite data, local Python model artifacts, and deterministic fallbacks are included for standalone execution.
+The app does not rely on an external data warehouse, external model service, or hosted LLM to run the core workflow. Local SQLite data, local Python model artifacts, Ollama-compatible local LLM configuration, and deterministic fallbacks are included for standalone execution.
 
 ## Primary Components
 
@@ -20,8 +20,9 @@ The app does not rely on an external data warehouse, external model service, or 
 | Decision orchestrator | Runs rule baseline, ML prediction, final recommendation, and trace creation. |
 | Local ML runtime | Builds feature snapshots and returns risk/expansion predictions. |
 | Quote insight engine | Converts recommendation outputs into quote-ready actions and evidence. |
-| Optional text generation | Produces executive summaries, rationale, and approval briefs. |
-| Decision trace | Stores rule input, ML output, final output, model metadata, and guardrails. |
+| Optional LLM layer | Produces executive summaries, rationale, approval briefs, and guarded shadow/ranking proposals. |
+| Guarded validators/finalizers | Validate LLM proposals against supported candidates, evidence references, policy boundaries, and deterministic materialization checks. |
+| Decision trace | Stores settings used, rule input, evidence snapshot, ML output, guarded validator/finalizer output, final output, model metadata, and guardrails. |
 
 ## Architecture Diagram
 
@@ -49,9 +50,10 @@ flowchart TD
     Artifacts[Joblib model artifacts]
   end
 
-  subgraph Narrative[Optional narrative layer]
+  subgraph Narrative[Optional and guarded LLM layer]
     Prompts[Prompt governance]
-    LLM[OpenAI, mock, or fallback text]
+    LLM[Ollama, OpenAI, mock, or fallback text]
+    Validator[Guarded validator and finalizer]
   end
 
   subgraph Storage[Local persistence]
@@ -68,7 +70,8 @@ flowchart TD
   Predictor --> Registry
   Predictor --> Artifacts
   Orchestrator --> Insights
-  Insights --> Prompts --> LLM
+  Insights --> Prompts --> LLM --> Validator
+  Validator --> Orchestrator
   Orchestrator --> Prisma --> SQLite
   Insights --> Prisma
 ```
@@ -228,18 +231,37 @@ The final action is selected conservatively:
 3. Expand if any line is expansion-oriented.
 4. Otherwise renew as-is.
 
-### Step 8: Store Decision Trace
+### Step 8: Apply Guarded LLM Finalizer
+
+Guarded LLM decisioning is controlled separately from recommendation mode.
+
+| Mode | Behavior |
+| --- | --- |
+| Rules Only | No LLM critique or ranking is used for decision finalization. |
+| LLM Critic Shadow | LLM critique is recorded, but final output remains deterministic. |
+| LLM Ranking Shadow | LLM ranking is validated and recorded for comparison, but rules remain final. |
+| LLM-Assisted Guarded | LLM-ranked candidate can influence the final selected candidate only if deterministic validators pass. |
+| Human Approval Required | LLM reasoning supports reviewer workflow while exception posture routes to human approval. |
+
+The validator checks schema, supported candidates, candidate envelope membership, evidence references, policy eligibility, and materialization coherence. Pricing math, approval routing, catalog boundaries, and guardrails remain deterministic.
+
+### Step 9: Store Decision Trace
 
 The Decision Trace records:
 
+- settings used for the run
 - run type
 - mode
 - scenario
+- evidence snapshot summary
+- candidate envelope and validator result
 - rule input summary
 - rule output summary
 - ML output summary
+- guarded LLM shadow/finalizer summary
 - final output summary
 - guardrail summary
+- replay verification result
 - model name and version
 - rule engine version
 - policy version

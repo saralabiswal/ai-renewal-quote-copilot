@@ -59,6 +59,8 @@ docs/*
 !docs/technical-review-ai-ml.md
 !docs/user-guide-renewal-workflow.md
 !docs/demo-recording-runbook-rc-acct-1016.md
+!docs/planning/
+!docs/planning/*.md
 !docs/assets/
 docs/assets/*
 !docs/assets/user-guide/

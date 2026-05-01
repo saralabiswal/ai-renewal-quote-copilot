@@ -128,6 +128,7 @@ export type DecisionRunTraceView = {
   ruleEngineVersion: string | null
   policyVersion: string | null
   featureSchemaVersion: string | null
+  evidenceSnapshotVersion: string | null
   mlMode: string | null
   mlModelName: string | null
   mlModelVersion: string | null
@@ -139,6 +140,124 @@ export type DecisionRunTraceView = {
     featureSchemaVersion: string | null
     itemCount: number
     generatedAt: string | null
+  } | null
+  evidenceSummary: {
+    evidenceSnapshotVersion: string | null
+    signalCount: number
+    completenessScore: number | null
+    confidenceScore: number | null
+    missingCount: number
+    staleCount: number
+  } | null
+  candidateSummary: {
+    ruleWinner: string | null
+    allowedCandidates: string[]
+    blockedCandidates: string[]
+    candidateCount: number
+  } | null
+  validationSummary: {
+    status: string | null
+    proposalSource: string | null
+    selectedCandidate: string | null
+    acceptedCandidate: string | null
+    fallbackUsed: boolean | null
+    confidence: number | null
+    checks: Array<{
+      name: string
+      status: string
+      detail: string
+    }>
+    rejectionReasons: string[]
+  } | null
+  policyTraceSummary: {
+    policyRuntimeVersion: string | null
+    policyRegistryId: string | null
+    artifactCount: number
+    ruleHitCount: number
+    appliedCount: number
+    warningCount: number
+    blockedCount: number
+    approvalRequiredCount: number
+    ruleHits: Array<{
+      policyId: string
+      ruleId: string
+      scope: string
+      subjectId: string
+      outcome: string
+      detail: string
+    }>
+  } | null
+  llmShadowSummary: {
+    critiqueStatus: string | null
+    critiqueQuality: string | null
+    rankingStatus: string | null
+    rankingSelectedCandidate: string | null
+    rankingAgreesWithRules: boolean | null
+    promptVersion: string | null
+    critiqueGeneratedBy: string | null
+    rankingGeneratedBy: string | null
+    modelLabel: string | null
+    fallbackReason: string | null
+  } | null
+  quoteInsightCandidateSummary: {
+    candidateCount: number
+    acceptedCount: number
+    rejectedCount: number
+    validationStatus: string | null
+    finalizerSource: string | null
+    prioritizedCount: number
+    approvalRequiredCount: number
+    fallbackUsed: boolean | null
+    checks: Array<{
+      name: string
+      status: string
+      detail: string
+    }>
+  } | null
+  replayVerificationSummary: {
+    status: string
+    deterministicReplaySupported: boolean
+    checkCount: number
+    failedCount: number
+    warningCount: number
+    replayedAction: string | null
+    persistedRuleAction: string | null
+    persistedFinalAction: string | null
+    checks: Array<{
+      name: string
+      status: string
+      detail: string
+    }>
+  } | null
+  governanceSummary: {
+    guardedModeAllowed: boolean | null
+    minimumShadowPassRate: number | null
+    roleControls: string[]
+    driftMonitors: string[]
+  } | null
+  telemetrySummary: {
+    llmShadowPassRate: number | null
+    validationRejected: boolean | null
+    fallbackUsed: boolean | null
+    staleEvidenceRate: number | null
+    policyWarningCount: number | null
+    policyBlockedCount: number | null
+  } | null
+  finalizerSummary: {
+    mode: string | null
+    ruleWinner: string | null
+    llmSelectedCandidate: string | null
+    acceptedCandidate: string | null
+    finalCandidate: string | null
+    finalStateSource: string | null
+    recommendationOverrideApplied: boolean | null
+    fallbackUsed: boolean | null
+    fallbackReason: string | null
+    checks: Array<{
+      name: string
+      status: string
+      detail: string
+    }>
   } | null
   ruleOutputSummary: {
     riskScore: number | null

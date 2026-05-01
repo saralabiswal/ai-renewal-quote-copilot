@@ -59,9 +59,9 @@ const TABS: Array<{
   {
     id: 'evidence',
     step: 4,
-    label: 'Inspect Evidence',
-    helper: 'Rules, ML, guardrails',
-    next: 'Use this checkpoint to inspect rules, ML output, guardrails, and reasoning.',
+    label: 'Decision Trace',
+    helper: 'Evidence, rules, ML, guardrails',
+    next: 'Use this checkpoint to inspect evidence snapshots, rules, ML output, guardrails, and governance trace.',
   },
   {
     id: 'review',
@@ -349,6 +349,7 @@ export function CommandCenterWorkspace({
           </section>
 
           <DecisionRunTracePanel
+            caseId={renewalCase.id}
             run={renewalCase.latestDecisionRun}
             reasoning={renewalCase.reasoningDecisionTrace}
           />

@@ -1,9 +1,41 @@
 import { evaluateRenewalCase } from '@/lib/rules/recommendation-engine'
 import type { RenewalCaseEngineInput, RenewalCaseEngineOutput } from '@/lib/rules/types'
 import { getMlRuntimeConfig } from '@/lib/ml/config'
+import { getRuntimeSettings } from '@/lib/settings/runtime-settings'
 import { buildRenewalFeatureSnapshot, FEATURE_SCHEMA_VERSION } from '@/lib/ml/feature-snapshot'
 import { getMlPrediction } from '@/lib/ml/predict'
 import type { MlCasePrediction } from '@/lib/ml/types'
+import { buildDecisionCandidateEnvelope } from '@/lib/decision/candidates'
+import { validateGuardedDecisionProposal } from '@/lib/decision/guarded-validator'
+import {
+  buildRenewalEvidenceSnapshot,
+  EVIDENCE_SNAPSHOT_VERSION,
+} from '@/lib/evidence/renewal-evidence'
+import {
+  buildPolicyEvaluationTrace,
+  POLICY_REGISTRY_ID,
+  POLICY_RUNTIME_VERSION,
+} from '@/lib/policies/policy-runtime'
+import {
+  buildCriticPromptInput,
+  buildLiveOrDeterministicLlmShadow,
+  buildRankingPromptInput,
+  LLM_SHADOW_PROMPT_VERSION,
+} from '@/lib/decision/llm-shadow'
+import {
+  buildQuoteInsightCandidateEnvelope,
+  validateQuoteInsightCandidates,
+} from '@/lib/decision/quote-insight-candidates'
+import { finalizeQuoteInsightCandidates } from '@/lib/decision/quote-insight-finalizer'
+import {
+  buildDecisionTelemetry,
+  buildGovernanceSnapshot,
+  buildReplayMetadata,
+  GOVERNANCE_VERSION,
+  REPLAY_METADATA_VERSION,
+  TELEMETRY_VERSION,
+} from '@/lib/decision/audit-governance'
+import { finalizeGuardedRecommendation } from '@/lib/decision/guarded-finalizer'
 
 export const RULE_ENGINE_VERSION = 'recommendation-engine-v1'
 export const POLICY_VERSION = 'pricing-policy-matrix-2026-q2'
@@ -119,6 +151,7 @@ export async function runRecommendationDecision(args: {
   const ruleEngineOutput = evaluateRenewalCase(args.engineInput)
   const featureSnapshot = buildRenewalFeatureSnapshot(args.engineInput, ruleEngineOutput)
   const mlConfig = getMlRuntimeConfig()
+  const runtimeSettings = getRuntimeSettings()
   const mlPrediction = await getMlPrediction(
     buildMlPredictionRequest(
       args.caseId,
@@ -129,16 +162,126 @@ export async function runRecommendationDecision(args: {
     ),
   )
   const mlOverlay = buildHybridRiskOverrides(ruleEngineOutput, mlPrediction)
-  const finalOutput =
+  let finalOutput =
     mlConfig.affectsRecommendations && mlOverlay.itemRiskScoreOverrides
       ? evaluateRenewalCase(args.engineInput, mlOverlay)
       : ruleEngineOutput
+  const evidenceSnapshot = buildRenewalEvidenceSnapshot({
+    input: args.engineInput,
+    ruleOutput: ruleEngineOutput,
+    finalOutput,
+    scenarioKey: args.scenarioKey,
+  })
+  const decisionCandidates = buildDecisionCandidateEnvelope({
+    caseId: args.caseId,
+    input: args.engineInput,
+    finalOutput,
+    evidenceSnapshot,
+  })
   const generatedBy =
     mlConfig.affectsRecommendations && mlPrediction?.status === 'OK'
       ? 'HYBRID_RULES_ML'
       : mlPrediction
         ? 'RULE_ENGINE_WITH_ML_SHADOW'
         : 'RULE_ENGINE'
+  const guardedProposal = {
+    proposalSource:
+      generatedBy === 'HYBRID_RULES_ML' ? ('ML_OVERLAY' as const) : ('RULE_ENGINE' as const),
+    selectedCandidate: finalOutput.bundleResult.recommendedAction,
+    confidence: Math.max(
+      50,
+      Math.min(95, Math.round((100 - finalOutput.bundleResult.riskScore / 3 + evidenceSnapshot.quality.confidenceScore) / 2)),
+    ),
+    reasonCodes: finalOutput.bundleResult.primaryDrivers.length
+      ? finalOutput.bundleResult.primaryDrivers.slice(0, 5)
+      : [finalOutput.bundleResult.recommendedAction],
+    evidenceRefs: decisionCandidates.candidates
+      .find(
+        (candidate) =>
+          candidate.scope === 'BUNDLE_RECOMMENDATION' &&
+          candidate.candidateType === finalOutput.bundleResult.recommendedAction,
+      )
+      ?.evidenceRefs.slice(0, 8) ?? [],
+  }
+  const validationResult = validateGuardedDecisionProposal({
+    proposal: guardedProposal,
+    candidates: decisionCandidates,
+    evidenceSnapshot,
+  })
+  const policyTrace = buildPolicyEvaluationTrace({
+    input: args.engineInput,
+    ruleOutput: ruleEngineOutput,
+    finalOutput,
+    decisionCandidates,
+    validationResult,
+  })
+  const liveShadow = await buildLiveOrDeterministicLlmShadow({
+    evidenceSnapshot,
+    finalOutput,
+    policyTrace,
+    validationResult,
+    candidates: decisionCandidates,
+    liveCritiqueEnabled:
+      runtimeSettings.guardedDecisioningMode === 'LLM_CRITIC_SHADOW' ||
+      runtimeSettings.guardedDecisioningMode === 'LLM_RANKING_SHADOW' ||
+      runtimeSettings.guardedDecisioningMode === 'LLM_ASSISTED_GUARDED',
+    liveRankingEnabled:
+      runtimeSettings.guardedDecisioningMode === 'LLM_RANKING_SHADOW' ||
+      runtimeSettings.guardedDecisioningMode === 'LLM_ASSISTED_GUARDED',
+  })
+  const llmCritique = liveShadow.critique
+  const llmRanking = liveShadow.ranking
+  const guardedFinalization = finalizeGuardedRecommendation({
+    mode: runtimeSettings.guardedDecisioningMode,
+    deterministicOutput: finalOutput,
+    candidates: decisionCandidates,
+    evidenceSnapshot,
+    deterministicValidation: validationResult,
+    llmRanking,
+  })
+  finalOutput = guardedFinalization.finalOutput
+  const quoteInsightCandidates = buildQuoteInsightCandidateEnvelope({
+    input: args.engineInput,
+    finalOutput,
+  })
+  const quoteInsightValidation = validateQuoteInsightCandidates(quoteInsightCandidates)
+  const quoteInsightFinalizer = finalizeQuoteInsightCandidates({
+    mode: runtimeSettings.guardedDecisioningMode,
+    envelope: quoteInsightCandidates,
+    validation: quoteInsightValidation,
+  })
+  const versions = {
+    ruleEngineVersion: RULE_ENGINE_VERSION,
+    policyVersion: POLICY_VERSION,
+    featureSchemaVersion: FEATURE_SCHEMA_VERSION,
+    evidenceSnapshotVersion: EVIDENCE_SNAPSHOT_VERSION,
+    policyRuntimeVersion: POLICY_RUNTIME_VERSION,
+    policyRegistryId: POLICY_REGISTRY_ID,
+    llmShadowPromptVersion: LLM_SHADOW_PROMPT_VERSION,
+    replayMetadataVersion: REPLAY_METADATA_VERSION,
+    telemetryVersion: TELEMETRY_VERSION,
+    governanceVersion: GOVERNANCE_VERSION,
+  }
+  const replayMetadata = buildReplayMetadata({
+    caseId: args.caseId,
+    decisionRunId: args.decisionRunId,
+    scenarioKey: args.scenarioKey,
+    versions,
+  })
+  const telemetry = buildDecisionTelemetry({
+    evidenceSnapshot,
+    validationResult,
+    llmCritique,
+    llmRanking,
+    policyTrace,
+    quoteInsightValidation,
+  })
+  const governance = buildGovernanceSnapshot({
+    mode: runtimeSettings.guardedDecisioningMode,
+    candidateEnvelope: decisionCandidates,
+    quoteInsightCandidates,
+    finalOutput,
+  })
 
   const recommendationDiff = {
     scenarioKey: args.scenarioKey,
@@ -189,11 +332,35 @@ export async function runRecommendationDecision(args: {
     generatedBy,
     recommendationDiff,
     featureSnapshot,
-    guardrailSummary: buildGuardrailSummary(finalOutput),
-    versions: {
-      ruleEngineVersion: RULE_ENGINE_VERSION,
-      policyVersion: POLICY_VERSION,
-      featureSchemaVersion: FEATURE_SCHEMA_VERSION,
+    evidenceSnapshot,
+    decisionCandidates,
+    guardedProposal,
+    validationResult,
+    policyTrace,
+    llmCritique,
+    llmRanking,
+    llmPromptInputs: {
+      critic: buildCriticPromptInput({
+        evidenceSnapshot,
+        finalOutput,
+        policyTrace,
+        validationResult,
+      }),
+      ranking: buildRankingPromptInput({
+        evidenceSnapshot,
+        candidates: decisionCandidates,
+        policyTrace,
+      }),
+      rawResults: liveShadow.rawResults,
     },
+    quoteInsightCandidates,
+    quoteInsightValidation,
+    quoteInsightFinalizer,
+    replayMetadata,
+    telemetry,
+    governance,
+    guardedFinalizer: guardedFinalization.finalizer,
+    guardrailSummary: buildGuardrailSummary(finalOutput),
+    versions,
   }
 }

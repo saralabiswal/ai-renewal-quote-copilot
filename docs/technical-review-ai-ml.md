@@ -4,16 +4,17 @@ This note is a reviewer checklist for the AI Renewal Quote Copilot demo. For the
 
 ## Review Positioning
 
-The app is a standalone, local-first renewal decisioning system. It demonstrates how deterministic rules, local open-source ML, optional LLM narratives, and human approval can work together in an auditable enterprise workflow.
+The app is a standalone, local-first renewal decisioning system. It demonstrates how deterministic rules, local open-source ML, local-first LLM support, guarded validators, and human approval can work together in an auditable enterprise workflow.
 
 The system is intentionally not positioned as autonomous pricing. The operating model is:
 
 - deterministic rules own policy decisions and guardrails
 - local ML provides risk and expansion evidence
 - ML-Assisted Rules can blend ML risk into recommendation scoring
-- LLMs or deterministic fallbacks generate reviewer-ready narratives
+- Ollama or OpenAI can generate reviewer-ready narratives and guarded shadow/ranking proposals
+- guarded validators decide whether any LLM-assisted candidate is allowed to influence output
 - humans approve final quote outcomes
-- decision traces preserve input, rule, ML, final, model, and guardrail evidence
+- decision traces preserve settings, input, rule, evidence, ML, guarded finalizer, final, model, and guardrail evidence
 
 ## What Exists Today
 
@@ -42,6 +43,20 @@ All app data is local and seeded through Prisma:
 | `HYBRID_RULES_ML` | ML-Assisted Rules | ML risk can influence recommendation scoring; guardrails remain final. |
 
 The app defaults to ML-Assisted Rules.
+
+### Guarded LLM Modes
+
+Guarded LLM mode is separate from recommendation mode.
+
+| Mode | UI Label | Review Message |
+| --- | --- | --- |
+| `RULES_ONLY` | Rules Only | No LLM critique or ranking is used in decision finalization. |
+| `LLM_CRITIC_SHADOW` | LLM Critic Shadow | LLM critique is recorded; final output is unchanged. |
+| `LLM_RANKING_SHADOW` | LLM Ranking Shadow | LLM ranking is validated and recorded for comparison. |
+| `LLM_ASSISTED_GUARDED` | LLM-Assisted Guarded | LLM can influence selected candidates only after deterministic validation passes. |
+| `HUMAN_APPROVAL_REQUIRED` | Human Approval Required | LLM supports review while exception posture routes to a human approver. |
+
+Restricted modes are role-gated in the demo. `LLM_ASSISTED_GUARDED` requires AI Governance Admin or Revenue Ops Admin authority. `HUMAN_APPROVAL_REQUIRED` requires AI Governance Admin or Deal Desk Admin authority.
 
 ### Rules
 
@@ -99,24 +114,30 @@ Optional text generation explains the structured insight; it does not decide the
 
 ### LLM
 
-LLM-dependent text can run in three modes:
+LLM-dependent text can run in these modes:
 
-- live OpenAI generation when configured
+- local Ollama generation by default
+- hosted OpenAI generation when configured
 - deterministic mock mode
 - deterministic fallback mode
 
-Prompt governance surfaces exact prompt artifacts and prompt inputs in the UI.
+Prompt governance surfaces exact prompt artifacts and prompt inputs in the UI. Guarded JSON calls use short timeouts and deterministic fallback so unavailable local LLM services do not block the demo.
 
 ### Traceability
 
 Decision Trace captures:
 
+- settings used for the run
 - rule input
+- evidence snapshot
+- candidate envelope
 - feature snapshot
 - rule output
 - ML output
+- guarded validator/finalizer output
 - final output
 - guardrail summary
+- replay verification
 - rule engine version
 - policy version
 - feature schema version
@@ -125,8 +146,8 @@ Decision Trace captures:
 ## Recommended Review Flow
 
 1. Open `Settings`.
-   - Show ML-Assisted Rules.
-   - Show local model artifact, registry, approval gates, and evaluation metrics.
+   - Show the 1-2-3 setup: ML-Assisted Rules, AI Governance Admin, LLM-Assisted Guarded.
+   - Expand local model readiness only if the audience wants artifact, registry, approval gate, and evaluation details.
 2. Open `AI Architecture`.
    - Show active XGBoost renewal risk model.
    - Show sklearn expansion propensity model.
@@ -138,7 +159,7 @@ Decision Trace captures:
 4. Open `Renewal Command Center`.
    - Run the end-to-end workflow.
    - Open Decision Trace.
-   - Explain rule baseline, ML output, final output, and guardrails.
+   - Explain Settings Used, rule baseline, ML output, guarded LLM finalizer, final output, and guardrails.
 5. Open Quote Insights.
    - Show structured evidence and ML metadata.
 6. Open `Quote Review Center`.
@@ -176,4 +197,5 @@ The app is honest about where ML sits:
 - hybrid mode is explicit
 - guardrails remain deterministic
 - prompt inputs are visible
+- guarded LLM proposals are validator-gated
 - final quote decisions stay human-approved

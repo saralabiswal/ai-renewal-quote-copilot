@@ -5,6 +5,7 @@ import { toNumber } from '../rules/helpers'
 import type { RuleCaseItemInput } from '../rules/types'
 import { DEMO_SCENARIOS, toDemoScenarioKey, type DemoScenarioKey } from '@/lib/scenarios/demo-scenarios'
 import { runRecommendationDecision } from '@/lib/decision/recommendation-orchestrator'
+import { persistEvidenceSnapshot } from '@/lib/evidence/evidence-ledger'
 
 const prisma = new PrismaClient()
 
@@ -299,6 +300,7 @@ export async function recalculateRenewalCaseById(caseId: string) {
         ruleEngineVersion: decision.versions.ruleEngineVersion,
         policyVersion: decision.versions.policyVersion,
         featureSchemaVersion: decision.versions.featureSchemaVersion,
+        evidenceSnapshotVersion: decision.versions.evidenceSnapshotVersion,
         mlMode: decision.mlConfig.mode,
         mlModelName:
           decision.mlPrediction?.modelName ?? decision.mlConfig.registryModelName ?? null,
@@ -306,11 +308,39 @@ export async function recalculateRenewalCaseById(caseId: string) {
           decision.mlPrediction?.modelVersion ?? decision.mlConfig.registryModelVersion ?? null,
         ruleInputJson: JSON.stringify(engineInput),
         featureSnapshotJson: JSON.stringify(decision.featureSnapshot),
+        evidenceSnapshotJson: JSON.stringify(decision.evidenceSnapshot),
+        decisionCandidatesJson: JSON.stringify(decision.decisionCandidates),
+        llmProposalJson: JSON.stringify(decision.guardedProposal),
+        validationResultJson: JSON.stringify(decision.validationResult),
+        policyTraceJson: JSON.stringify(decision.policyTrace),
+        llmCritiqueJson: JSON.stringify({
+          promptInput: decision.llmPromptInputs.critic,
+          output: decision.llmCritique,
+        }),
+        llmRankingJson: JSON.stringify({
+          promptInput: decision.llmPromptInputs.ranking,
+          output: decision.llmRanking,
+        }),
+        quoteInsightCandidatesJson: JSON.stringify(decision.quoteInsightCandidates),
+        quoteInsightValidationJson: JSON.stringify(decision.quoteInsightValidation),
+        quoteInsightFinalizerJson: JSON.stringify(decision.quoteInsightFinalizer),
+        replayMetadataJson: JSON.stringify(decision.replayMetadata),
+        telemetryJson: JSON.stringify(decision.telemetry),
+        governanceJson: JSON.stringify(decision.governance),
+        finalizerJson: JSON.stringify(decision.guardedFinalizer),
         ruleOutputJson: JSON.stringify(decision.ruleEngineOutput.bundleResult),
         mlOutputJson: decision.mlPrediction ? JSON.stringify(decision.mlPrediction) : null,
         finalOutputJson: JSON.stringify(engineOutput.bundleResult),
         guardrailSummaryJson: JSON.stringify(decision.guardrailSummary),
       },
+    })
+
+    await persistEvidenceSnapshot({
+      tx,
+      renewalCaseId: caseId,
+      decisionRunId,
+      generatedBy: decision.generatedBy,
+      snapshot: decision.evidenceSnapshot,
     })
 
     await tx.recommendationNarrative.create({

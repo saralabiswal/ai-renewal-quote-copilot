@@ -106,7 +106,7 @@ test('decision trace logs rules-only recalculation metadata', async ({ page, req
 
   await page.goto('/renewal-cases/rcase_apex_mfg')
   await waitForPageStable(page)
-  await openCommandTab(page, /Inspect Evidence/i)
+  await openCommandTab(page, /Decision Trace|Inspect Evidence/i)
 
   const tracePanel = page.locator('section.card').filter({
     has: page.getByRole('heading', { name: 'Decision Trace' }),
