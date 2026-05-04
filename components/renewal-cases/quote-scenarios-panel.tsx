@@ -37,7 +37,7 @@ export function QuoteScenariosPanel({
             buttonClassName="button-link"
           />
           <Link className="button-tertiary" href={`/renewal-cases/${caseId}`}>
-            Open Renewal Command Center
+            Open Generation Trace
           </Link>
         </div>
       </div>
@@ -61,11 +61,11 @@ export function QuoteScenariosPanel({
         <div className="scenario-state-callout scenario-state-callout-neutral" style={{ marginBottom: 12 }}>
           <div style={{ fontWeight: 600 }}>No baseline quote draft is linked to this case yet.</div>
           <div className="small muted" style={{ marginTop: 4 }}>
-            Next step: open Renewal Command Center and apply quote insights to create the baseline quote.
+            Next step: open Baseline Quote Review first. Use Scenario Quote Generation Trace only when you need generation detail.
           </div>
           <div className="scenario-state-actions" style={{ marginTop: 8 }}>
             <Link className="button-link" href={`/renewal-cases/${caseId}`}>
-              Open Renewal Command Center
+              Open Generation Trace
             </Link>
           </div>
         </div>

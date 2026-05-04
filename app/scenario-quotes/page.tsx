@@ -1,9 +1,9 @@
 import Link from 'next/link'
-import { PageHeader } from '@/components/layout/page-header'
-import { WorkflowJourney } from '@/components/layout/workflow-journey'
-import { ActionRail } from '@/components/layout/action-rail'
+import { WorkspaceNav } from '@/components/layout/workspace-nav'
 import { Badge } from '@/components/ui/badge'
 import { getRenewalCases } from '@/lib/db/renewal-cases'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ScenarioQuotesPage() {
   const cases = await getRenewalCases()
@@ -13,63 +13,35 @@ export default async function ScenarioQuotesPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="Scenario Studio"
-        description="Dedicated navigation for baseline-vs-scenario comparison without cluttering the renewal command workflow."
-        purpose="Compare commercial alternatives while keeping baseline quote as the editable source."
-        nextStep="Choose a case and open its Scenario Studio."
-        actions={
-          <ActionRail
-            primary={
-              <Link className="button-link" href="/renewal-cases">
-                Open Renewal Command Center
-              </Link>
-            }
-            secondary={
-              <Link className="button-secondary" href="/quote-drafts">
-                Open Quote Review Center
-              </Link>
-            }
-            tertiary={
-              <Link className="button-tertiary" href="/renewal-cases?view=list">
-                Open Renewal Subscriptions
-              </Link>
-            }
-          />
-        }
-      />
-
-      <WorkflowJourney
-        title="Renewal Workflow"
-        subtitle="Scenario comparison is the bridge between decisioning and quote approval."
-        steps={[
+      <WorkspaceNav
+        title="Business Workspace"
+        subtitle="Operate the renewal from source context through quote approval."
+        activeHref="/scenario-quotes"
+        items={[
           {
-            id: 'subscriptions',
-            label: 'Renewal Subscriptions',
-            description: 'Baseline context already established.',
+            label: 'Business Home',
+            href: '/business-home',
+            description: 'Queue and workspace chooser',
+          },
+          {
+            label: 'Review Subscriptions',
             href: '/renewal-cases?view=list',
-            state: 'complete',
+            description: 'Review subscription baseline',
           },
           {
-            id: 'decision-board',
-            label: 'Renewal Command Center',
-            description: 'Recommendation and risk posture already generated.',
-            href: '/renewal-cases',
-            state: 'complete',
-          },
-          {
-            id: 'scenario-workspace',
-            label: 'Scenario Studio',
-            description: 'Pick a case and compare ranked scenario alternatives.',
-            href: '/scenario-quotes',
-            state: 'current',
-          },
-          {
-            id: 'quote-review',
-            label: 'Quote Review Center',
-            description: 'Move to final quote review after selecting preferred scenario.',
+            label: 'Review Baseline Quote',
             href: '/quote-drafts',
-            state: 'upcoming',
+            description: 'Review editable quote',
+          },
+          {
+            label: 'Review Scenario Quote',
+            href: '/scenario-quotes',
+            description: 'Review options',
+          },
+          {
+            label: 'Generation Trace',
+            href: '/renewal-cases',
+            description: 'Inspect generation steps',
           },
         ]}
       />
@@ -77,7 +49,7 @@ export default async function ScenarioQuotesPage() {
       <section className="card scenario-index-card">
         <div className="section-header">
           <div>
-            <h2 className="section-title">Scenario Studio Case Index</h2>
+            <h2 className="section-title">Scenario Quote Case Index</h2>
             <p className="section-subtitle">
               Choose a renewal case to compare baseline versus generated scenarios, inspect
               commercial deltas, and mark a preferred scenario.

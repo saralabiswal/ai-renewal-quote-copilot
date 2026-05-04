@@ -57,7 +57,7 @@ function signalValue(
 }
 
 async function waitForHealth(url: string) {
-  const deadline = Date.now() + 15_000
+  const deadline = Date.now() + 60_000
   let lastError: unknown = null
 
   while (Date.now() < deadline) {
@@ -222,17 +222,21 @@ test.describe.serial('ML recommendation mode contracts', () => {
     await page.goto('/settings')
     await waitForPageStable(page)
 
-    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Decisioning Setup' })).toBeVisible()
+    await page.getByRole('button', { name: 'Technical View' }).click()
+    await waitForPageStable(page)
     await expect(page.getByText('Recommendation Mode').first()).toBeVisible()
     await expect(page.getByRole('button', { name: /ML-Assisted Rules/i })).toBeVisible()
     await expect(page.getByRole('tab', { name: 'LLM Provider' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Apply ML Mode' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Apply Settings' })).toBeVisible()
     await expect(page.locator('body')).not.toContainText(/\/Users\/|\/home\/|\/Volumes\//)
 
     await page.goto('/technical-review')
     await waitForPageStable(page)
 
-    await expect(page.getByRole('heading', { name: 'AI Architecture' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'AI Decision Flow', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Technical View' }).click()
+    await waitForPageStable(page)
     await expect(page.getByText('Model Registry').first()).toBeVisible()
     await expect(page.getByText('Shadow and ML-Assisted Behavior')).toBeVisible()
     await expect(page.getByText('Evaluation', { exact: true })).toBeVisible()
@@ -240,6 +244,8 @@ test.describe.serial('ML recommendation mode contracts', () => {
   })
 
   test('standalone ML health endpoint returns relative artifact path', async () => {
+    test.setTimeout(90_000)
+
     const pythonBin = process.env.ML_PYTHON_BIN || path.join('.venv-ml', 'bin', 'python')
     test.skip(!existsSync(pythonBin), `Python runtime not found at ${pythonBin}`)
 

@@ -9,7 +9,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sidebar />
       </Suspense>
       <div className="main">
-        <Topbar />
+        <Suspense fallback={<header className="topbar" />}>
+          <Topbar />
+        </Suspense>
         {children}
       </div>
     </div>

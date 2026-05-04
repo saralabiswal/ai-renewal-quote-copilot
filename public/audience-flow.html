@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audience Flow Concept - AI Renewal Quote Copilot</title>
+    <style>
+      :root {
+        --ink: #14213d;
+        --muted: #667085;
+        --line: #d9e0e8;
+        --surface: #ffffff;
+        --paper: #f6f8fb;
+        --navy: #1b365d;
+        --teal: #027a80;
+        --green: #2f6f4e;
+        --amber: #a86105;
+        --red: #b42318;
+        --violet: #6658d3;
+        --shadow: 0 18px 45px rgba(20, 33, 61, 0.12);
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        letter-spacing: 0;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        min-height: 100vh;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 14px 32px;
+        border-bottom: 1px solid rgba(217, 224, 232, 0.85);
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(14px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 760;
+      }
+
+      .mark {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        place-items: center;
+        color: #fff;
+        background: var(--navy);
+        border-radius: 7px;
+        font-size: 13px;
+      }
+
+      .nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .nav a {
+        padding: 8px 10px;
+        color: var(--muted);
+        text-decoration: none;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 680;
+      }
+
+      .nav a:hover {
+        color: var(--ink);
+        background: #edf2f7;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+        gap: 28px;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 42px 32px 24px;
+        align-items: stretch;
+      }
+
+      .hero h1 {
+        margin: 0 0 14px;
+        max-width: 860px;
+        font-size: clamp(34px, 5vw, 68px);
+        line-height: 0.98;
+        letter-spacing: 0;
+      }
+
+      .hero p {
+        max-width: 760px;
+        margin: 0;
+        color: #4e5f73;
+        font-size: 18px;
+        line-height: 1.55;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 720;
+      }
+
+      .button.primary {
+        color: #fff;
+        background: var(--navy);
+        border-color: var(--navy);
+      }
+
+      .hero-visual {
+        overflow: hidden;
+        min-height: 360px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-visual img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: left top;
+      }
+
+      main {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 8px 32px 64px;
+      }
+
+      section {
+        margin-top: 28px;
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 14px;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: 0;
+      }
+
+      .section-heading p {
+        max-width: 760px;
+        margin: 8px 0 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 0 9px;
+        color: #344054;
+        background: #eef3f7;
+        border: 1px solid #d8e1ea;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 760;
+        white-space: nowrap;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .audience-card,
+      .panel,
+      .matrix-card,
+      .flow-card,
+      .route-card,
+      .rule {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+
+      .audience-card {
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(20, 33, 61, 0.06);
+      }
+
+      .audience-card h3 {
+        margin: 12px 0 8px;
+        font-size: 19px;
+      }
+
+      .audience-card p,
+      .matrix-card p,
+      .route-card p,
+      .flow-card p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.48;
+      }
+
+      .swatch {
+        width: 34px;
+        height: 5px;
+        border-radius: 999px;
+      }
+
+      .business .swatch,
+      .business-color {
+        background: var(--teal);
+      }
+
+      .architecture .swatch,
+      .architecture-color {
+        background: var(--violet);
+      }
+
+      .developer .swatch,
+      .developer-color {
+        background: var(--green);
+      }
+
+      .matrix {
+        display: grid;
+        grid-template-columns: 1.1fr repeat(3, minmax(0, 1fr));
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: #fff;
+      }
+
+      .matrix > div {
+        padding: 14px;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .matrix > div:nth-child(4n) {
+        border-right: 0;
+      }
+
+      .matrix .head {
+        color: #fff;
+        background: var(--navy);
+        font-size: 13px;
+        font-weight: 780;
+      }
+
+      .matrix .row-head {
+        color: #344054;
+        background: #f8fafc;
+        font-weight: 760;
+      }
+
+      .matrix .cell {
+        color: #526276;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .audience-tabs {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .tab-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .tab-button {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        color: var(--ink);
+        background: #fff;
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+      }
+
+      .tab-button strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 14px;
+      }
+
+      .tab-button span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .tab-button[aria-selected="true"] {
+        border-color: #98a9bb;
+        box-shadow: 0 10px 22px rgba(20, 33, 61, 0.09);
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
+      .panel {
+        overflow: hidden;
+      }
+
+      .panel-top {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 18px;
+        padding: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel h3 {
+        margin: 8px 0 8px;
+        font-size: 25px;
+      }
+
+      .panel-top p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .screen-shot {
+        overflow: hidden;
+        height: 210px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #f1f5f9;
+      }
+
+      .screen-shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: left top;
+      }
+
+      .panel-body {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+      }
+
+      .route-card {
+        min-height: 180px;
+        padding: 18px;
+        border-top: 0;
+        border-left: 0;
+        border-radius: 0;
+      }
+
+      .route-card:nth-child(3n) {
+        border-right: 0;
+      }
+
+      .route-card h4 {
+        margin: 10px 0 8px;
+        font-size: 16px;
+      }
+
+      .route-card code {
+        color: #344054;
+        font-size: 12px;
+        word-break: break-word;
+      }
+
+      .flow-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .flow-card {
+        position: relative;
+        min-height: 164px;
+        padding: 16px;
+      }
+
+      .flow-card h3 {
+        margin: 12px 0 8px;
+        font-size: 18px;
+      }
+
+      .step-num {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        color: #fff;
+        background: var(--navy);
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .rules-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .rule {
+        padding: 16px;
+      }
+
+      .rule h3 {
+        margin: 0 0 8px;
+        font-size: 17px;
+      }
+
+      .rule p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.48;
+      }
+
+      .status-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .status-strip div {
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        background: #fff;
+      }
+
+      .status-strip strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+      }
+
+      .status-strip span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .footer-note {
+        margin-top: 28px;
+        padding: 18px;
+        border: 1px solid #cfd8e3;
+        border-radius: var(--radius);
+        background: #fff;
+        color: #526276;
+        line-height: 1.55;
+      }
+
+      @media (max-width: 980px) {
+        .hero,
+        .panel-top,
+        .audience-tabs {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-grid,
+        .panel-body,
+        .flow-row,
+        .status-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .route-card:nth-child(3n) {
+          border-right: 1px solid var(--line);
+        }
+
+        .route-card:nth-child(2n) {
+          border-right: 0;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .topbar {
+          align-items: flex-start;
+          flex-direction: column;
+          padding: 14px 18px;
+        }
+
+        .hero,
+        main {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+
+        .summary-grid,
+        .panel-body,
+        .flow-row,
+        .rules-grid,
+        .status-strip,
+        .matrix {
+          grid-template-columns: 1fr;
+        }
+
+        .matrix > div,
+        .matrix > div:nth-child(4n) {
+          border-right: 0;
+        }
+
+        .matrix .head:not(:first-child) {
+          display: none;
+        }
+
+        .matrix .row-head {
+          border-top: 2px solid #cfd8e3;
+        }
+
+        .hero-visual {
+          min-height: 260px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="mark">AI</div>
+          <span>Renewal Quote Copilot Flow Concept</span>
+        </div>
+        <nav class="nav" aria-label="Concept sections">
+          <a href="#audiences">Audiences</a>
+          <a href="#regrouping">Regrouping</a>
+          <a href="#flows">Flows</a>
+          <a href="#recommendation">Recommendation</a>
+        </nav>
+      </header>
+
+      <div class="hero">
+        <div>
+          <span class="pill">Static IA concept</span>
+          <h1>Regroup the app by user intent, not by feature inventory.</h1>
+          <p>
+            The app has strong pieces already: renewal operations, policy transparency, AI
+            architecture, and developer validation. The cleaner story is to present those pieces as
+            three role-based workspaces with a shared decision trace running through all of them.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#regrouping">Review Proposed IA</a>
+            <a class="button" href="/">Open Current App</a>
+          </div>
+          <div class="status-strip" aria-label="Concept summary">
+            <div><strong>Business</strong><span>Operate the renewal</span></div>
+            <div><strong>Architecture</strong><span>Trust the AI system</span></div>
+            <div><strong>Developer</strong><span>Build and verify</span></div>
+            <div><strong>Shared</strong><span>Decision trace</span></div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <img src="/assets/user-guide/01-dashboard.png" alt="Current dashboard screenshot" />
+        </div>
+      </div>
+
+      <main>
+        <section id="audiences">
+          <div class="section-heading">
+            <div>
+              <h2>Three User Types</h2>
+              <p>
+                Each audience should have a clear entry point, a short set of primary tasks, and a
+                proof surface that tells them whether the system is doing the right thing.
+              </p>
+            </div>
+          </div>
+          <div class="summary-grid">
+            <article class="audience-card business">
+              <div class="swatch"></div>
+              <h3>Business User</h3>
+              <p>
+                Revenue leaders, account teams, deal desk, and reviewers who need to prioritize
+                renewals, inspect recommendations, apply quote actions, and approve outcomes.
+              </p>
+            </article>
+            <article class="audience-card architecture">
+              <div class="swatch"></div>
+              <h3>Architecture User</h3>
+              <p>
+                AI governance, enterprise architects, and technical evaluators who need to
+                understand policy boundaries, model behavior, LLM controls, and traceability.
+              </p>
+            </article>
+            <article class="audience-card developer">
+              <div class="swatch"></div>
+              <h3>Developer User</h3>
+              <p>
+                Engineers who need to run the project, reset data, validate contracts, inspect
+                implementation surfaces, and extend the workflow without breaking the demo story.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="regrouping">
+          <div class="section-heading">
+            <div>
+              <h2>Proposed Regrouped Navigation</h2>
+              <p>
+                This keeps the same app capabilities, but makes the first decision simple: what are
+                you here to do today?
+              </p>
+            </div>
+            <span class="pill">Navigation model</span>
+          </div>
+
+          <div class="matrix" role="table" aria-label="Regrouped information architecture">
+            <div class="head">Category</div>
+            <div class="head">Business Workspace</div>
+            <div class="head">Architecture Console</div>
+            <div class="head">Developer Workbench</div>
+
+            <div class="row-head">Primary question</div>
+            <div class="cell">Which renewals need action, what should change, and who approves?</div>
+            <div class="cell">Can we trust the AI, ML, policy, and guardrails?</div>
+            <div class="cell">How do I run, test, debug, and extend this system?</div>
+
+            <div class="row-head">Current pages to group</div>
+            <div class="cell">Business Home, Renewal Subscriptions, Baseline Quote Review, Scenario Quote Review, Scenario Quote Generation Trace</div>
+            <div class="cell">Decisioning Setup, Policy Playbook, AI Architecture, Scenario Quote Generation Trace</div>
+            <div class="cell">Developer Guide, Technical Review, API routes, validation scripts, Prisma seed/reset, ML scripts</div>
+
+            <div class="row-head">Best start screen</div>
+            <div class="cell">Business Home: portfolio health, attention queue, guided workflow</div>
+            <div class="cell">Architecture Overview: system map, active runtime posture, governance checklist</div>
+            <div class="cell">Developer Start: local run commands, test matrix, data/model reset status</div>
+
+            <div class="row-head">Proof of success</div>
+            <div class="cell">Approved or revised quote with clear recommendation evidence</div>
+            <div class="cell">Decision trace proves rules, ML, LLM, and human controls stayed bounded</div>
+            <div class="cell">Build passes, seed data loads, tests validate workflow contracts</div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-heading">
+            <div>
+              <h2>Workspace Detail</h2>
+              <p>
+                Use these as the first-level product categories. The underlying routes can stay
+                mostly the same while the sidebar, dashboard, and docs become more understandable.
+              </p>
+            </div>
+          </div>
+
+          <div class="audience-tabs">
+            <div class="tab-list" role="tablist" aria-label="Audience workspaces">
+              <button class="tab-button" type="button" role="tab" aria-selected="true" data-tab="business-panel">
+                <span><strong>Business Workspace</strong>Revenue workflow and approvals</span>
+                <span class="pill">User</span>
+              </button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="architecture-panel">
+                <span><strong>Architecture Console</strong>Trust, governance, and runtime</span>
+                <span class="pill">Review</span>
+              </button>
+              <button class="tab-button" type="button" role="tab" aria-selected="false" data-tab="developer-panel">
+                <span><strong>Developer Workbench</strong>Build, data, tests, and extension</span>
+                <span class="pill">Build</span>
+              </button>
+            </div>
+
+            <article id="business-panel" class="tab-panel active panel" role="tabpanel">
+              <div class="panel-top">
+                <div>
+                  <span class="pill">Operate renewals</span>
+                  <h3>Business users need the shortest path from risk to quote decision.</h3>
+                  <p>
+                    Keep business pages focused on queue triage, subscription review, baseline
+                    quote review, scenario quote comparison, and approval. Hide implementation
+                    details until the user opens generation trace.
+                  </p>
+                </div>
+                <div class="screen-shot">
+                  <img src="/assets/user-guide/04-case-decision-workspace.png" alt="Scenario Quote Generation Trace screenshot" />
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="route-card">
+                  <span class="pill">Start</span>
+                  <h4>Business Home</h4>
+                  <p>Portfolio summary, needs-attention queue, and next best workflow entry.</p>
+                  <code>/business-home</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Context</span>
+                  <h4>Renewal Subscriptions</h4>
+                  <p>Baseline contracts, usage, support, adoption, discount, and ARR context.</p>
+                  <code>/renewal-cases?view=list</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Action</span>
+                  <h4>Baseline Quote Review</h4>
+                  <p>Review quote lines, trace source insights, approve, reject, or request revision.</p>
+                  <code>/quote-drafts</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Compare</span>
+                  <h4>Scenario Quote Review</h4>
+                  <p>Read-only commercial alternatives before changing the baseline quote.</p>
+                  <code>/scenario-quotes</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Optional</span>
+                  <h4>Scenario Quote Generation Trace</h4>
+                  <p>Step-by-step internal workflow for generation, changes, quote actions, evidence, and AI guidance.</p>
+                  <code>/renewal-cases/[caseId]</code>
+                </div>
+              </div>
+            </article>
+
+            <article id="architecture-panel" class="tab-panel panel" role="tabpanel">
+              <div class="panel-top">
+                <div>
+                  <span class="pill">Trust the system</span>
+                  <h3>Architecture users need an assurance console, not just settings.</h3>
+                  <p>
+                    Group policy, runtime posture, AI architecture, model registry, guarded LLM,
+                    prompt governance, and decision trace into one review path.
+                  </p>
+                </div>
+                <div class="screen-shot">
+                  <img src="/assets/user-guide/09-technical-architecture.png" alt="AI architecture screenshot" />
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="route-card">
+                  <span class="pill">Overview</span>
+                  <h4>Architecture Overview</h4>
+                  <p>End-to-end diagram, local-first boundaries, services, data, and control points.</p>
+                  <code>/technical-review</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Runtime</span>
+                  <h4>Decisioning Setup</h4>
+                  <p>Recommendation mode, LLM provider, governance role, and readiness posture.</p>
+                  <code>/settings</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Policy</span>
+                  <h4>Policy Playbook</h4>
+                  <p>Rule boundaries, pricing guardrails, prompt governance, and change control.</p>
+                  <code>/policies</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">ML</span>
+                  <h4>Model Registry</h4>
+                  <p>Active model, artifact status, feature schema, metrics, approvals, and hashes.</p>
+                  <code>/technical-review</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">LLM</span>
+                  <h4>Guarded AI Review</h4>
+                  <p>Validator behavior, allowed candidates, fallback posture, prompt evidence.</p>
+                  <code>/settings + /policies</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Audit</span>
+                  <h4>Decision Trace</h4>
+                  <p>Selected settings, rule baseline, ML output, guarded finalizer, final output.</p>
+                  <code>/api/renewal-cases/[caseId]/decision-audit</code>
+                </div>
+              </div>
+            </article>
+
+            <article id="developer-panel" class="tab-panel panel" role="tabpanel">
+              <div class="panel-top">
+                <div>
+                  <span class="pill">Build and verify</span>
+                  <h3>Developer users need a workbench for local execution.</h3>
+                  <p>
+                    Today the developer flow lives across README, package scripts, seed scripts,
+                    tests, ML scripts, and API code. Make it explicit so contributors can run the
+                    same demo reliably.
+                  </p>
+                </div>
+                <div class="screen-shot">
+                  <img src="/assets/user-guide/08-settings.png" alt="Decisioning Setup screenshot" />
+                </div>
+              </div>
+              <div class="panel-body">
+                <div class="route-card">
+                  <span class="pill">Run</span>
+                  <h4>Local Start</h4>
+                  <p>Install dependencies, generate Prisma, seed SQLite, train ML, start Next.js.</p>
+                  <code>npm run db:setup</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Data</span>
+                  <h4>Clean DB Reset</h4>
+                  <p>Reset local database and reload deterministic demo data for repeatability.</p>
+                  <code>npm run db:reset:clean</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">ML</span>
+                  <h4>Model Lifecycle</h4>
+                  <p>Generate synthetic data, train, evaluate, inspect registry, run prediction.</p>
+                  <code>npm run ml:evaluate</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">API</span>
+                  <h4>Workflow Contracts</h4>
+                  <p>Route handlers for recalc, quote insights, scenarios, review, audit, settings.</p>
+                  <code>/app/api/**</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Tests</span>
+                  <h4>Validation Suite</h4>
+                  <p>Scenario coverage, guarded decisioning, role controls, policy runtime, e2e.</p>
+                  <code>npm run test:e2e:contracts</code>
+                </div>
+                <div class="route-card">
+                  <span class="pill">Docs</span>
+                  <h4>Developer Guide</h4>
+                  <p>README preview, local commands, data model docs, extension notes.</p>
+                  <code>/readme-preview</code>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="flows">
+          <div class="section-heading">
+            <div>
+              <h2>Recommended First-Run Flows</h2>
+              <p>
+                Each audience gets a four-step journey. They can overlap later, but the starting
+                sequence should feel intentional.
+              </p>
+            </div>
+          </div>
+          <div class="flow-row">
+            <article class="flow-card">
+              <div class="step-num">1</div>
+              <h3>Business demo</h3>
+              <p>Renewal Subscriptions -> Baseline Quote Review -> Scenario Quote Review -> optional Scenario Quote Generation Trace.</p>
+            </article>
+            <article class="flow-card">
+              <div class="step-num">2</div>
+              <h3>Architecture review</h3>
+              <p>Decisioning Setup -> AI Architecture -> Policy Playbook -> Scenario Quote Generation Trace.</p>
+            </article>
+            <article class="flow-card">
+              <div class="step-num">3</div>
+              <h3>Developer setup</h3>
+              <p>README -> clean DB reset -> build/test -> inspect workflow APIs.</p>
+            </article>
+            <article class="flow-card">
+              <div class="step-num">4</div>
+              <h3>Shared handoff</h3>
+              <p>All roads end in the same artifact: a quote decision backed by evidence.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="recommendation">
+          <div class="section-heading">
+            <div>
+              <h2>Implementation Recommendation</h2>
+              <p>
+                This can be added without rebuilding the whole product. Treat it as an information
+                architecture layer over the existing routes.
+              </p>
+            </div>
+          </div>
+          <div class="rules-grid">
+            <article class="rule">
+              <h3>1. Rename the top-level areas</h3>
+              <p>
+                Use Business Workspace, Architecture Console, and Developer Workbench as the main
+                sidebar groups. Keep existing route names inside those groups.
+              </p>
+            </article>
+            <article class="rule">
+              <h3>2. Add an audience switch on the dashboard</h3>
+              <p>
+                Let the user pick Business, Architecture, or Developer. Change the dashboard cards
+                and next actions based on that selection.
+              </p>
+            </article>
+            <article class="rule">
+              <h3>3. Make Decision Trace the shared proof object</h3>
+              <p>
+                Business sees explanation and approval evidence. Architects see rule, ML, LLM, and
+                guardrail evidence. Developers see payloads and API contracts.
+              </p>
+            </article>
+            <article class="rule">
+              <h3>4. Split Decisioning Setup into readiness and internals</h3>
+              <p>
+                Show a simple operating posture first. Put provider values, registry detail, and
+                guarded mode internals in architecture/developer views.
+              </p>
+            </article>
+          </div>
+
+          <div class="footer-note">
+            Best next product move: turn this static concept into a new in-app "Flow Map" page,
+            then update the sidebar grouping and dashboard entry cards. That gives every user a
+            self-explanatory path while preserving the current workflow implementation.
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const buttons = Array.from(document.querySelectorAll(".tab-button"));
+      const panels = Array.from(document.querySelectorAll(".tab-panel"));
+
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const target = button.dataset.tab;
+          buttons.forEach((item) => item.setAttribute("aria-selected", String(item === button)));
+          panels.forEach((panel) => panel.classList.toggle("active", panel.id === target));
+        });
+      });
+    </script>
+  </body>
+</html>

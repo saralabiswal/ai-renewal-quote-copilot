@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 export type WorkflowStepState = 'complete' | 'current' | 'upcoming'
 
 export type WorkflowJourneyStep = {
@@ -14,12 +12,6 @@ function stateLabel(state: WorkflowStepState) {
   if (state === 'complete') return 'Complete'
   if (state === 'current') return 'Current'
   return 'Upcoming'
-}
-
-function actionLabel(step: WorkflowJourneyStep) {
-  if (step.state === 'complete') return `Review ${step.label}`
-  if (step.state === 'current') return `Open ${step.label}`
-  return `Go to ${step.label}`
 }
 
 export function WorkflowJourney({
@@ -44,16 +36,11 @@ export function WorkflowJourney({
         {steps.map((step, index) => (
           <li key={step.id} className={`workflow-journey-step ${step.state}`}>
             <div className="workflow-step-row">
-              <span className="workflow-step-number">Step {index + 1}</span>
+              <span className="workflow-step-number">{index + 1}</span>
               <span className={`workflow-step-state ${step.state}`}>{stateLabel(step.state)}</span>
             </div>
             <div className="workflow-step-title">{step.label}</div>
             <p className="workflow-step-description">{step.description}</p>
-            {step.href ? (
-              <Link className="workflow-step-link" href={step.href as never}>
-                {actionLabel(step)}
-              </Link>
-            ) : null}
           </li>
         ))}
       </ol>

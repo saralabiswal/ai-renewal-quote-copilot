@@ -5,51 +5,67 @@ import { usePathname, useSearchParams } from 'next/navigation'
 
 const navItems = [
   {
+    id: 'audience_flow',
+    href: '/',
+    label: 'Flow Map',
+    hint: 'Choose the right path by user type',
+    group: 'home',
+    stepLabel: 'Flow',
+  },
+  {
+    id: 'dashboard',
+    href: '/business-home',
+    label: 'Business Home',
+    hint: 'Portfolio queue and entry actions',
+    group: 'business',
+    stepLabel: 'Home',
+  },
+  {
     id: 'subscriptions',
     href: '/renewal-cases?view=list',
     label: 'Renewal Subscriptions',
-    hint: 'Baseline subscription context',
-    group: 'flow',
+    hint: 'Review subscription baseline',
+    group: 'business',
     stepLabel: 'Step 1',
   },
   {
-    id: 'case_board',
-    href: '/renewal-cases',
-    label: 'Renewal Command Center',
-    hint: 'Run recommendation workflow',
-    group: 'flow',
+    id: 'quote_board',
+    href: '/quote-drafts',
+    label: 'Baseline Quote Review',
+    hint: 'Review editable baseline quote',
+    group: 'business',
     stepLabel: 'Step 2',
   },
   {
     id: 'scenario_quotes',
     href: '/scenario-quotes',
-    label: 'Scenario Studio',
-    hint: 'Compare alternatives vs baseline',
-    group: 'flow',
+    label: 'Scenario Quote Review',
+    hint: 'Review scenario quote options',
+    group: 'business',
     stepLabel: 'Step 3',
   },
   {
-    id: 'quote_board',
-    href: '/quote-drafts',
-    label: 'Quote Review Center',
-    hint: 'Submit final quote decision',
-    group: 'flow',
-    stepLabel: 'Step 4',
+    id: 'case_board',
+    href: '/renewal-cases',
+    label: 'Scenario Quote Generation Trace',
+    hint: 'Optional: inspect generation steps',
+    group: 'business',
+    stepLabel: 'Optional',
   },
   {
     id: 'settings',
     href: '/settings',
-    label: 'Settings',
-    hint: 'Set ML-assisted mode and readiness',
-    group: 'control',
-    stepLabel: 'Setup',
+    label: 'Decisioning Setup',
+    hint: 'Runtime posture and readiness',
+    group: 'architecture',
+    stepLabel: 'Runtime',
   },
   {
     id: 'policies',
     href: '/policies',
-    label: 'Policy Studio',
-    hint: 'Review policy and recommendation logic',
-    group: 'control',
+    label: 'Policy Playbook',
+    hint: 'Rules, guardrails, prompts',
+    group: 'architecture',
     stepLabel: 'Policy',
   },
   {
@@ -57,8 +73,16 @@ const navItems = [
     href: '/technical-review',
     label: 'AI Architecture',
     hint: 'AI/ML architecture evidence',
-    group: 'control',
+    group: 'architecture',
     stepLabel: 'Architecture',
+  },
+  {
+    id: 'readme_preview',
+    href: '/readme-preview',
+    label: 'Developer Guide',
+    hint: 'Local setup and docs preview',
+    group: 'developer',
+    stepLabel: 'Docs',
   },
 ] as const
 
@@ -70,6 +94,10 @@ export function Sidebar() {
   function isActive(item: (typeof navItems)[number]) {
     const { href, id } = item
     if (!href) return false
+
+    if (id === 'dashboard') {
+      return pathname === '/business-home'
+    }
 
     if (id === 'subscriptions') {
       return pathname === '/renewal-cases' && view === 'list'
@@ -92,9 +120,9 @@ export function Sidebar() {
       </Link>
       <nav className="nav-section">
         <div className="nav-group">
-          <div className="nav-group-title">Primary Flow</div>
+          <div className="nav-group-title">Start Here</div>
           {navItems
-            .filter((item) => item.group === 'flow')
+            .filter((item) => item.group === 'home')
             .map((item) => (
               <Link
                 key={item.id}
@@ -111,9 +139,47 @@ export function Sidebar() {
         </div>
 
         <div className="nav-group">
-          <div className="nav-group-title">Control Center</div>
+          <div className="nav-group-title">Business Workspace</div>
           {navItems
-            .filter((item) => item.group === 'control')
+            .filter((item) => item.group === 'business')
+            .map((item) => (
+              <Link
+                key={item.id}
+                className={`nav-link ${isActive(item) ? 'active' : ''}`}
+                href={item.href}
+              >
+                <span className="nav-link-top">
+                  <span className="nav-step-label">{item.stepLabel}</span>
+                  <span className="nav-link-title">{item.label}</span>
+                </span>
+                <span className="nav-link-hint">{item.hint}</span>
+              </Link>
+            ))}
+        </div>
+
+        <div className="nav-group">
+          <div className="nav-group-title">Architecture Console</div>
+          {navItems
+            .filter((item) => item.group === 'architecture')
+            .map((item) => (
+              <Link
+                key={item.id}
+                className={`nav-link ${isActive(item) ? 'active' : ''}`}
+                href={item.href}
+              >
+                <span className="nav-link-top">
+                  <span className="nav-step-label">{item.stepLabel}</span>
+                  <span className="nav-link-title">{item.label}</span>
+                </span>
+                <span className="nav-link-hint">{item.hint}</span>
+              </Link>
+            ))}
+        </div>
+
+        <div className="nav-group">
+          <div className="nav-group-title">Developer Workbench</div>
+          {navItems
+            .filter((item) => item.group === 'developer')
             .map((item) => (
               <Link
                 key={item.id}

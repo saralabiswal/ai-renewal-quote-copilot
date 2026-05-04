@@ -38,17 +38,17 @@ export default async function QuoteDraftDetailPage({
   const reviewComplete =
     quoteDraft.statusLabel.toLowerCase() === 'approved' ||
     quoteDraft.statusLabel.toLowerCase() === 'rejected'
-  const quotePurpose = 'Finalize quote-level approval using baseline-vs-current commercial evidence.'
+  const quotePurpose = 'Review the editable baseline quote before scenario quote comparison.'
   const quoteNextStep = reviewComplete
-    ? 'Decision is complete. Use this page for audit review or return to Renewal Command Center.'
-    : 'Review the change strip and line deltas, then use Quote Review Actions to approve or reject.'
+    ? 'Decision is complete. Use this page for audit review or continue to Scenario Quote Review.'
+    : 'Review the change strip and line deltas, then continue to Scenario Quote Review.'
 
   return (
     <div className="page">
       <section className="card quote-review-hero">
         <div className="quote-review-main">
           <div>
-            <h1 className="quote-review-title">Quote Review Center</h1>
+            <h1 className="quote-review-title">Baseline Quote Review</h1>
             <p className="quote-review-subtitle">
               Understand what changed from the baseline renewal, why lines were added or modified,
               and verify commercial impact before approval.
@@ -92,15 +92,15 @@ export default async function QuoteDraftDetailPage({
 
           <div className="quote-review-actions">
             <div className="small muted" style={{ fontWeight: 700 }}>
-              Quote Review Actions
+              Baseline Quote Actions
             </div>
 
             <div className="quote-review-action-row">
               <Link className="button-tertiary" href={`/renewal-cases/${quoteDraft.renewalCase.id}`}>
-                Open Renewal Command Center
+                Open Generation Trace
               </Link>
               <Link className="button-tertiary" href={`/scenario-quotes/${quoteDraft.renewalCase.id}`}>
-                Open Scenario Studio
+                Open Scenario Quote Review
               </Link>
             </div>
 
@@ -114,38 +114,38 @@ export default async function QuoteDraftDetailPage({
       </section>
 
       <WorkflowJourney
-        title="Renewal Workflow"
-        subtitle="This is the final approval stage after decision and scenario analysis."
+        title="Business Review Flow"
+        subtitle="Review subscription scope, baseline quote, and scenario quote before using optional generation trace."
         steps={[
           {
             id: 'subscriptions',
-            label: 'Renewal Subscriptions',
+            label: 'Review Renewal Subscriptions',
             description: 'Baseline subscription context reviewed.',
             href: '/renewal-cases?view=list',
             state: 'complete',
           },
           {
-            id: 'decision-workspace',
-            label: 'Renewal Command Center',
-            description: 'Recommendation and AI guidance generated for this case.',
-            href: `/renewal-cases/${quoteDraft.renewalCase.id}`,
-            state: 'complete',
+            id: 'baseline-quote',
+            label: 'Review Baseline Quote',
+            description: reviewComplete
+              ? 'Baseline quote decision is complete.'
+              : 'Validate line-level changes and commercial impact.',
+            href: `/quote-drafts/${quoteDraft.id}`,
+            state: reviewComplete ? 'complete' : 'current',
           },
           {
             id: 'scenario-workspace',
-            label: 'Scenario Studio',
-            description: 'Scenario alternatives are available for commercial comparison.',
+            label: 'Review Scenario Quote',
+            description: 'Scenario alternatives are available for comparison against baseline.',
             href: `/scenario-quotes/${quoteDraft.renewalCase.id}`,
-            state: 'complete',
+            state: 'upcoming',
           },
           {
-            id: 'quote-review',
-            label: 'Quote Review Center',
-            description: reviewComplete
-              ? 'Final decision is complete for this quote.'
-              : 'Validate line-level changes, then approve or reject.',
-            href: `/quote-drafts/${quoteDraft.id}`,
-            state: reviewComplete ? 'complete' : 'current',
+            id: 'decision-workspace',
+            label: 'Scenario Quote Generation Trace',
+            description: 'Optional explanation console for how scenario quote evidence was generated.',
+            href: `/renewal-cases/${quoteDraft.renewalCase.id}`,
+            state: 'upcoming',
           },
         ]}
       />

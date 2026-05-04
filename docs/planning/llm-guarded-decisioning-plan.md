@@ -697,3 +697,34 @@ Verification:
 - `npx tsc --noEmit` passed.
 - Browser check confirmed Settings selected values and wizard tabs.
 - Browser check confirmed Orion Decision Trace shows `ML-Assisted Rules` and `LLM-Assisted Guarded`.
+
+### 2026-05-03 Flow Map and Generation Trace IA Pass
+
+Reworked the product information architecture so the app reads as three audience-oriented workspaces and the internal workflow trace no longer competes with the business review path.
+
+- Set `/` to the Flow Map entry point.
+- Added Business Home at `/business-home`.
+- Clarified the Business Workspace sequence:
+  - Step 1: Renewal Subscriptions.
+  - Step 2: Baseline Quote Review.
+  - Step 3: Scenario Quote Review.
+  - Optional: Scenario Quote Generation Trace.
+- Renamed `Renewal Command Center` to `Scenario Quote Generation Trace`.
+  - Buttons now use `Open Generation Trace`.
+  - The trace is positioned as the step-by-step explanation of how scenario quote evidence, recommendation output, quote insights, AI guidance, and decision trace were generated.
+- Added Generation Trace links to Architecture Console and Developer Workbench navigation so architecture users can verify trust evidence and developers can debug workflow execution.
+- Updated planning and guide documents to match the implemented UI names and flow.
+
+Verification:
+
+- `npm run build` passed.
+- Browser checks confirmed Flow Map, Architecture Console, Developer Workbench, Scenario Quote Generation Trace index, and trace detail route render with the new labels.
+
+### Post-Merge Cleanup Backlog
+
+- Migrate linting from `next lint` to the ESLint CLI before upgrading to Next.js 16.
+  - Current status: non-blocking deprecation warning only.
+  - Suggested implementation: add an `eslint .` style script with the repo's Next/TypeScript config and update CI/package scripts.
+- Review the `NO_COLOR` / `FORCE_COLOR` environment warning in Playwright/web-server runs.
+  - Current status: non-blocking runtime warning only.
+  - Suggested implementation: normalize test environment color variables in the test runner or web server command if the warning becomes noisy in CI logs.

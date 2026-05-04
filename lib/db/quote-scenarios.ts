@@ -145,6 +145,9 @@ const STRATEGY_PRIORITY: StrategyType[] = [
   'BUNDLE_OPTIMIZATION',
 ]
 
+const MIN_SCENARIO_CANDIDATE_COUNT = 3
+const MAX_SCENARIO_CANDIDATE_COUNT = 4
+
 const STRATEGY_TITLE: Record<StrategyType, string> = {
   UPSELL_EXPANSION: 'Capture expansion upside with additive options',
   RIGHT_SIZING: 'Align entitlement to current adoption reality',
@@ -577,17 +580,22 @@ function buildFallbackScenarioCandidate(args: {
   insights: QuoteInsight[]
   recommendedAction: string | null
   riskLevel: string | null
+  forcedStrategyType?: StrategyType
 }) {
   if (args.baselineLines.length === 0) return null
 
-  const strategyType = fallbackStrategyForCase(args)
+  const strategyType = args.forcedStrategyType ?? fallbackStrategyForCase(args)
   const scenarioLines = copyBaselineLines(args.baselineLines)
   const target = scenarioLines
     .slice()
     .sort((a, b) => Number(b.lineNetAmount) - Number(a.lineNetAmount))[0]
   const targetIndex = scenarioLines.findIndex((line) => line.lineNumber === target.lineNumber)
   const discount = target.discountPercent ?? new Prisma.Decimal(0)
-  const [primaryInsight] = sortedInsights(args.insights)
+  const [primaryInsight] = sortedInsights(args.insights).filter(
+    (insight) => strategyForInsight(insight) === strategyType,
+  )
+  const [fallbackInsight] = sortedInsights(args.insights)
+  const supportingInsight = primaryInsight ?? fallbackInsight
 
   let nextQuantity = target.quantity
   let nextNetUnitPrice = target.netUnitPrice
@@ -626,10 +634,10 @@ function buildFallbackScenarioCandidate(args: {
     listUnitPrice: computeListUnitPrice(nextNetUnitPrice, nextDiscount),
     lineNetAmount: nextNetUnitPrice.mul(nextQuantity).toDecimalPlaces(2),
     sourceType: 'SCENARIO_ENGINE',
-    sourceInsightType: primaryInsight?.insightType ?? 'BASELINE_ALTERNATIVE',
-    sourceQuoteInsightId: primaryInsight?.id ?? null,
+    sourceInsightType: supportingInsight?.insightType ?? 'BASELINE_ALTERNATIVE',
+    sourceQuoteInsightId: supportingInsight?.id ?? null,
     insightSummary:
-      primaryInsight?.insightSummary ??
+      supportingInsight?.insightSummary ??
       'Seeded read-only scenario generated from the baseline quote for first-run demo coverage.',
   }
 
@@ -640,13 +648,13 @@ function buildFallbackScenarioCandidate(args: {
   const expectedArrImpact = round2(
     Number(totals.totalNetAmount) - Number(baselineTotals.totalNetAmount),
   )
-  const selectedInsights = primaryInsight ? [primaryInsight] : []
-  const confidenceScore = primaryInsight?.confidenceScore ?? 72
+  const selectedInsights = supportingInsight ? [supportingInsight] : []
+  const confidenceScore = supportingInsight?.confidenceScore ?? 72
   const candidateBase = {
     strategyType,
     title: STRATEGY_TITLE[strategyType],
     summary:
-      primaryInsight != null
+      supportingInsight != null
         ? summarizeScenario(strategyType, selectedInsights)
         : `Creates a conservative read-only ${titleizeToken(
             strategyType,
@@ -665,6 +673,50 @@ function buildFallbackScenarioCandidate(args: {
     totals,
     changedLineCount: computeChangedLineCount(args.baselineLines, scenarioLines),
   }
+}
+
+function supplementScenarioCandidates(args: {
+  materializedCandidates: Array<
+    ScenarioCandidate & {
+      scenarioLines: MutableScenarioLine[]
+      totals: ReturnType<typeof computeScenarioTotals>
+      changedLineCount: number
+    }
+  >
+  baselineLines: BaselineLine[]
+  insights: QuoteInsight[]
+  recommendedAction: string | null
+  riskLevel: string | null
+}) {
+  const candidates = [...args.materializedCandidates]
+  const usedStrategies = new Set(candidates.map((candidate) => candidate.strategyType))
+
+  for (const strategyType of STRATEGY_PRIORITY) {
+    if (candidates.length >= MIN_SCENARIO_CANDIDATE_COUNT) break
+    if (usedStrategies.has(strategyType)) continue
+
+    const fallbackCandidate = buildFallbackScenarioCandidate({
+      baselineLines: args.baselineLines,
+      insights: args.insights,
+      recommendedAction: args.recommendedAction,
+      riskLevel: args.riskLevel,
+      forcedStrategyType: strategyType,
+    })
+
+    if (!fallbackCandidate?.changedLineCount) continue
+
+    candidates.push(fallbackCandidate)
+    usedStrategies.add(strategyType)
+  }
+
+  return candidates
+    .sort((a, b) => {
+      const scoreDelta = b.rankingScore - a.rankingScore
+      if (scoreDelta !== 0) return scoreDelta
+
+      return STRATEGY_PRIORITY.indexOf(a.strategyType) - STRATEGY_PRIORITY.indexOf(b.strategyType)
+    })
+    .slice(0, MAX_SCENARIO_CANDIDATE_COUNT)
 }
 
 export async function generateQuoteScenariosForRenewalCase(caseId: string) {
@@ -768,6 +820,14 @@ export async function generateQuoteScenariosForRenewalCase(caseId: string) {
       ? [fallbackCandidate]
       : []
   }
+
+  materializedCandidates = supplementScenarioCandidates({
+    materializedCandidates,
+    baselineLines,
+    insights: sortedSuggestedInsights,
+    recommendedAction: renewalCase.recommendedAction,
+    riskLevel: renewalCase.riskLevel,
+  })
 
   if (materializedCandidates.length === 0) {
     throw new Error('Unable to generate a scenario because the baseline quote has no lines.')

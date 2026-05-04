@@ -4,7 +4,6 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { ActionRail } from '@/components/layout/action-rail'
-import { WorkflowJourney } from '@/components/layout/workflow-journey'
 import { AiWorkflowRunner } from '@/components/renewal-cases/ai-workflow-runner'
 import { DecisionRunTracePanel } from '@/components/renewal-cases/decision-run-trace-panel'
 import { DemoScenarioSelector } from '@/components/renewal-cases/demo-scenario-selector'
@@ -38,16 +37,16 @@ const TABS: Array<{
   {
     id: 'run',
     step: 1,
-    label: 'Run Workflow',
+    label: 'Generate Scenario Quote',
     helper: 'Scenario and AI workflow',
-    next: 'Choose a scenario and run the end-to-end AI workflow.',
+    next: 'Choose a scenario and run the workflow to see how scenario quote evidence is produced.',
   },
   {
     id: 'changes',
     step: 2,
-    label: 'Review Changes',
-    helper: 'What changed after run',
-    next: 'Confirm the recommendation and quote-insight deltas before applying actions.',
+    label: 'Review Generated Changes',
+    helper: 'What changed after generation',
+    next: 'Confirm recommendation and quote-insight deltas created by the generation run.',
   },
   {
     id: 'quote-actions',
@@ -66,9 +65,40 @@ const TABS: Array<{
   {
     id: 'review',
     step: 5,
-    label: 'Finalize Review',
+    label: 'AI Review Guidance',
     helper: 'Analysis and guidance',
-    next: 'Review AI guidance and move to Quote Review Center for final approval.',
+    next: 'Review AI guidance after generation details are understood.',
+  },
+]
+
+const BUSINESS_REVIEW_FLOW = [
+  {
+    step: 1,
+    label: 'Review Renewal Subscriptions',
+    helper: 'Subscription scope',
+    href: '/renewal-cases?view=list',
+    status: 'Complete',
+  },
+  {
+    step: 2,
+    label: 'Review Baseline Quote',
+    helper: 'Editable quote source',
+    href: null,
+    status: 'Ready',
+  },
+  {
+    step: 3,
+    label: 'Review Scenario Quote',
+    helper: 'Commercial alternatives',
+    href: null,
+    status: 'Ready',
+  },
+  {
+    step: 4,
+    label: 'Scenario Quote Generation Trace',
+    helper: 'Optional generation trace',
+    href: null,
+    status: 'Optional',
   },
 ]
 
@@ -90,6 +120,30 @@ export function CommandCenterWorkspace({
   ).length
   const addedInsightCount = quoteInsights.items.filter((item) => item.isAddedToQuote).length
   const activeStep = TABS.find((tab) => tab.id === activeTab) ?? TABS[0]
+  const businessFlow = BUSINESS_REVIEW_FLOW.map((step) => {
+    if (step.step === 2) {
+      return {
+        ...step,
+        href: renewalCase.quoteDraft ? `/quote-drafts/${renewalCase.quoteDraft.id}` : '/quote-drafts',
+        status: hasQuoteDraft ? 'Ready' : 'Waiting',
+      }
+    }
+    if (step.step === 3) {
+      return {
+        ...step,
+        href: `/scenario-quotes/${renewalCase.id}`,
+        status: hasQuoteDraft ? 'Ready' : 'Waiting',
+      }
+    }
+    if (step.step === 4) {
+      return {
+        ...step,
+        href: `/renewal-cases/${renewalCase.id}`,
+        status: 'Current',
+      }
+    }
+    return step
+  })
   const stepStatus = (tab: CommandTab) => {
     switch (tab) {
       case 'run':
@@ -112,17 +166,58 @@ export function CommandCenterWorkspace({
       <div className="command-sticky-bar">
         <div className="command-flow-head">
           <div>
-            <div className="command-flow-title">Guided Renewal Flow</div>
+            <div className="command-flow-title">Business Review Flow</div>
             <div className="command-flow-next">
-              <strong>Next:</strong> {activeStep.next}
+              <strong>Next:</strong> Review subscriptions, baseline quote, and scenario quote first.
+              Use Generation Trace only when you need to explain how a scenario quote was generated.
             </div>
           </div>
           <div className="command-flow-progress">
-            Step {activeStep.step} of {TABS.length}
+            Optional Step 4 of 4
           </div>
         </div>
 
-        <div className="command-tabbar" role="tablist" aria-label="Guided renewal flow">
+        <div className="command-tabbar" aria-label="Business review flow">
+          {businessFlow.map((step) => (
+            <Link
+              key={step.step}
+              className={`command-tab ${step.step === 4 ? 'active' : ''}`}
+              href={step.href as never}
+            >
+              <span className="command-step-number">{step.step}</span>
+              <span className="command-step-copy">
+                <span className="command-step-title">{step.label}</span>
+                <small>{step.helper}</small>
+              </span>
+              <span className={`command-step-status ${statusTone(step.status)}`}>
+                {step.status}
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        <div className="command-mini-status" aria-label="Current case status">
+          <span>{renewalCase.recommendedActionLabel}</span>
+          <span>{renewalCase.riskLevel} risk</span>
+          <span>{renewalCase.recalculationMeta.approvalRequired ? 'Approval required' : 'No approval'}</span>
+          <span>{quoteInsightCount} insights</span>
+        </div>
+      </div>
+
+      <div className="command-console-nav">
+        <div className="command-flow-head">
+          <div>
+            <div className="command-flow-title">Scenario Quote Generation Trace</div>
+            <div className="command-flow-next">
+              <strong>Console next:</strong> {activeStep.next}
+            </div>
+          </div>
+          <div className="command-flow-progress">
+            Console {activeStep.step} of {TABS.length}
+          </div>
+        </div>
+
+        <div className="command-tabbar" role="tablist" aria-label="Scenario quote generation trace">
           {TABS.map((tab) => (
             <button
               type="button"
@@ -142,13 +237,6 @@ export function CommandCenterWorkspace({
             </button>
           ))}
         </div>
-
-        <div className="command-mini-status" aria-label="Current case status">
-          <span>{renewalCase.recommendedActionLabel}</span>
-          <span>{renewalCase.riskLevel} risk</span>
-          <span>{renewalCase.recalculationMeta.approvalRequired ? 'Approval required' : 'No approval'}</span>
-          <span>{quoteInsightCount} insights</span>
-        </div>
       </div>
 
       {activeTab === 'run' ? (
@@ -156,10 +244,10 @@ export function CommandCenterWorkspace({
           <section className="card command-section-card">
             <div className="command-section-head">
               <div>
-                <h2 className="section-title">Run Renewal Workflow</h2>
+                <h2 className="section-title">Generate Scenario Quote Workflow</h2>
                 <p className="section-subtitle">
-                  Choose a scenario and run the end-to-end workflow. Advanced prompts and manual
-                  mutation controls stay available without dominating the page.
+                  Choose a scenario and run the workflow when you need to explain or refresh how
+                  scenario quote evidence is generated. This is optional for the business review path.
                 </p>
               </div>
               <div className="command-stat-strip">
@@ -301,7 +389,7 @@ export function CommandCenterWorkspace({
               <ActionRail
                 primary={
                   <Link className="button-link" href={`/scenario-quotes/${renewalCase.id}`}>
-                    Open Scenario Studio
+                    Open Scenario Quote Review
                   </Link>
                 }
                 secondary={
@@ -316,7 +404,7 @@ export function CommandCenterWorkspace({
                 }
                 tertiary={
                   <Link className="button-tertiary" href="/quote-drafts">
-                    Open Quote Review Center
+                    Open Baseline Quote Review
                   </Link>
                 }
                 hint="Scenario comparison is read-only. Baseline Quote remains the editable source."
@@ -384,56 +472,13 @@ export function CommandCenterWorkspace({
           />
         </div>
       ) : null}
-
-      <details className="command-secondary-flow">
-        <summary>Workflow Path</summary>
-        <WorkflowJourney
-          title="Renewal Workflow"
-          subtitle="Use this path to move from renewal decisioning to a final quote outcome."
-          steps={[
-            {
-              id: 'subscriptions',
-              label: 'Renewal Subscriptions',
-              description: 'Baseline subscription and entitlement context reviewed.',
-              href: '/renewal-cases?view=list',
-              state: 'complete',
-            },
-            {
-              id: 'decision-workspace',
-              label: 'Renewal Command Center',
-              description: 'Run recommendation, regenerate insights, and review AI guidance.',
-              href: `/renewal-cases/${renewalCase.id}`,
-              state: 'current',
-            },
-            {
-              id: 'scenario-workspace',
-              label: 'Scenario Studio',
-              description: hasQuoteDraft
-                ? 'Compare alternative scenario quotes against baseline.'
-                : 'Link or generate a baseline quote to enable scenario comparison.',
-              href: `/scenario-quotes/${renewalCase.id}`,
-              state: 'upcoming',
-            },
-            {
-              id: 'quote-review',
-              label: 'Quote Review Center',
-              description: hasQuoteDraft
-                ? quoteDecisionComplete
-                  ? 'Final quote decision has been submitted.'
-                  : 'Open the linked quote and complete approval review.'
-                : 'Quote review is available after a baseline quote is linked.',
-              href: hasQuoteDraft ? `/quote-drafts/${renewalCase.quoteDraft?.id}` : undefined,
-              state: quoteDecisionComplete ? 'complete' : 'upcoming',
-            },
-          ]}
-        />
-      </details>
     </section>
   )
 }
 
 function statusTone(status: string) {
   if (status === 'Complete') return 'complete'
+  if (status === 'Current') return 'current'
   if (status === 'Waiting') return 'waiting'
   if (status === 'Needs Refresh') return 'refresh'
   if (status === 'Ready') return 'ready'

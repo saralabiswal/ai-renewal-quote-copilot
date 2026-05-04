@@ -444,32 +444,32 @@ function nextActionForCase(item: RenewalCaseListItem) {
 
   if (status === 'approved') {
     return {
-      label: 'View Approved Outcome',
-      helper: 'Decision is complete. Open for audit trail and handoff.',
+      label: 'Open Generation Trace',
+      helper: 'Decision is complete. Inspect the scenario quote generation trace.',
       href: `/renewal-cases/${item.id}`,
     }
   }
 
   if (status === 'rejected') {
     return {
-      label: 'Review Rejected Outcome',
-      helper: 'Inspect rejection context before rerouting work.',
+      label: 'Open Generation Trace',
+      helper: 'Inspect rejection context and scenario quote generation trace.',
       href: `/renewal-cases/${item.id}`,
     }
   }
 
   if (item.requiresApproval) {
     return {
-      label: 'Open Approval Review',
-      helper: 'Review policy drivers and approval rationale first.',
+      label: 'Open Generation Trace',
+      helper: 'Inspect policy drivers, approval rationale, and generation steps.',
       href: `/renewal-cases/${item.id}`,
     }
   }
 
   if (status === 'under review') {
     return {
-      label: 'Continue Case Review',
-      helper: 'Regenerate insights and finalize quote direction.',
+      label: 'Open Generation Trace',
+      helper: 'Inspect or refresh scenario quote generation steps.',
       href: `/renewal-cases/${item.id}`,
     }
   }
@@ -483,8 +483,8 @@ function nextActionForCase(item: RenewalCaseListItem) {
   }
 
   return {
-    label: 'Open Command Center',
-    helper: 'Run recommendation workflow and prepare quote actions.',
+    label: 'Open Generation Trace',
+    helper: 'Inspect generation workflow and prepare quote actions.',
     href: `/renewal-cases/${item.id}`,
   }
 }

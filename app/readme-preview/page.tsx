@@ -1,152 +1,211 @@
-'use client'
+import { WorkspaceNav } from '@/components/layout/workspace-nav'
 
-import { useEffect } from 'react'
+function DiagramBox({
+  x,
+  y,
+  width,
+  height,
+  title,
+  lines,
+  accent = '#0f766e',
+}: {
+  x: number
+  y: number
+  width: number
+  height: number
+  title: string
+  lines: string[]
+  accent?: string
+}) {
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        rx="10"
+        fill="#ffffff"
+        stroke="#cbd5e1"
+      />
+      <rect x={x} y={y} width="6" height={height} rx="3" fill={accent} />
+      <text x={x + 18} y={y + 26} fill="#172033" fontSize="16" fontWeight="700">
+        {title}
+      </text>
+      <text x={x + 18} y={y + 50} fill="#52677f" fontSize="13">
+        {lines.map((line, index) => (
+          <tspan key={line} x={x + 18} dy={index === 0 ? 0 : 18}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  )
+}
 
-const mermaidArchitecture = `flowchart LR
-  U[Business User]
+function ArchitectureDiagramSvg() {
+  return (
+    <svg
+      className="architecture-svg"
+      viewBox="0 0 1180 360"
+      role="img"
+      aria-labelledby="architecture-diagram-title architecture-diagram-desc"
+    >
+      <title id="architecture-diagram-title">Backend renewal workflow architecture</title>
+      <desc id="architecture-diagram-desc">
+        Backend workflow from API trigger through orchestration, evidence loading, deterministic
+        policy, ML and LLM assistance, validation, quote outputs, audit trace, and persistence.
+      </desc>
+      <defs>
+        <marker
+          id="diagram-arrow"
+          viewBox="0 0 10 10"
+          refX="8"
+          refY="5"
+          markerWidth="7"
+          markerHeight="7"
+          orient="auto-start-reverse"
+        >
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+        </marker>
+      </defs>
 
-  subgraph WEB["Next.js App Router"]
-    PAGES["Pages + Server Components"]
-    CLIENT["Client Actions\\n(recalculate, regenerate, apply, review)"]
-    API["Route Handlers\\n/app/api/renewal-cases/..."]
-  end
+      <rect width="1180" height="360" rx="16" fill="#f8fafc" />
 
-  subgraph DOMAIN["Domain Layer"]
-    DB["lib/db/*\\nworkflow orchestration + persistence"]
-    RULES["lib/rules/*\\nrisk + recommendation + pricing guardrails"]
-    AI["lib/ai/*\\nprompting + model/fallback generation"]
-  end
+      <DiagramBox
+        x={30}
+        y={54}
+        width={170}
+        height={102}
+        title="API Trigger"
+        lines={['Route handler', 'Scenario key', 'Reviewer action']}
+        accent="#1d4ed8"
+      />
+      <DiagramBox
+        x={250}
+        y={54}
+        width={210}
+        height={102}
+        title="Workflow Orchestrator"
+        lines={['Load renewal case', 'Select mode', 'Coordinate steps']}
+      />
+      <DiagramBox
+        x={510}
+        y={54}
+        width={210}
+        height={102}
+        title="Evidence Snapshot"
+        lines={['Account signals', 'Subscription lines', 'Baseline quote']}
+        accent="#334155"
+      />
+      <DiagramBox
+        x={770}
+        y={54}
+        width={210}
+        height={102}
+        title="Policy Engine"
+        lines={['Recommendation rules', 'Pricing guardrails', 'Approval routing']}
+        accent="#0f766e"
+      />
+      <DiagramBox
+        x={510}
+        y={224}
+        width={210}
+        height={92}
+        title="ML Assistance"
+        lines={['Feature vector', 'Local predictor', 'Registry evidence']}
+        accent="#7c3aed"
+      />
+      <DiagramBox
+        x={770}
+        y={224}
+        width={210}
+        height={92}
+        title="Guarded AI"
+        lines={['Prompt pack', 'Narrative output', 'Validator finalizer']}
+        accent="#c2410c"
+      />
+      <DiagramBox
+        x={1024}
+        y={44}
+        width={126}
+        height={122}
+        title="Outputs"
+        lines={['Scenario quote', 'Quote insight', 'Review status']}
+        accent="#3858d8"
+      />
+      <DiagramBox
+        x={1024}
+        y={214}
+        width={126}
+        height={102}
+        title="Audit Store"
+        lines={['Decision run', 'Trace JSON', 'SQLite']}
+        accent="#334155"
+      />
 
-  subgraph DATA["Data Layer"]
-    PRISMA["Prisma Client"]
-    SQLITE[("SQLite\\nprisma/dev.db")]
-  end
-
-  OAI["OpenAI API (optional)"]
-
-  U --> PAGES
-  U --> CLIENT
-  CLIENT --> API
-  PAGES --> DB
-  API --> DB
-  DB --> RULES
-  DB --> AI
-  DB --> PRISMA --> SQLITE
-  AI --> OAI`
-
-const asciiArchitecture = `+--------------------+
-| Business User      |
-+--------------------+
-          |
-          v
-+----------------------------------------------+
-| Next.js App Router                            |
-| - Pages + Server Components                   |
-| - Client Actions                              |
-| - Route Handlers (/app/api/renewal-cases/...) |
-+----------------------------------------------+
-          |
-          v
-+----------------------------------------------+
-| Domain Layer                                  |
-| - lib/db    (workflow orchestration)          |
-| - lib/rules (risk + recommendations)          |
-| - lib/ai    (AI generation + fallback)        |
-+----------------------------------------------+
-      |                           |
-      v                           v
-+---------------------+      +----------------------+
-| Prisma Client       |      | OpenAI API (optional)|
-+---------------------+      +----------------------+
-      |
-      v
-+---------------------+
-| SQLite (prisma/dev.db) |
-+---------------------+`
+      <path className="architecture-svg-edge" d="M 200 105 L 250 105" />
+      <path className="architecture-svg-edge" d="M 460 105 L 510 105" />
+      <path className="architecture-svg-edge" d="M 720 105 L 770 105" />
+      <path className="architecture-svg-edge" d="M 980 105 L 1024 105" />
+      <path className="architecture-svg-edge" d="M 615 156 L 615 224" />
+      <path className="architecture-svg-edge" d="M 720 270 L 770 270" />
+      <path className="architecture-svg-edge" d="M 875 224 L 875 156" />
+      <path className="architecture-svg-edge" d="M 980 270 L 1024 265" />
+      <path className="architecture-svg-edge" d="M 1087 166 L 1087 214" />
+    </svg>
+  )
+}
 
 export default function ReadmePreviewPage() {
-  useEffect(() => {
-    function runMermaid() {
-      const mermaid = (window as any).mermaid
-      if (!mermaid) return
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'loose',
-        theme: 'neutral',
-      })
-      mermaid.run({
-        querySelector: '.mermaid',
-      })
-    }
-
-    if ((window as any).mermaid) {
-      runMermaid()
-      return
-    }
-
-    const existing = document.querySelector(
-      'script[data-mermaid-preview="true"]',
-    ) as HTMLScriptElement | null
-    if (existing) {
-      existing.addEventListener('load', runMermaid, { once: true })
-      return
-    }
-
-    const script = document.createElement('script')
-    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js'
-    script.async = true
-    script.dataset.mermaidPreview = 'true'
-    script.addEventListener('load', runMermaid, { once: true })
-    document.body.appendChild(script)
-  }, [])
-
   return (
     <div className="page">
-      <section className="card" style={{ display: 'grid', gap: 14 }}>
+      <WorkspaceNav
+        title="Developer Workbench"
+        subtitle="Run, reset, inspect, and validate the local demo implementation."
+        activeHref="/readme-preview"
+        items={[
+          {
+            label: 'Developer Guide',
+            href: '/readme-preview',
+            description: 'Docs and diagrams',
+          },
+          {
+            label: 'Decisioning Setup',
+            href: '/settings',
+            description: 'Runtime values',
+          },
+          {
+            label: 'AI Architecture',
+            href: '/technical-review',
+            description: 'Model evidence',
+          },
+          {
+            label: 'Generation Trace',
+            href: '/renewal-cases',
+            description: 'Workflow debug path',
+          },
+          {
+            label: 'Flow Map',
+            href: '/',
+            description: 'Audience paths',
+          },
+        ]}
+      />
+
+      <section className="card readme-preview-card">
         <header>
-          <h1 style={{ marginBottom: 6 }}>README Preview</h1>
-          <p className="section-subtitle" style={{ marginTop: 0 }}>
-            Visual preview of the architecture diagrams used in <code>README.md</code>.
+          <h1>Developer Guide Preview</h1>
+          <p className="section-subtitle">
+            Backend workflow view of how scenario quotes, guidance, validation, and audit evidence are generated.
           </p>
         </header>
 
         <div>
-          <h2 className="section-title" style={{ marginBottom: 8 }}>
-            Mermaid Diagram
-          </h2>
-          <div
-            style={{
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              background: '#ffffff',
-              padding: 12,
-              overflowX: 'auto',
-            }}
-          >
-            <pre className="mermaid" style={{ margin: 0 }}>
-              {mermaidArchitecture}
-            </pre>
+          <h2 className="section-title">Backend Workflow Design</h2>
+          <div className="readme-diagram-panel">
+            <ArchitectureDiagramSvg />
           </div>
-        </div>
-
-        <div>
-          <h2 className="section-title" style={{ marginBottom: 8 }}>
-            ASCII Fallback
-          </h2>
-          <pre
-            style={{
-              margin: 0,
-              border: '1px solid var(--border)',
-              borderRadius: 12,
-              background: '#f8fafc',
-              padding: 12,
-              overflowX: 'auto',
-              fontSize: 12,
-              lineHeight: 1.45,
-            }}
-          >
-            {asciiArchitecture}
-          </pre>
         </div>
       </section>
     </div>

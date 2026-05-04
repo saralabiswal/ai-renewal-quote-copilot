@@ -54,7 +54,14 @@ export function RenewalSubscriptionBaselineTable({
                         <td>{item.subscriptionNumber}</td>
                         <td>{item.productName}</td>
                         <td>
-                          <Link className="secondary-link" href={`/renewal-cases/${item.caseId}`}>
+                          <Link
+                            className="secondary-link"
+                            href={
+                              item.quoteDraftId
+                                ? `/quote-drafts/${item.quoteDraftId}`
+                                : '/quote-drafts'
+                            }
+                          >
                             {item.caseNumber}
                           </Link>
                           <div className="small muted">{item.renewalWindowLabel}</div>

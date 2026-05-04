@@ -41,7 +41,7 @@ export function DashboardCaseTable({ items }: { items: DashboardCaseRow[] }) {
 
               <td>
                 <div>{item.accountName}</div>
-                <div className="small muted">Open renewal workflow</div>
+                <div className="small muted">Open optional generation trace</div>
               </td>
 
               <td>{item.recommendedActionLabel}</td>

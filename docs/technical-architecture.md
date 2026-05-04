@@ -27,53 +27,20 @@ The app does not rely on an external data warehouse, external model service, or 
 ## Architecture Diagram
 
 ```mermaid
-flowchart TD
-  User[Revenue user or reviewer]
+flowchart LR
+  API["API trigger: route handler, scenario key, reviewer action"]
+  Orchestrator["Workflow orchestrator: load case, select mode, coordinate steps"]
+  Evidence["Evidence snapshot: account signals, subscription lines, baseline quote"]
+  Policy["Policy engine: recommendation rules, pricing guardrails, approval routing"]
+  ML["ML assistance: feature vector, local predictor, registry evidence"]
+  AI["Guarded AI: prompt pack, narrative output, validator finalizer"]
+  Outputs["Outputs: scenario quote, quote insight, review status"]
+  Audit[("Audit store: decision run, trace JSON, SQLite")]
 
-  subgraph App[Next.js application]
-    Pages[Pages and server components]
-    Controls[Client workflow controls]
-    Routes[API route handlers]
-  end
-
-  subgraph Decisioning[Decisioning layer]
-    Orchestrator[Recommendation decision orchestrator]
-    Rules[Deterministic recommendation engine]
-    Guardrails[Pricing guardrails]
-    Insights[Quote insight engine]
-  end
-
-  subgraph ML[Standalone local ML]
-    Features[Feature snapshot builder]
-    Registry[Model registry]
-    Predictor[Python predictor or local service]
-    Artifacts[Joblib model artifacts]
-  end
-
-  subgraph Narrative[Optional and guarded LLM layer]
-    Prompts[Prompt governance]
-    LLM[Ollama, OpenAI, mock, or fallback text]
-    Validator[Guarded validator and finalizer]
-  end
-
-  subgraph Storage[Local persistence]
-    Prisma[Prisma ORM]
-    SQLite[(SQLite)]
-  end
-
-  User --> Pages
-  User --> Controls --> Routes
-  Pages --> Orchestrator
-  Routes --> Orchestrator
-  Orchestrator --> Rules --> Guardrails
-  Orchestrator --> Features --> Predictor
-  Predictor --> Registry
-  Predictor --> Artifacts
-  Orchestrator --> Insights
-  Insights --> Prompts --> LLM --> Validator
-  Validator --> Orchestrator
-  Orchestrator --> Prisma --> SQLite
-  Insights --> Prisma
+  API --> Orchestrator --> Evidence --> Policy --> Outputs
+  Evidence --> ML --> AI --> Policy
+  AI --> Audit
+  Outputs --> Audit
 ```
 
 ## Data Model Inputs
@@ -442,12 +409,12 @@ Narratives are not the source of pricing truth. They explain structured outputs 
 
 The app exposes traceability in several places:
 
-- Settings: selected recommendation mode, model readiness, registry status, metrics.
+- Decisioning Setup: selected recommendation mode, model readiness, registry status, metrics.
 - AI Architecture: model selection, service boundary, artifacts, evaluation.
-- Policy Studio: rules, worked examples, prompt governance.
-- Renewal Command Center: workflow execution and decision trace.
+- Policy Playbook: rules, worked examples, prompt governance.
+- Scenario Quote Generation Trace: optional workflow execution, prompt visibility, and decision trace.
 - Quote Insights: structured evidence and ML metadata.
-- Quote Review Center: quote line traceability and final decision.
+- Baseline Quote Review: quote line traceability and final decision.
 
 Prompt governance includes:
 

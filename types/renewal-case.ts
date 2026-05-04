@@ -46,6 +46,7 @@ export type RenewalSubscriptionBaselineListItem = {
   id: string
   caseId: string
   caseNumber: string
+  quoteDraftId: string | null
   accountName: string
   segment: string
   subscriptionNumber: string

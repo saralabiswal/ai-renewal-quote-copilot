@@ -1,5 +1,5 @@
 import path from 'path'
-import { PageHeader } from '@/components/layout/page-header'
+import { WorkspaceNav } from '@/components/layout/workspace-nav'
 import { MlSettingsForm } from '@/components/settings/ml-settings-form'
 import { SettingsPrimaryTabs } from '@/components/settings/settings-primary-tabs'
 import { Badge } from '@/components/ui/badge'
@@ -65,11 +65,37 @@ export default function SettingsPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="Decisioning Setup"
-        description="Simple runtime controls for recommendation mode, LLM provider, and governed AI behavior."
-        purpose="Confirm what is active before running renewal workflows."
-        nextStep="Use Business View for demo readiness. Use Technical View only when inspecting runtime internals."
+      <WorkspaceNav
+        title="Architecture Console"
+        subtitle="Review runtime posture, policy boundaries, AI architecture, and audit evidence."
+        activeHref="/settings"
+        items={[
+          {
+            label: 'Decisioning Setup',
+            href: '/settings',
+            description: 'Runtime posture',
+          },
+          {
+            label: 'Policy Playbook',
+            href: '/policies',
+            description: 'Rules and guardrails',
+          },
+          {
+            label: 'AI Architecture',
+            href: '/technical-review',
+            description: 'Model and trace evidence',
+          },
+          {
+            label: 'Generation Trace',
+            href: '/renewal-cases',
+            description: 'Scenario quote steps',
+          },
+          {
+            label: 'Flow Map',
+            href: '/',
+            description: 'Audience paths',
+          },
+        ]}
       />
 
       <ViewModeSwitch

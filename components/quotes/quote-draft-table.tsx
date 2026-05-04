@@ -56,7 +56,7 @@ export function QuoteDraftTable({ quotes }: { quotes: QuoteDraftListItem[] }) {
                           <div className="small muted">{item.windowLabel}</div>
                           <div className="quote-scenario-link-row">
                             <Link className="button-secondary-sm" href={`/scenario-quotes/${item.caseId}`}>
-                              Open Scenario Studio
+                              Open Scenario Quote Review
                             </Link>
                             <span className="quote-scenario-meta">
                               {item.scenarioQuoteCount} Scenario
@@ -73,9 +73,16 @@ export function QuoteDraftTable({ quotes }: { quotes: QuoteDraftListItem[] }) {
                         <td>{item.accountName}</td>
 
                         <td>
-                          <Badge tone="default">{item.quoteTrackLabel}</Badge>
+                          <Link className="secondary-link" href={`/quote-drafts/${item.id}`}>
+                            <Badge tone="default">{item.quoteTrackLabel}</Badge>
+                          </Link>
                           <div className="small muted" style={{ marginTop: 4 }}>
                             {item.quoteTrackDescription}
+                          </div>
+                          <div className="quote-scenario-link-row">
+                            <Link className="button-secondary-sm" href={`/quote-drafts/${item.id}`}>
+                              Open Baseline Quote
+                            </Link>
                           </div>
                         </td>
 

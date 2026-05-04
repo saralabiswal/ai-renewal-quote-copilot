@@ -658,6 +658,11 @@ export async function getRenewalSubscriptionBaselines(): Promise<RenewalSubscrip
       renewalCase: {
         include: {
           account: true,
+          quoteDraft: {
+            select: {
+              id: true,
+            },
+          },
         },
       },
     },
@@ -671,6 +676,7 @@ export async function getRenewalSubscriptionBaselines(): Promise<RenewalSubscrip
     id: row.id,
     caseId: row.renewalCaseId,
     caseNumber: row.renewalCase.caseNumber,
+    quoteDraftId: row.renewalCase.quoteDraft?.id ?? null,
     accountName: row.renewalCase.account.name,
     segment: labelize(row.renewalCase.account.segment),
     subscriptionNumber: row.subscriptionNumberSnapshot,

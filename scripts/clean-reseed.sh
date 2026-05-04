@@ -11,6 +11,7 @@ echo "==> Generating Prisma client"
 npm run db:generate
 
 echo "==> Pushing schema"
+touch prisma/dev.db
 npm run db:push
 
 echo "==> Seeding database"

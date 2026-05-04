@@ -1,4 +1,4 @@
-import { PageHeader } from '@/components/layout/page-header'
+import { WorkspaceNav } from '@/components/layout/workspace-nav'
 import { PoliciesWorkspace } from '@/components/policies/policies-workspace'
 import { Badge } from '@/components/ui/badge'
 import { ViewModeSwitch } from '@/components/ui/view-mode-switch'
@@ -40,11 +40,37 @@ export default async function PoliciesPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="Policy Playbook"
-        description="Plain-language view of how renewal recommendations and quote insights are governed."
-        purpose="Start with the business explanation, then switch to Technical View for registry, prompts, data model, and change control."
-        nextStep="Use Business View for demo storytelling. Use Technical View for audit and implementation detail."
+      <WorkspaceNav
+        title="Architecture Console"
+        subtitle="Review runtime posture, policy boundaries, AI architecture, and audit evidence."
+        activeHref="/policies"
+        items={[
+          {
+            label: 'Decisioning Setup',
+            href: '/settings',
+            description: 'Runtime posture',
+          },
+          {
+            label: 'Policy Playbook',
+            href: '/policies',
+            description: 'Rules and guardrails',
+          },
+          {
+            label: 'AI Architecture',
+            href: '/technical-review',
+            description: 'Model and trace evidence',
+          },
+          {
+            label: 'Generation Trace',
+            href: '/renewal-cases',
+            description: 'Scenario quote steps',
+          },
+          {
+            label: 'Flow Map',
+            href: '/',
+            description: 'Audience paths',
+          },
+        ]}
       />
 
       <ViewModeSwitch

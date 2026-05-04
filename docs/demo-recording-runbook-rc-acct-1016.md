@@ -28,7 +28,7 @@ Recording quality checklist:
 3. Hide bookmarks/extensions and enable Do Not Disturb.
 4. Keep zoom at 100%.
 5. Pause one second after each navigation before speaking.
-6. Confirm `Settings` shows:
+6. Confirm `Decisioning Setup` shows:
    - Recommendation: `ML-Assisted Rules`
    - Governance Role: `AI Governance Admin`
    - Guarded LLM: `LLM-Assisted Guarded`
@@ -39,17 +39,17 @@ Recording quality checklist:
 
 Screen:
 
-1. Open dashboard (`/`).
+1. Open Flow Map (`/`).
 
 Talk track:
 
 1. “This demo walks a full renewal decision lifecycle for case RC-ACCT-1016 from baseline subscriptions to final quote decision.”
 
-## 0:30-1:30 Step 0: Policy Studio (Logic Transparency)
+## 0:30-1:30 Step 0: Policy Playbook (Logic Transparency)
 
 Screen:
 
-1. Open `Policy Studio` (`/policies`).
+1. Open `Policy Playbook` (`/policies`).
 2. Show `Seed Data Context`.
 3. Show `How the engine works under the hood (business view)`.
 4. Show `Signal Trajectory`.
@@ -58,7 +58,7 @@ Screen:
 
 Talk track:
 
-1. “Policy Studio explains why recommendations are produced using seeded business signals.”
+1. “Policy Playbook explains why recommendations are produced using seeded business signals.”
 2. “We can review trend direction, risk contribution, guardrail impact, and the exact current LLM prompt.”
 
 ## 1:30-2:15 Step 1: Renewal Subscriptions
@@ -76,7 +76,7 @@ Talk track:
 
 Screen:
 
-1. Open `Settings`.
+1. Open `Decisioning Setup`.
 2. Switch to `Technical View`.
 3. Show the 1-2-3 settings tabs:
    - `Recommendation`
@@ -88,7 +88,7 @@ Talk track:
 
 1. “The runtime posture is explicit: ML-assisted recommendation scoring, governance-admin authority, and validator-gated LLM assistance. Pricing and approvals remain deterministic.”
 
-## 2:15-3:00 Step 2: Renewal Command Center
+## 2:15-3:00 Step 2: Scenario Quote Generation Trace
 
 Screen:
 
@@ -98,7 +98,7 @@ Screen:
 
 Talk track:
 
-1. “This transitions from portfolio context to case-level decision execution.”
+1. “This optional trace explains how scenario quote evidence is generated step by step.”
 
 ## 3:00-4:30 Step 3: Run AI Workflow
 
@@ -133,7 +133,7 @@ Talk track:
 
 Screen:
 
-1. Open `Scenario Studio` (`/scenario-quotes`).
+1. Open `Scenario Quote Review` (`/scenario-quotes`).
 2. Show the case index, including total scenario count and per-case scenario count.
 3. Open `/scenario-quotes/rcase_aster_commerce`.
 4. Click `Regenerate Quote Scenarios` only if a refresh warning is shown.
@@ -145,7 +145,7 @@ Talk track:
 
 1. “Scenario quotes are compare-only options; baseline quote remains the execution source.”
 
-## 6:30-7:30 Step 6: Quote Review Center + Final Decision
+## 6:30-7:30 Step 6: Baseline Quote Review + Final Decision
 
 Screen:
 
@@ -190,7 +190,7 @@ npm run dev
 
 ## 4. Post-Recording QA Checklist
 
-1. Confirm all four flow steps were shown: Renewal Subscriptions -> Renewal Command Center -> Scenario Studio -> Quote Review Center.
+1. Confirm the business flow was shown: Renewal Subscriptions -> Baseline Quote Review -> Scenario Quote Review -> optional Scenario Quote Generation Trace.
 2. Confirm AI Live typed streaming output is clearly visible.
 3. Confirm one applied insight is shown in quote traceability.
 4. Confirm scenario comparison and preferred scenario are visible.

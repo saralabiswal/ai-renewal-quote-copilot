@@ -145,7 +145,7 @@ Decision Trace captures:
 
 ## Recommended Review Flow
 
-1. Open `Settings`.
+1. Open `Decisioning Setup`.
    - Show the 1-2-3 setup: ML-Assisted Rules, AI Governance Admin, LLM-Assisted Guarded.
    - Expand local model readiness only if the audience wants artifact, registry, approval gate, and evaluation details.
 2. Open `AI Architecture`.
@@ -153,16 +153,16 @@ Decision Trace captures:
    - Show sklearn expansion propensity model.
    - Show baseline/challenger model selection.
    - Show artifact checksum and service boundary.
-3. Open `Policy Studio`.
+3. Open `Policy Playbook`.
    - Show recommendation and quote insight policy.
    - Show prompt governance.
-4. Open `Renewal Command Center`.
+4. Open `Scenario Quote Generation Trace`.
    - Run the end-to-end workflow.
    - Open Decision Trace.
-   - Explain Settings Used, rule baseline, ML output, guarded LLM finalizer, final output, and guardrails.
+   - Explain selected settings, rule baseline, ML output, guarded LLM finalizer, final output, and guardrails.
 5. Open Quote Insights.
    - Show structured evidence and ML metadata.
-6. Open `Quote Review Center`.
+6. Open `Baseline Quote Review`.
    - Show human approval and quote-scoped final decision.
 
 ## Known Limitations

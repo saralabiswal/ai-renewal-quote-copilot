@@ -40,14 +40,12 @@ export default async function ScenarioQuoteWorkspacePage({
   }
 
   const coach = buildScenarioPersonalizationView(renewalCase, quoteScenarioWorkspace)
-  const quoteStatusKey = renewalCase.quoteDraft?.status.toLowerCase() ?? ''
   const hasQuoteDraft = Boolean(renewalCase.quoteDraft)
-  const quoteDecisionComplete = quoteStatusKey === 'approved' || quoteStatusKey === 'rejected'
   const hasScenarioQuotes = quoteScenarioWorkspace.scenarios.length > 0
   const scenarioPurpose =
-    'Compare read-only scenario quotes against the editable baseline quote before final approval.'
+    'Review read-only scenario quotes against the editable baseline quote before final approval.'
   const scenarioNextStep = !quoteScenarioWorkspace.baselineQuote
-    ? 'Open Renewal Command Center and apply quote insights to create a baseline quote first.'
+    ? 'Open Baseline Quote Review first. Use Scenario Quote Generation Trace only when the generation path needs explanation.'
     : hasScenarioQuotes
       ? 'Select a scenario in the navigator, review deltas, then mark your preferred scenario.'
       : quoteScenarioWorkspace.lastRunSummary?.suppressedReason
@@ -59,7 +57,7 @@ export default async function ScenarioQuoteWorkspacePage({
       <section className="card">
         <div className="section-header">
           <div>
-            <h1 className="renewal-workspace-title">Scenario Studio</h1>
+            <h1 className="renewal-workspace-title">Scenario Quote Review</h1>
             <p className="section-subtitle">
               Case {renewalCase.caseNumber} · {renewalCase.account.name} · {renewalCase.windowLabel}
             </p>
@@ -76,7 +74,7 @@ export default async function ScenarioQuoteWorkspacePage({
           <ActionRail
             primary={
               <Link className="button-link" href={`/renewal-cases/${renewalCase.id}`}>
-                Open Renewal Command Center
+                Open Generation Trace
               </Link>
             }
             secondary={
@@ -88,7 +86,7 @@ export default async function ScenarioQuoteWorkspacePage({
             }
             tertiary={
               <Link className="button-tertiary" href="/scenario-quotes">
-                Back to Scenario Studio
+                Back to Scenario Quote Review
               </Link>
             }
           />
@@ -96,40 +94,38 @@ export default async function ScenarioQuoteWorkspacePage({
       </section>
 
       <WorkflowJourney
-        title="Renewal Workflow"
-        subtitle="Scenario selection should feed directly into final quote review."
+        title="Business Review Flow"
+        subtitle="Review subscription scope, baseline quote, and scenario quote before using optional generation trace."
         steps={[
           {
             id: 'subscriptions',
-            label: 'Renewal Subscriptions',
+            label: 'Review Renewal Subscriptions',
             description: 'Baseline subscription scope already established.',
             href: '/renewal-cases?view=list',
             state: 'complete',
           },
           {
-            id: 'decision-workspace',
-            label: 'Renewal Command Center',
-            description: 'Recommendation and insight workflow already completed for this case.',
-            href: `/renewal-cases/${renewalCase.id}`,
-            state: 'complete',
+            id: 'baseline-quote',
+            label: 'Review Baseline Quote',
+            description: hasQuoteDraft
+              ? 'Editable baseline quote is linked for this renewal.'
+              : 'Baseline quote must be linked before scenario quote review.',
+            href: hasQuoteDraft ? `/quote-drafts/${renewalCase.quoteDraft?.id}` : '/quote-drafts',
+            state: hasQuoteDraft ? 'complete' : 'upcoming',
           },
           {
             id: 'scenario-workspace',
-            label: 'Scenario Studio',
+            label: 'Review Scenario Quote',
             description: 'Compare alternatives and mark a preferred scenario.',
             href: `/scenario-quotes/${renewalCase.id}`,
             state: 'current',
           },
           {
-            id: 'quote-review',
-            label: 'Quote Review Center',
-            description: hasQuoteDraft
-              ? quoteDecisionComplete
-                ? 'Final quote decision has already been submitted.'
-                : 'Open the baseline quote and submit final approval decision.'
-              : 'Quote review unlocks after a baseline quote is linked.',
-            href: hasQuoteDraft ? `/quote-drafts/${renewalCase.quoteDraft?.id}` : undefined,
-            state: quoteDecisionComplete ? 'complete' : 'upcoming',
+            id: 'decision-workspace',
+            label: 'Scenario Quote Generation Trace',
+            description: 'Optional explanation console for how scenario quote evidence was generated.',
+            href: `/renewal-cases/${renewalCase.id}`,
+            state: 'upcoming',
           },
         ]}
       />

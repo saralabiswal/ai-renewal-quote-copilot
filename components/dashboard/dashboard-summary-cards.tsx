@@ -16,37 +16,21 @@ export function DashboardSummaryCards({ metrics }: { metrics: Metric[] }) {
 
   return (
     <section
+      className="dashboard-summary-grid"
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         gap: 12,
-        marginBottom: 24,
       }}
     >
       {filtered.map((metric) => (
         <div
           key={metric.label}
           className="summary-card card"
-          style={{
-            paddingTop: 14,
-            paddingBottom: 14,
-          }}
         >
           <div className="summary-label">{metric.label}</div>
-          <div
-            className="summary-value"
-            style={{
-              fontSize: '1.15rem',
-              lineHeight: 1.2,
-            }}
-          >
-            {metric.value}
-          </div>
-          {metric.helperText ? (
-            <div className="summary-helper" style={{ marginTop: 6 }}>
-              {metric.helperText}
-            </div>
-          ) : null}
+          <div className="summary-value">{metric.value}</div>
+          {metric.helperText ? <div className="summary-helper">{metric.helperText}</div> : null}
         </div>
       ))}
     </section>

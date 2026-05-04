@@ -35,40 +35,47 @@ The result is a complete renewal decision workflow:
 
 - A renewal case is evaluated using rules plus local ML evidence.
 - Quote insights convert recommendation outputs into structured quote actions.
-- Scenario Studio generates read-only commercial alternatives for comparison.
-- Quote Review Center keeps final approval human-controlled.
+- Scenario Quote Review generates and compares read-only commercial alternatives.
+- Baseline Quote Review keeps final approval human-controlled.
+- Scenario Quote Generation Trace explains the internal workflow when reviewers need step-by-step generation evidence.
 - Decision Trace shows settings used, rule output, ML output, guarded LLM mode, final recommendation, guardrails, model metadata, and the evidence used.
-- AI Architecture and Settings expose model readiness, registry approval, evaluation metrics, serving mode, runtime recommendation mode, LLM provider, and guarded decisioning mode.
+- AI Architecture and Decisioning Setup expose model readiness, registry approval, evaluation metrics, serving mode, runtime recommendation mode, LLM provider, and guarded decisioning mode.
 
 This makes the app more than a UI demo. It is a standalone AI/ML-backed renewal decision system that shows how enterprise teams can combine predictive ML, GenAI explanation, deterministic guardrails, and human review in one auditable workflow.
 
 ---
-## The Renewal Command Center in Action
+## Scenario Quote Generation Trace in Action
 
-![Renewal Command Center](docs/assets/user-guide/04-case-decision-workspace.png)
+![Scenario Quote Generation Trace](docs/assets/user-guide/04-case-decision-workspace.png)
 
 ## Product Workflow
 
 ```text
-Settings
+Flow Map
+  -> choose Business Workspace, Architecture Console, or Developer Workbench
+
+Decisioning Setup
   -> choose Recommendation Mode, Governance Role, and Guarded LLM Mode
   -> confirm ML readiness and LLM provider only when needed
 
-Policy Studio
+Policy Playbook
   -> inspect rules, worked examples, prompts, and ML-assisted behavior
 
 Renewal Subscriptions
   -> review baseline subscription and signal context
 
-Renewal Command Center
-  -> follow the guided flow: Run Workflow, Review Changes, Apply Quote Actions, Inspect Evidence, Finalize Review
-  -> inspect Decision Trace, ML output, guardrails, prompts, and reasoning when needed
+Baseline Quote Review
+  -> review editable baseline quote lines and quote status
 
-Scenario Studio
+Scenario Quote Review
   -> choose cases from an index with scenario counts
   -> compare generated commercial alternatives
 
-Quote Review Center
+Scenario Quote Generation Trace
+  -> optional explanation path for Generate Scenario Quote, Review Generated Changes, Apply Quote Actions, Decision Trace, and AI Review Guidance
+  -> inspect ML output, guardrails, prompts, and reasoning when needed
+
+Baseline Quote Review
   -> review applied quote actions and record the final quote decision
 ```
 
@@ -82,7 +89,7 @@ Quote Review Center
 | `ML_SHADOW` | Shadow Mode | ML scores are captured for audit and comparison. Rules remain final. |
 | `HYBRID_RULES_ML` | ML-Assisted Rules | Rule risk and ML risk are blended for the recommendation. Pricing guardrails remain final. |
 
-The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtime changes are made from `Settings -> Technical View -> Recommendation Mode` by using the 1-2-3 setting flow and clicking `Apply Settings`.
+The app defaults to `HYBRID_RULES_ML` when no runtime setting is present. Runtime changes are made from `Decisioning Setup -> Technical View -> Recommendation Mode` by using the 1-2-3 setting flow and clicking `Apply Settings`.
 
 ## Guarded LLM Modes
 
@@ -141,47 +148,19 @@ Quote insights are generated after recommendation recalculation. They are not fr
 
 ```mermaid
 flowchart LR
-  User[Revenue User]
+  API["API trigger: route handler, scenario key, reviewer action"]
+  Orchestrator["Workflow orchestrator: load case, select mode, coordinate steps"]
+  Evidence["Evidence snapshot: account signals, subscription lines, baseline quote"]
+  Policy["Policy engine: recommendation rules, pricing guardrails, approval routing"]
+  ML["ML assistance: feature vector, local predictor, registry evidence"]
+  AI["Guarded AI: prompt pack, narrative output, validator finalizer"]
+  Outputs["Outputs: scenario quote, quote insight, review status"]
+  Audit[("Audit store: decision run, trace JSON, SQLite")]
 
-  subgraph UI[Next.js App Router]
-    Pages[Server Pages]
-    Client[Client Workflow Controls]
-    API[Route Handlers]
-  end
-
-  subgraph Domain[Domain Services]
-    Rules[Recommendation Rules]
-    Decision[Decision Orchestrator]
-    Insights[Quote Insight Engine]
-    AI[Ollama/OpenAI Text + Guarded JSON]
-    Guarded[Guarded Validators]
-  end
-
-  subgraph ML[Standalone Local ML]
-    Features[Feature Snapshot]
-    Registry[Model Registry]
-    Predict[Python Predictor or Local Service]
-    Models[Joblib Model Artifacts]
-  end
-
-  subgraph Data[Local Data]
-    Prisma[Prisma]
-    SQLite[(SQLite)]
-  end
-
-  User --> Pages
-  User --> Client
-  Client --> API
-  Pages --> Domain
-  API --> Domain
-  Decision --> Rules
-  Decision --> Features --> Predict
-  Predict --> Registry
-  Predict --> Models
-  Insights --> Decision
-  Decision --> AI --> Guarded --> Decision
-  AI --> Insights
-  Domain --> Prisma --> SQLite
+  API --> Orchestrator --> Evidence --> Policy --> Outputs
+  Evidence --> ML --> AI --> Policy
+  AI --> Audit
+  Outputs --> Audit
 ```
 
 ---
@@ -214,12 +193,12 @@ The current data is synthetic and generated from the application data model. It 
 First-run seed data is designed for a complete standalone walkthrough:
 
 - Every renewal case has a baseline quote aligned to the renewal case.
-- Scenario quote artifacts are materialized for eligible cases and shown in the Scenario Studio index.
-- Scenario Studio shows per-case scenario counts before the user opens a case.
+- Scenario quote artifacts are materialized for eligible cases and shown in the Scenario Quote Review index.
+- Scenario Quote Review shows per-case scenario counts before the user opens a case.
 - The baseline quote remains the editable execution source; scenario quotes are read-only comparison artifacts.
 - Default Recommendation Mode is ML-Assisted Rules.
 - Default text generation provider is Ollama, with OpenAI available by configuration.
-- Guarded decisioning mode can be selected in Settings and is audited in Decision Trace.
+- Guarded decisioning mode can be selected in Decisioning Setup and is audited in Decision Trace.
 
 ---
 
@@ -292,7 +271,7 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Yes | `file:./dev.db` | Local SQLite database. |
 | `ML_RECOMMENDATION_MODE` | No | `HYBRID_RULES_ML` | Default recommendation mode before runtime setting is saved. |
-| `GUARDED_DECISIONING_MODE` | No | `LLM_CRITIC_SHADOW` | Default guarded LLM mode before runtime setting is saved. Use Settings to choose `LLM_ASSISTED_GUARDED` for the guarded demo posture. |
+| `GUARDED_DECISIONING_MODE` | No | `LLM_CRITIC_SHADOW` | Default guarded LLM mode before runtime setting is saved. Use Decisioning Setup to choose `LLM_ASSISTED_GUARDED` for the guarded demo posture. |
 | `DEMO_USER_ROLE` | No | `AI_GOVERNANCE_ADMIN` | Demo role used for guarded mode authorization when no request header is provided. |
 | `ML_PYTHON_BIN` | No | `.venv-ml/bin/python` | Python executable used for local prediction. |
 | `ML_SERVICE_URL` | No | empty | Optional local HTTP ML service URL. |
@@ -349,11 +328,11 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 
 For a technical review, start with:
 
-1. **Settings** — show the 1-2-3 decisioning setup: Recommendation Mode, Governance Role, and Guarded LLM Mode.
+1. **Decisioning Setup** — show the 1-2-3 decisioning setup: Recommendation Mode, Governance Role, and Guarded LLM Mode.
 2. **AI Architecture** — show model selection, metrics, registry, and serving boundary.
-3. **Renewal Command Center** — run the workflow and inspect Decision Trace, including Settings Used and guarded finalizer result.
+3. **Scenario Quote Generation Trace** — run the optional generation workflow and inspect Decision Trace, including selected settings and guarded finalizer result.
 4. **Quote Insights** — show structured evidence and ML metadata.
-5. **Quote Review Center** — show human approval and final quote decision.
+5. **Baseline Quote Review** — show human approval and final quote decision.
 
 ---
 

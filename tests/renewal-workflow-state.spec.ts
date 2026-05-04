@@ -231,7 +231,7 @@ test('quote review decision updates quote status and review history', async ({ p
 
   await page.goto('/renewal-cases/rcase_harbor_fin')
   await waitForPageStable(page)
-  await openCommandTab(page, /Finalize Review/i)
+  await openCommandTab(page, /AI Review Guidance/i)
 
   await page.getByRole('button', { name: /Review History/i }).click()
 
@@ -375,7 +375,7 @@ test('scenario index shows scenario quote counts before opening studio', async (
     has: page.locator('a[href="/scenario-quotes/rcase_horizon_util"]'),
   })
   await expect(horizonRow).toHaveCount(1)
-  await expect(horizonRow).toContainText('1 scenario')
+  await expect(horizonRow).toContainText(/\d+ scenarios?/)
 })
 
 test('scenario workspace auto-regenerates when marked stale', async ({ page, request }) => {

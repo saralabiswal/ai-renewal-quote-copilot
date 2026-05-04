@@ -1,20 +1,34 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
-function currentWorkspaceLabel(pathname: string) {
-  if (pathname.startsWith('/renewal-cases/')) return 'Renewal Command Center'
-  if (pathname.startsWith('/renewal-cases')) return 'Renewal Command Center'
-  if (pathname.startsWith('/quote-drafts/')) return 'Quote Review Center'
-  if (pathname.startsWith('/quote-drafts')) return 'Quote Review Center'
-  if (pathname.startsWith('/scenario-quotes/')) return 'Scenario Studio'
-  if (pathname.startsWith('/scenario-quotes')) return 'Scenario Studio'
-  if (pathname.startsWith('/policies')) return 'Policy Studio'
-  if (pathname.startsWith('/technical-review')) return 'AI Architecture'
-  if (pathname.startsWith('/settings')) return 'Settings'
-  return 'Dashboard'
+function currentWorkspaceLabel(pathname: string, isRenewalListView: boolean) {
+  if (pathname === '/' || pathname.startsWith('/audience-flow')) return 'Flow Map'
+  if (pathname.startsWith('/business-home')) return 'Business Home'
+  if (pathname.startsWith('/readme-preview')) return 'Developer Workbench'
+  if (pathname.startsWith('/renewal-cases/')) return 'Scenario Quote Generation Trace'
+  if (pathname.startsWith('/renewal-cases') && isRenewalListView) return 'Renewal Subscriptions'
+  if (pathname.startsWith('/renewal-cases')) return 'Scenario Quote Generation Trace'
+  if (pathname.startsWith('/quote-drafts/')) return 'Baseline Quote Review'
+  if (pathname.startsWith('/quote-drafts')) return 'Baseline Quote Review'
+  if (pathname.startsWith('/scenario-quotes/')) return 'Scenario Quote Review'
+  if (pathname.startsWith('/scenario-quotes')) return 'Scenario Quote Review'
+  if (pathname.startsWith('/policies')) return 'Policy Playbook'
+  if (pathname.startsWith('/technical-review')) return 'AI Decision Flow'
+  if (pathname.startsWith('/settings')) return 'Decisioning Setup'
+  return 'Business Home'
+}
+
+function currentAudienceLabel(pathname: string) {
+  if (pathname === '/' || pathname.startsWith('/audience-flow')) return 'Start Here'
+  if (pathname.startsWith('/business-home')) return 'Business Workspace'
+  if (pathname.startsWith('/settings')) return 'Architecture Console'
+  if (pathname.startsWith('/policies')) return 'Architecture Console'
+  if (pathname.startsWith('/technical-review')) return 'Architecture Console'
+  if (pathname.startsWith('/readme-preview')) return 'Developer Workbench'
+  return 'Business Workspace'
 }
 
 function currentEntityLabel(pathname: string) {
@@ -36,42 +50,57 @@ function currentEntityLabel(pathname: string) {
   return null
 }
 
-function nextStepHint(pathname: string) {
+function nextStepHint(pathname: string, isRenewalListView: boolean) {
+  if (pathname === '/' || pathname.startsWith('/audience-flow')) {
+    return 'Choose Business, Architecture, or Developer based on the review goal.'
+  }
+  if (pathname.startsWith('/business-home')) {
+    return 'Triage renewal risk, start with subscription review, then move through baseline and scenario quote review with optional generation trace when needed.'
+  }
+  if (pathname.startsWith('/readme-preview')) {
+    return 'Use local commands, reset the database, then validate the workflow.'
+  }
   if (pathname.startsWith('/renewal-cases/')) {
-    return 'Set scenario, run workflow, then apply quote insights.'
+    return 'Inspect the step-by-step trace behind scenario quote generation.'
+  }
+  if (pathname.startsWith('/renewal-cases') && isRenewalListView) {
+    return 'Review subscription scope first, then continue to Baseline Quote Review.'
   }
   if (pathname.startsWith('/renewal-cases')) {
-    return 'Open a case with high risk or approval required first.'
+    return 'Use after reviewing subscriptions, baseline quote, and scenario quote.'
   }
   if (pathname.startsWith('/quote-drafts/')) {
-    return 'Validate commercial changes, then submit the quote review decision.'
+    return 'Review the editable baseline quote before comparing scenario quotes.'
   }
   if (pathname.startsWith('/quote-drafts')) {
-    return 'Open a quote to review line-level impact and status.'
+    return 'Open a baseline quote to review commercial lines and quote status.'
   }
   if (pathname.startsWith('/scenario-quotes/')) {
-    return 'Compare against baseline and mark preferred scenario in Scenario Studio.'
+    return 'Compare scenario quote options against the baseline quote.'
   }
   if (pathname.startsWith('/scenario-quotes')) {
-    return 'Choose a renewal case to open scenario comparison.'
+    return 'Choose a renewal case to review scenario quote options.'
   }
   if (pathname.startsWith('/policies')) {
-    return 'Use this page to explain policy logic and ML-assisted recommendation behavior.'
+    return 'Explain policy logic, guardrails, prompt governance, and change control.'
   }
   if (pathname.startsWith('/technical-review')) {
     return 'Review standalone ML architecture, serving, evaluation, and decision trace evidence.'
   }
   if (pathname.startsWith('/settings')) {
-    return 'Set Recommendation Mode, then confirm local ML and Ollama LLM readiness.'
+    return 'Confirm recommendation mode, guarded LLM posture, and runtime readiness.'
   }
-  return 'Start in Renewal Command Center or Renewal Subscriptions.'
+  return 'Start with Business Flow, or switch to Architecture Console for trust review.'
 }
 
 export function Topbar() {
   const pathname = usePathname()
-  const workspace = currentWorkspaceLabel(pathname)
+  const searchParams = useSearchParams()
+  const isRenewalListView = pathname.startsWith('/renewal-cases') && searchParams.get('view') === 'list'
+  const workspace = currentWorkspaceLabel(pathname, isRenewalListView)
+  const audience = currentAudienceLabel(pathname)
   const entity = currentEntityLabel(pathname)
-  const nextStep = nextStepHint(pathname)
+  const nextStep = nextStepHint(pathname, isRenewalListView)
 
   return (
     <header className="topbar">
@@ -80,8 +109,8 @@ export function Topbar() {
           <strong>AI Renewal Quote Copilot</strong>
         </Link>
         <div className="topbar-context">
-          <span className="topbar-context-label">Area</span>
-          <span className="topbar-context-value">{workspace}</span>
+          <span className="topbar-context-label">{audience}</span>
+          <h1 className="topbar-context-value">{workspace}</h1>
           {entity ? (
             <>
               <span className="topbar-context-divider">•</span>
@@ -89,9 +118,9 @@ export function Topbar() {
             </>
           ) : null}
         </div>
+        <p className="topbar-next-step">{nextStep}</p>
       </div>
       <div className="topbar-meta">
-        <span className="topbar-next-step">{nextStep}</span>
         <Badge tone="info">Self-Serve Demo</Badge>
       </div>
     </header>

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'fs'
 import path from 'path'
-import { PageHeader } from '@/components/layout/page-header'
+import { WorkspaceNav } from '@/components/layout/workspace-nav'
 import { Badge } from '@/components/ui/badge'
 import { ViewModeSwitch } from '@/components/ui/view-mode-switch'
 import { labelize } from '@/lib/format/risk'
@@ -358,11 +358,37 @@ export default async function TechnicalReviewPage() {
 
   return (
     <div className="page">
-      <PageHeader
-        title="AI Decision Flow"
-        description="Business-first explanation of how rules, ML, LLM reasoning, validators, and reviewers work together."
-        purpose="Explain what the AI can influence, what remains deterministic, and how the result is audited."
-        nextStep="Use Business View for the demo story. Use Technical View for model registry, evaluation, serving, and latest run evidence."
+      <WorkspaceNav
+        title="Architecture Console"
+        subtitle="Review runtime posture, policy boundaries, AI architecture, and audit evidence."
+        activeHref="/technical-review"
+        items={[
+          {
+            label: 'Decisioning Setup',
+            href: '/settings',
+            description: 'Runtime posture',
+          },
+          {
+            label: 'Policy Playbook',
+            href: '/policies',
+            description: 'Rules and guardrails',
+          },
+          {
+            label: 'AI Architecture',
+            href: '/technical-review',
+            description: 'Model and trace evidence',
+          },
+          {
+            label: 'Generation Trace',
+            href: '/renewal-cases',
+            description: 'Scenario quote steps',
+          },
+          {
+            label: 'Flow Map',
+            href: '/',
+            description: 'Audience paths',
+          },
+        ]}
       />
 
       <ViewModeSwitch

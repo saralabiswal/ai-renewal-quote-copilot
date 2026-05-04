@@ -1,13 +1,19 @@
 import { test, expect } from '@playwright/test'
 import { waitForPageStable } from './helpers'
 
-test('policy studio renders seeded context and under-the-hood guidance', async ({ page }) => {
+test('policy playbook renders seeded context and under-the-hood guidance', async ({ page }) => {
   await page.goto('/policies')
   await waitForPageStable(page)
 
   await expect(
-    page.getByRole('heading', { name: /^Policy Studio$/i }),
+    page.getByRole('heading', { name: /^Policy Playbook$/i }),
   ).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /How the Policy Works/i }),
+  ).toBeVisible()
+
+  await page.getByRole('button', { name: 'Technical View' }).click()
+  await waitForPageStable(page)
 
   const seedContext = page.locator('section.policy-step-card').filter({
     has: page.getByRole('heading', { name: /Seed Data Context/i }),
@@ -23,14 +29,12 @@ test('policy studio renders seeded context and under-the-hood guidance', async (
   await expect(trajectorySection).toBeVisible()
   const trajectoryRows = trajectorySection.locator('tbody tr')
   await expect(trajectoryRows.first()).toBeVisible()
-
-  await expect(
-    page.getByText(/How the engine works under the hood \(business view\)/i),
-  ).toBeVisible()
 })
 
-test('policy studio example selector updates selected subscription context', async ({ page }) => {
+test('policy playbook example selector updates selected subscription context', async ({ page }) => {
   await page.goto('/policies')
+  await waitForPageStable(page)
+  await page.getByRole('button', { name: 'Technical View' }).click()
   await waitForPageStable(page)
 
   const exampleSelect = page.locator('#worked-policy-product')
@@ -51,10 +55,12 @@ test('policy studio example selector updates selected subscription context', asy
   expect(afterContext).not.toEqual(beforeContext)
 })
 
-test('policy studio end-to-end visual flow tab renders a self-explanatory journey', async ({
+test('policy playbook end-to-end visual flow tab renders a self-explanatory journey', async ({
   page,
 }) => {
   await page.goto('/policies')
+  await waitForPageStable(page)
+  await page.getByRole('button', { name: 'Technical View' }).click()
   await waitForPageStable(page)
 
   await page.getByRole('button', { name: /End-to-End Visual Flow/i }).click()
@@ -69,10 +75,12 @@ test('policy studio end-to-end visual flow tab renders a self-explanatory journe
   await expect(page.getByText(/Create quote actions and scenarios/i)).toBeVisible()
 })
 
-test('policy studio prompt governance tab shows versioned prompt packs and guardrails', async ({
+test('policy playbook prompt governance tab shows versioned prompt packs and guardrails', async ({
   page,
 }) => {
   await page.goto('/policies')
+  await waitForPageStable(page)
+  await page.getByRole('button', { name: 'Technical View' }).click()
   await waitForPageStable(page)
 
   await page.getByRole('button', { name: /Prompt Governance/i }).click()

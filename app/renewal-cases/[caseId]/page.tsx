@@ -22,10 +22,10 @@ export default async function RenewalCaseDetailPage({
   }
 
   const casePurpose =
-    'Run the workflow, review what changed, and move selected quote actions toward review.'
+    'Optional explanation console for how recommendation, quote insight, and scenario quote evidence are generated.'
   const caseNextStep = quoteInsights.needsRefresh
-    ? 'Open Run and regenerate the workflow before applying quote actions.'
-    : 'Open Quote Actions to apply suggested changes, or Decision Evidence for the technical audit.'
+    ? 'Regenerate the workflow only if the scenario quote evidence needs refresh.'
+    : 'Review subscriptions, baseline quote, and scenario quote first; use this page when generation details are needed.'
 
   return (
     <div className="page">
@@ -33,9 +33,9 @@ export default async function RenewalCaseDetailPage({
         <div className="renewal-workspace-main">
           <div className="renewal-workspace-title-row">
             <div>
-              <h1 className="renewal-workspace-title">Renewal Command Center</h1>
+              <h1 className="renewal-workspace-title">Scenario Quote Generation Trace</h1>
               <p className="renewal-workspace-subtitle">
-                A focused workspace for scenario execution, quote actions, and decision evidence.
+                Optional workspace for explaining and regenerating the scenario quote generation path.
               </p>
               <div className="page-header-guidance" style={{ marginTop: 10 }}>
                 <p className="page-header-purpose">
@@ -80,7 +80,7 @@ export default async function RenewalCaseDetailPage({
           <div className="renewal-action-panel">
             <div className="renewal-action-panel-head">
               <div className="small muted" style={{ fontWeight: 700 }}>
-                Command Actions
+                Generation Trace Actions
               </div>
               <div className="small muted">
                 Approval Required: {renewalCase.recalculationMeta.approvalRequired ? 'Yes' : 'No'}
@@ -108,7 +108,7 @@ export default async function RenewalCaseDetailPage({
             )}
 
             <div className="small muted">
-              Final approve, reject, and revision actions are completed in Quote Review Center.
+              Final approve, reject, and revision actions are completed from Baseline Quote Review.
             </div>
           </div>
         </div>
