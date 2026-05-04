@@ -722,9 +722,10 @@ Verification:
 
 ### Post-Merge Cleanup Backlog
 
-- Migrate linting from `next lint` to the ESLint CLI before upgrading to Next.js 16.
-  - Current status: non-blocking deprecation warning only.
-  - Suggested implementation: add an `eslint .` style script with the repo's Next/TypeScript config and update CI/package scripts.
-- Review the `NO_COLOR` / `FORCE_COLOR` environment warning in Playwright/web-server runs.
-  - Current status: non-blocking runtime warning only.
-  - Suggested implementation: normalize test environment color variables in the test runner or web server command if the warning becomes noisy in CI logs.
+- Completed 2026-05-03.
+- Migrated linting from deprecated `next lint` to the ESLint CLI via `npm run lint`.
+  - The repo continues to use the existing flat ESLint config with Next core web vitals.
+  - Added generated-output ignores for Playwright reports, test results, and local artifacts.
+- Normalized Playwright color environment handling.
+  - The Playwright config now removes `NO_COLOR` before deriving runner and web-server environments while preserving the existing test AI mock settings.
+  - This prevents the noisy `NO_COLOR` / `FORCE_COLOR` warning in Playwright-driven runner, worker, and dev-server runs.

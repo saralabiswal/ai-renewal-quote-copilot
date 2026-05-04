@@ -1,5 +1,16 @@
 import { defineConfig, devices } from '@playwright/test'
 
+delete process.env.NO_COLOR
+
+const webServerEnv: Record<string, string> = Object.fromEntries(
+  Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+)
+
+webServerEnv.AI_PROVIDER = 'openai'
+webServerEnv.OPENAI_MOCK_MODE = '1'
+
+delete webServerEnv.NO_COLOR
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
@@ -20,11 +31,7 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 120_000,
-    env: {
-      ...process.env,
-      AI_PROVIDER: 'openai',
-      OPENAI_MOCK_MODE: '1',
-    },
+    env: webServerEnv,
   },
 
   projects: [
