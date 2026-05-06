@@ -432,7 +432,7 @@ function applyInsightToScenarioLines(lines: MutableScenarioLine[], insight: Quot
 
   if (isAdditiveInsight(insight.insightType)) {
     const existingLine = lines.find((line) => line.productSku === insight.productSkuSnapshot)
-    if (existingLine) return
+    if (existingLine && insight.insightType !== 'EXPANSION') return
 
     const effectiveDiscount = discountPercent ?? new Prisma.Decimal(0)
     const listUnitPrice = computeListUnitPrice(netUnitPrice, effectiveDiscount)
@@ -555,6 +555,24 @@ function copyBaselineLines(lines: BaselineLine[]): MutableScenarioLine[] {
   }))
 }
 
+function findLineForInsight(lines: MutableScenarioLine[], insight: QuoteInsight | null | undefined) {
+  if (!insight) return null
+
+  return (
+    lines.find(
+      (line) =>
+        line.productSku === insight.productSkuSnapshot ||
+        line.productName === insight.productNameSnapshot,
+    ) ?? null
+  )
+}
+
+function computeNetUnitPriceFromDiscount(line: MutableScenarioLine, discountPercent: Prisma.Decimal) {
+  return line.listUnitPrice
+    .mul(new Prisma.Decimal(1).minus(discountPercent.div(100)))
+    .toDecimalPlaces(2)
+}
+
 function fallbackStrategyForCase(args: {
   recommendedAction: string | null
   riskLevel: string | null
@@ -568,6 +586,7 @@ function fallbackStrategyForCase(args: {
 
   if (action.includes('EXPAND') || action.includes('CROSS')) return 'UPSELL_EXPANSION'
   if (action.includes('MARGIN')) return 'MARGIN_PROTECTION'
+  if (action.includes('UPLIFT')) return 'MARGIN_PROTECTION'
   if (action.includes('CONCESSION') || action.includes('DEFENSIVE') || risk === 'HIGH') {
     return 'RETENTION_OFFER'
   }
@@ -586,16 +605,19 @@ function buildFallbackScenarioCandidate(args: {
 
   const strategyType = args.forcedStrategyType ?? fallbackStrategyForCase(args)
   const scenarioLines = copyBaselineLines(args.baselineLines)
-  const target = scenarioLines
-    .slice()
-    .sort((a, b) => Number(b.lineNetAmount) - Number(a.lineNetAmount))[0]
-  const targetIndex = scenarioLines.findIndex((line) => line.lineNumber === target.lineNumber)
-  const discount = target.discountPercent ?? new Prisma.Decimal(0)
   const [primaryInsight] = sortedInsights(args.insights).filter(
     (insight) => strategyForInsight(insight) === strategyType,
   )
   const [fallbackInsight] = sortedInsights(args.insights)
   const supportingInsight = primaryInsight ?? fallbackInsight
+  const insightLine = findLineForInsight(scenarioLines, supportingInsight)
+  const target =
+    insightLine ??
+    scenarioLines
+      .slice()
+      .sort((a, b) => Number(b.lineNetAmount) - Number(a.lineNetAmount))[0]
+  const targetIndex = scenarioLines.findIndex((line) => line.lineNumber === target.lineNumber)
+  const discount = target.discountPercent ?? new Prisma.Decimal(0)
 
   let nextQuantity = target.quantity
   let nextNetUnitPrice = target.netUnitPrice
@@ -606,23 +628,21 @@ function buildFallbackScenarioCandidate(args: {
       nextQuantity = Math.max(target.quantity + 1, Math.ceil(target.quantity * 1.1))
       break
     case 'RIGHT_SIZING':
+      if (target.quantity <= 1) return null
       nextQuantity = Math.max(1, Math.floor(target.quantity * 0.9))
-      if (nextQuantity === target.quantity) {
-        nextNetUnitPrice = target.netUnitPrice.mul(0.98).toDecimalPlaces(2)
-      }
       break
     case 'RETENTION_OFFER':
-      nextNetUnitPrice = target.netUnitPrice.mul(0.97).toDecimalPlaces(2)
       nextDiscount = Prisma.Decimal.min(discount.add(3), new Prisma.Decimal(95))
+      nextNetUnitPrice = computeNetUnitPriceFromDiscount(target, nextDiscount)
       break
     case 'MARGIN_PROTECTION':
-      nextNetUnitPrice = target.netUnitPrice.mul(1.03).toDecimalPlaces(2)
       nextDiscount = Prisma.Decimal.max(discount.sub(2), new Prisma.Decimal(0))
+      nextNetUnitPrice = computeNetUnitPriceFromDiscount(target, nextDiscount)
       break
     case 'BUNDLE_OPTIMIZATION':
     default:
-      nextNetUnitPrice = target.netUnitPrice.mul(1.02).toDecimalPlaces(2)
       nextDiscount = Prisma.Decimal.max(discount.sub(1), new Prisma.Decimal(0))
+      nextNetUnitPrice = computeNetUnitPriceFromDiscount(target, nextDiscount)
       break
   }
 
@@ -675,6 +695,96 @@ function buildFallbackScenarioCandidate(args: {
   }
 }
 
+function preferredStrategyOrderForCase(args: {
+  recommendedAction: string | null
+  riskLevel: string | null
+  insights: QuoteInsight[]
+}) {
+  const action = (args.recommendedAction ?? '').toUpperCase()
+  const risk = (args.riskLevel ?? '').toUpperCase()
+  const hasAdditiveInsight = args.insights.some((insight) => isAdditiveInsight(insight.insightType))
+
+  if (action.includes('MIXED')) {
+    return [
+      'UPSELL_EXPANSION',
+      'BUNDLE_OPTIMIZATION',
+      'MARGIN_PROTECTION',
+      'RETENTION_OFFER',
+      'RIGHT_SIZING',
+    ] satisfies StrategyType[]
+  }
+
+  if (action.includes('EXPAND') || action.includes('CROSS')) {
+    return [
+      'UPSELL_EXPANSION',
+      'BUNDLE_OPTIMIZATION',
+      'MARGIN_PROTECTION',
+      'RETENTION_OFFER',
+      'RIGHT_SIZING',
+    ] satisfies StrategyType[]
+  }
+
+  if (action.includes('MARGIN') || action.includes('UPLIFT')) {
+    return [
+      'MARGIN_PROTECTION',
+      'BUNDLE_OPTIMIZATION',
+      'RETENTION_OFFER',
+      'RIGHT_SIZING',
+      ...(hasAdditiveInsight ? (['UPSELL_EXPANSION'] as const) : []),
+    ] satisfies StrategyType[]
+  }
+
+  if (action.includes('CONCESSION') || action.includes('DEFENSIVE') || risk === 'HIGH') {
+    return [
+      'RETENTION_OFFER',
+      'RIGHT_SIZING',
+      'BUNDLE_OPTIMIZATION',
+      'MARGIN_PROTECTION',
+      ...(hasAdditiveInsight ? (['UPSELL_EXPANSION'] as const) : []),
+    ] satisfies StrategyType[]
+  }
+
+  return [
+    'BUNDLE_OPTIMIZATION',
+    'MARGIN_PROTECTION',
+    'RETENTION_OFFER',
+    'RIGHT_SIZING',
+    ...(hasAdditiveInsight ? (['UPSELL_EXPANSION'] as const) : []),
+  ] satisfies StrategyType[]
+}
+
+function sortScenarioCandidatesForCase<
+  T extends ScenarioCandidate & {
+    scenarioLines: MutableScenarioLine[]
+    totals: ReturnType<typeof computeScenarioTotals>
+    changedLineCount: number
+  },
+>(args: {
+  candidates: T[]
+  recommendedAction: string | null
+  riskLevel: string | null
+  insights: QuoteInsight[]
+}) {
+  const strategyOrder = preferredStrategyOrderForCase(args)
+  const strategyRank = (strategyType: StrategyType) => {
+    const preferredRank = strategyOrder.indexOf(strategyType)
+    if (preferredRank >= 0) return preferredRank
+
+    const fallbackRank = STRATEGY_PRIORITY.indexOf(strategyType)
+    return strategyOrder.length + (fallbackRank >= 0 ? fallbackRank : STRATEGY_PRIORITY.length)
+  }
+
+  return [...args.candidates].sort((a, b) => {
+    const strategyDelta = strategyRank(a.strategyType) - strategyRank(b.strategyType)
+    if (strategyDelta !== 0) return strategyDelta
+
+    const scoreDelta = b.rankingScore - a.rankingScore
+    if (scoreDelta !== 0) return scoreDelta
+
+    return STRATEGY_PRIORITY.indexOf(a.strategyType) - STRATEGY_PRIORITY.indexOf(b.strategyType)
+  })
+}
+
 function supplementScenarioCandidates(args: {
   materializedCandidates: Array<
     ScenarioCandidate & {
@@ -690,8 +800,9 @@ function supplementScenarioCandidates(args: {
 }) {
   const candidates = [...args.materializedCandidates]
   const usedStrategies = new Set(candidates.map((candidate) => candidate.strategyType))
+  const strategyOrder = preferredStrategyOrderForCase(args)
 
-  for (const strategyType of STRATEGY_PRIORITY) {
+  for (const strategyType of strategyOrder) {
     if (candidates.length >= MIN_SCENARIO_CANDIDATE_COUNT) break
     if (usedStrategies.has(strategyType)) continue
 
@@ -709,14 +820,12 @@ function supplementScenarioCandidates(args: {
     usedStrategies.add(strategyType)
   }
 
-  return candidates
-    .sort((a, b) => {
-      const scoreDelta = b.rankingScore - a.rankingScore
-      if (scoreDelta !== 0) return scoreDelta
-
-      return STRATEGY_PRIORITY.indexOf(a.strategyType) - STRATEGY_PRIORITY.indexOf(b.strategyType)
-    })
-    .slice(0, MAX_SCENARIO_CANDIDATE_COUNT)
+  return sortScenarioCandidatesForCase({
+    candidates,
+    recommendedAction: args.recommendedAction,
+    riskLevel: args.riskLevel,
+    insights: args.insights,
+  }).slice(0, MAX_SCENARIO_CANDIDATE_COUNT)
 }
 
 export async function generateQuoteScenariosForRenewalCase(caseId: string) {

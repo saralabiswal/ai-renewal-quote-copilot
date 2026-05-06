@@ -318,6 +318,326 @@ Acceptance criteria:
 - [x] Production monitoring can detect when LLM proposals are being rejected too often.
 - [x] Policy and prompt changes are versioned and reviewable.
 
+## Phase 11: Customer-Uploaded Policy RAG for Quote Insight Disposition
+
+Goal: let customers upload their own pricing, renewal, approval, and commercial policy documents so the LLM can use retrieved policy context to propose final quote dispositions and Quote Insights, while deterministic validators remain the final authority for math, guardrails, approval routing, and persistence.
+
+The target design is:
+
+> Customer policy documents become an auditable policy knowledge layer. RAG retrieves the relevant policy sections. The LLM proposes structured quote dispositions and Quote Insights. Deterministic validators accept, repair, reject, or fall back. Only validated Quote Insights generate scenario quotes.
+
+### Business Requirements
+
+- [ ] Customers can upload policy documents by tenant, account segment, product family, industry, geography, or effective date.
+- [ ] Supported document types include PDF, Markdown, text, DOCX, and CSV policy matrices.
+- [ ] Uploaded documents must not guide production quote decisions until reviewed and activated by an authorized policy owner.
+- [ ] The system must support policy lifecycle states:
+  - `UPLOADED`
+  - `PARSED`
+  - `NEEDS_REVIEW`
+  - `ACTIVE`
+  - `ARCHIVED`
+  - `REJECTED`
+- [ ] Active policy versions must be immutable for audit and replay.
+- [ ] Each LLM-generated final disposition and Quote Insight must cite the policy chunks used.
+- [ ] Reviewers must be able to inspect the source policy text behind a disposition, not just the LLM explanation.
+- [ ] If retrieved policy conflicts with deterministic guardrails, deterministic guardrails win.
+- [ ] If no relevant active customer policy exists, the workflow falls back to the default platform policy runtime.
+
+### Runtime Flow
+
+```mermaid
+flowchart TD
+  Upload[Customer Policy Upload]
+  Parse[Parse and Normalize Document]
+  Classify[Classify and Tag Policy Chunks]
+  Review[Policy Owner Review]
+  Activate[Activate Policy Version]
+  Evidence[Renewal Evidence Snapshot]
+  Retrieve[Hybrid Policy Retrieval]
+  Prompt[Structured LLM Disposition Prompt]
+  Validate[Deterministic Validator]
+  Persist[Persist Quote Insights]
+  Scenarios[Generate Scenario Quotes]
+  Audit[Decision Ledger and Citations]
+
+  Upload --> Parse --> Classify --> Review --> Activate
+  Activate --> Retrieve
+  Evidence --> Retrieve
+  Retrieve --> Prompt
+  Evidence --> Prompt
+  Prompt --> Validate
+  Validate --> Persist --> Scenarios
+  Validate --> Audit
+  Retrieve --> Audit
+```
+
+### Proposed Data Model
+
+```ts
+type CustomerPolicyDocument = {
+  id: string
+  tenantId: string
+  name: string
+  sourceFileName: string
+  sourceMimeType: string
+  sourceHash: string
+  policyScope: {
+    accountSegment?: string
+    industry?: string
+    geography?: string
+    productFamily?: string
+    productSku?: string
+  }
+  lifecycleStatus:
+    | 'UPLOADED'
+    | 'PARSED'
+    | 'NEEDS_REVIEW'
+    | 'ACTIVE'
+    | 'ARCHIVED'
+    | 'REJECTED'
+  version: string
+  effectiveFrom: string | null
+  effectiveTo: string | null
+  uploadedBy: string
+  reviewedBy: string | null
+  activatedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+type CustomerPolicyChunk = {
+  id: string
+  documentId: string
+  chunkIndex: number
+  sectionTitle: string | null
+  policyType:
+    | 'DISCOUNT_POLICY'
+    | 'APPROVAL_RULE'
+    | 'DISPOSITION_MATRIX'
+    | 'PRODUCT_RULE'
+    | 'RISK_RULE'
+    | 'EXPANSION_RULE'
+    | 'RETENTION_RULE'
+    | 'RIGHT_SIZING_RULE'
+    | 'MARGIN_RECOVERY_RULE'
+  productFamily: string | null
+  productSku: string | null
+  riskLevel: string | null
+  accountSegment: string | null
+  text: string
+  embeddingRef: string
+  tokenCount: number
+  createdAt: string
+}
+
+type PolicyRetrievalResult = {
+  queryId: string
+  renewalCaseId: string
+  activePolicyVersionIds: string[]
+  retrievedChunkIds: string[]
+  retrievalMode: 'KEYWORD' | 'VECTOR' | 'HYBRID'
+  retrievalScoreSummary: {
+    maxScore: number
+    minScore: number
+    averageScore: number
+  }
+  missingPolicyWarnings: string[]
+}
+```
+
+### LLM Disposition Contract
+
+The LLM should return structured JSON only. It proposes final disposition and Quote Insights, but it does not directly mutate quote drafts or scenario quotes.
+
+```json
+{
+  "finalDisposition": "RETENTION_OFFER",
+  "approvalRequired": true,
+  "approvalReason": "High-risk renewal with a retention concession under active policy.",
+  "quoteInsights": [
+    {
+      "productSku": "ORCL-SUBSCRIPTION-MGMT",
+      "insightType": "UPLIFT_RESTRAINT",
+      "recommendedQuantity": 1,
+      "recommendedDiscountPercent": 17.2,
+      "recommendedUnitPrice": 72532.8,
+      "estimatedArrImpact": -2628,
+      "reasonCodes": [
+        "HIGH_RISK",
+        "DECLINING_USAGE",
+        "POLICY_RETENTION_BAND"
+      ],
+      "policyCitations": [
+        "policy_chunk_128",
+        "policy_chunk_203"
+      ],
+      "explanation": "High churn risk and declining usage require uplift restraint under the active renewal policy."
+    }
+  ],
+  "confidenceScore": 82
+}
+```
+
+### Prompt Construction Requirements
+
+- [ ] Prompt builder must include:
+  - Renewal case summary.
+  - Baseline quote lines.
+  - Renewal case item economics.
+  - Usage, adoption, support, risk, and margin signals.
+  - Deterministic candidate envelope.
+  - Retrieved customer policy chunks.
+  - Default platform guardrails.
+  - Required JSON schema.
+- [ ] Prompt must instruct the model to:
+  - Use only supplied evidence and retrieved policy text.
+  - Cite policy chunk IDs for each recommendation.
+  - Avoid unsupported products, quantities, prices, or dispositions.
+  - Return `NEEDS_REVIEW` when policy evidence is missing or contradictory.
+  - Avoid right-sizing unless quantity changes.
+  - Avoid margin recovery when high-risk retention policy blocks uplift.
+- [ ] Prompt version must be stored with every decision trace.
+
+### Retrieval Requirements
+
+- [ ] Use hybrid retrieval, not vector-only retrieval.
+  - Structured filters: tenant, active version, effective date, product family, product SKU, segment, risk level, policy type.
+  - Vector similarity: retrieve semantically relevant clauses.
+  - Keyword matching: catch exact terms such as discount bands, approval thresholds, product names, and reason codes.
+- [ ] Retrieval must prefer active customer policy over archived or draft policy.
+- [ ] Retrieval must record all candidate chunks and final selected chunks.
+- [ ] Retrieval must return warnings when:
+  - No active policy exists for the product.
+  - Policy is expired.
+  - Multiple active policies conflict.
+  - Policy lacks approval guidance for the selected disposition.
+
+### Deterministic Validation Requirements
+
+- [ ] Validate schema, enums, required fields, and no unsupported fields.
+- [ ] Validate product and SKU exist in the product catalog.
+- [ ] Validate the LLM changed only eligible quote lines or proposed allowed additive lines.
+- [ ] Recompute:
+  - Net unit price.
+  - Discount percent.
+  - Line net amount.
+  - ARR impact.
+  - Quote totals.
+- [ ] Validate pricing policy:
+  - Discount is within retrieved policy band.
+  - Concession requires approval when policy says so.
+  - Margin recovery is blocked when risk or policy forbids it.
+  - Right-sizing changes quantity and does not masquerade as price concession.
+- [ ] Validate policy citations:
+  - Every cited chunk ID exists in the retrieval result.
+  - Cited chunks support the proposed insight type and disposition.
+  - Missing or irrelevant citations downgrade to `NEEDS_REVIEW` or fallback.
+- [ ] Validator outcomes:
+  - `PASSED`
+  - `REPAIRED`
+  - `FAILED_FALLBACK_TO_RULES`
+  - `NEEDS_REVIEW`
+
+### Quote Insight Materialization Requirements
+
+- [ ] Only validated LLM proposals can create or update `QuoteInsight` rows.
+- [ ] Quote draft and scenario quote line math remains deterministic.
+- [ ] Persist a decision trace linking:
+  - Quote Insight ID.
+  - Policy document IDs.
+  - Policy chunk IDs.
+  - Retrieval query.
+  - Prompt version.
+  - Model name.
+  - Raw LLM output.
+  - Validator status.
+  - Repair/fallback reason.
+- [ ] Scenario quote generation consumes the accepted Quote Insights exactly as it does for deterministic insights.
+
+### UI Requirements
+
+- [ ] Add a Policy Center upload flow:
+  - Upload document.
+  - Parse status.
+  - Extracted chunks.
+  - Policy tags.
+  - Review and activate.
+  - Archive old versions.
+- [ ] Add a test console:
+  - Select a renewal case.
+  - Preview retrieved policies.
+  - Preview LLM disposition proposal.
+  - Preview validator result.
+  - Materialize as Quote Insights only when allowed.
+- [ ] Update Quote Insight and Scenario Quote screens to show:
+  - `Generated from Customer Policy vX`.
+  - Policy citations.
+  - Validator status.
+  - Approval rationale.
+  - Fallback reason when deterministic rules won.
+- [ ] Add role controls:
+  - Upload policy.
+  - Review parsed policy.
+  - Activate policy.
+  - Enable policy-guided LLM disposition.
+  - View raw prompt and raw model response.
+
+### Security and Governance Requirements
+
+- [ ] Virus/malware scan uploaded files before parsing.
+- [ ] Enforce tenant isolation for documents, chunks, embeddings, retrieval, and audit traces.
+- [ ] Do not place inactive, rejected, or archived policy chunks into production prompts.
+- [ ] Redact sensitive fields from raw prompt logs based on configured data policy.
+- [ ] Store source file hash for tamper detection.
+- [ ] Support policy deletion/archive according to tenant retention policy while preserving decision audit packets.
+- [ ] Track telemetry:
+  - Retrieval hit rate.
+  - Missing policy rate.
+  - LLM validation pass rate.
+  - Repair rate.
+  - Fallback rate.
+  - Reviewer override rate.
+
+### Suggested Implementation Components
+
+- [ ] `lib/policies/customer-policy-documents.ts`
+  - Document metadata, lifecycle transitions, activation checks.
+- [ ] `lib/policies/customer-policy-parser.ts`
+  - Text extraction, section detection, chunking, policy-type classification.
+- [ ] `lib/policies/customer-policy-retrieval.ts`
+  - Hybrid retrieval over structured tags plus embeddings.
+- [ ] `lib/ai/quote-disposition-rag-prompt.ts`
+  - Builds strict prompt input from evidence, candidate envelope, and retrieved policies.
+- [ ] `lib/ai/quote-disposition-rag-schema.ts`
+  - Zod or equivalent schema for structured LLM output.
+- [ ] `lib/ai/quote-disposition-rag-validator.ts`
+  - Commercial math, policy, citation, and product-catalog validator.
+- [ ] `lib/db/materialize-policy-guided-quote-insights.ts`
+  - Converts accepted LLM proposal into persisted `QuoteInsight` rows.
+- [ ] API routes:
+  - `POST /api/policies/customer-documents/upload`
+  - `POST /api/policies/customer-documents/[documentId]/parse`
+  - `POST /api/policies/customer-documents/[documentId]/activate`
+  - `POST /api/renewal-cases/[caseId]/generate-policy-guided-disposition`
+  - `GET /api/renewal-cases/[caseId]/policy-retrieval-trace`
+- [ ] UI routes:
+  - `/policies/customer-documents`
+  - `/policies/customer-documents/[documentId]`
+  - `/renewal-cases/[caseId]/policy-guided-disposition`
+
+### Acceptance Criteria
+
+- [ ] A tenant admin can upload a policy document and see parsed policy chunks before activation.
+- [ ] A policy owner can activate a policy version and archive older versions.
+- [ ] A renewal case can retrieve active customer policy chunks based on case, product, risk, and segment.
+- [ ] The LLM can propose structured final disposition and Quote Insights using retrieved policy context.
+- [ ] Invalid math, unsupported SKU, missing citation, irrelevant citation, and out-of-policy discount are rejected by deterministic validation.
+- [ ] Accepted proposals materialize as Quote Insights with policy citations and decision trace metadata.
+- [ ] Scenario quotes generated from policy-guided Quote Insights remain deterministic and replayable.
+- [ ] If policy retrieval or LLM generation fails, the system falls back to deterministic platform rules and records the fallback reason.
+- [ ] The reviewer UI clearly shows whether a Quote Insight came from platform rules, customer-policy-guided LLM, repaired LLM output, or deterministic fallback.
+
 ## Suggested Execution Order
 
 1. Phase 1: Dynamic Evidence Foundation.
