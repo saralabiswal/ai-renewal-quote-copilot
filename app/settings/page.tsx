@@ -1,5 +1,6 @@
 import path from 'path'
 import { WorkspaceNav } from '@/components/layout/workspace-nav'
+import { LlmSettingsForm } from '@/components/settings/llm-settings-form'
 import { MlSettingsForm } from '@/components/settings/ml-settings-form'
 import { SettingsPrimaryTabs } from '@/components/settings/settings-primary-tabs'
 import { Badge } from '@/components/ui/badge'
@@ -271,7 +272,13 @@ export default function SettingsPage() {
                   {openAiMockModeEnabled ? 'Enabled' : 'Disabled'}
                 </Badge>
               </div>
+              <div className="settings-compact-item">
+                <span>LLM_JSON_TIMEOUT_MS</span>
+                <strong>{runtimeSettings.llmJsonTimeoutMs.toLocaleString('en-US')}ms</strong>
+              </div>
             </div>
+
+            <LlmSettingsForm initialTimeoutMs={runtimeSettings.llmJsonTimeoutMs} />
 
             <div className="settings-text-generation-note">
               <strong>Fallback behavior:</strong> when OpenAI is selected without an API key, quote

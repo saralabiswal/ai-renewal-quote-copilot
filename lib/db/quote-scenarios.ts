@@ -478,7 +478,6 @@ function applyInsightToScenarioLines(lines: MutableScenarioLine[], insight: Quot
   line.quantity = insight.recommendedQuantity ?? line.quantity
   line.netUnitPrice = effectiveNetUnitPrice
   line.discountPercent = effectiveDiscountPercent
-  line.listUnitPrice = computeListUnitPrice(effectiveNetUnitPrice, effectiveDiscountPercent)
   line.lineNetAmount = effectiveNetUnitPrice.mul(line.quantity).toDecimalPlaces(2)
   line.sourceType = 'SCENARIO_INSIGHT'
   line.sourceInsightType = insight.insightType
@@ -594,6 +593,22 @@ function fallbackStrategyForCase(args: {
   return 'BUNDLE_OPTIMIZATION'
 }
 
+function fallbackSourceInsightTypeForStrategy(strategyType: StrategyType) {
+  switch (strategyType) {
+    case 'UPSELL_EXPANSION':
+      return 'EXPANSION'
+    case 'RIGHT_SIZING':
+      return 'UPLIFT_RESTRAINT'
+    case 'MARGIN_PROTECTION':
+      return 'MARGIN_RECOVERY'
+    case 'RETENTION_OFFER':
+      return 'CONCESSION'
+    case 'BUNDLE_OPTIMIZATION':
+    default:
+      return 'BUNDLE_OPTIMIZATION'
+  }
+}
+
 function buildFallbackScenarioCandidate(args: {
   baselineLines: BaselineLine[]
   insights: QuoteInsight[]
@@ -651,10 +666,10 @@ function buildFallbackScenarioCandidate(args: {
     quantity: nextQuantity,
     netUnitPrice: nextNetUnitPrice,
     discountPercent: nextDiscount,
-    listUnitPrice: computeListUnitPrice(nextNetUnitPrice, nextDiscount),
+    listUnitPrice: target.listUnitPrice,
     lineNetAmount: nextNetUnitPrice.mul(nextQuantity).toDecimalPlaces(2),
     sourceType: 'SCENARIO_ENGINE',
-    sourceInsightType: supportingInsight?.insightType ?? 'BASELINE_ALTERNATIVE',
+    sourceInsightType: fallbackSourceInsightTypeForStrategy(strategyType),
     sourceQuoteInsightId: supportingInsight?.id ?? null,
     insightSummary:
       supportingInsight?.insightSummary ??

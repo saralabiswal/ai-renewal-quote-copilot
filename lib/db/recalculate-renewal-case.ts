@@ -242,8 +242,6 @@ export async function recalculateRenewalCaseById(caseId: string) {
   })
   const engineOutput = decision.finalOutput
 
-  const nextCaseAnalysisVersion = (renewalCase.analyses[0]?.analysisVersion ?? 0) + 1
-
   await prisma.$transaction(async (tx) => {
     await tx.renewalCase.update({
       where: { id: caseId },
@@ -273,11 +271,17 @@ export async function recalculateRenewalCaseById(caseId: string) {
       },
     })
 
+    const latestCaseAnalysis = await tx.renewalCaseAnalysis.findFirst({
+      where: { renewalCaseId: caseId },
+      orderBy: { analysisVersion: 'desc' },
+      select: { analysisVersion: true },
+    })
+
     await tx.renewalCaseAnalysis.create({
       data: {
         id: makeId('rca'),
         renewalCaseId: caseId,
-        analysisVersion: nextCaseAnalysisVersion,
+        analysisVersion: (latestCaseAnalysis?.analysisVersion ?? 0) + 1,
         riskScore: engineOutput.bundleResult.riskScore,
         riskLevel: engineOutput.bundleResult.riskLevel,
         recommendedAction: engineOutput.bundleResult.recommendedAction,

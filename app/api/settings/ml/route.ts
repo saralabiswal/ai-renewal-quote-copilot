@@ -6,6 +6,7 @@ import {
 import {
   getRuntimeSettings,
   normalizeGuardedDecisioningMode,
+  normalizeLlmJsonTimeoutMs,
   normalizeMlRecommendationMode,
   saveRuntimeSettings,
 } from '@/lib/settings/runtime-settings'
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       mlRecommendationMode?: unknown
       guardedDecisioningMode?: unknown
+      llmJsonTimeoutMs?: unknown
     }
     const current = getRuntimeSettings()
     const requestedSettings = {
@@ -29,6 +31,9 @@ export async function POST(request: Request) {
               body.guardedDecisioningMode,
             ),
           }),
+      ...(body.llmJsonTimeoutMs === undefined
+        ? {}
+        : { llmJsonTimeoutMs: normalizeLlmJsonTimeoutMs(body.llmJsonTimeoutMs) }),
     }
     const role = getRequestGovernanceRole(request)
     const roleDecision = validateRuntimeSettingsRoleChange({

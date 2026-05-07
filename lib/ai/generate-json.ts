@@ -1,5 +1,6 @@
 import { getAiClient, getAiModel } from '@/lib/ai/client'
 import { isOpenAiMockModeEnabled } from '@/lib/ai/mock-mode'
+import { getRuntimeSettings } from '@/lib/settings/runtime-settings'
 
 export type AiJsonResult<T> = {
   ok: boolean
@@ -11,8 +12,7 @@ export type AiJsonResult<T> = {
 }
 
 function timeoutMs() {
-  const parsed = Number(process.env.LLM_JSON_TIMEOUT_MS ?? 3500)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 3500
+  return getRuntimeSettings().llmJsonTimeoutMs
 }
 
 function extractJson(text: string) {

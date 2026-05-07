@@ -4,6 +4,12 @@ import { formatCurrency } from '@/lib/format/currency'
 import { formatDate } from '@/lib/format/date'
 import { formatPercent } from '@/lib/format/percent'
 import { labelize, toneForStatus } from '@/lib/format/risk'
+import {
+  calculateQuoteInsightsWithLlm,
+  type QuoteInsightLlmCandidate,
+  type QuoteInsightLlmTrace,
+} from '@/lib/ai/quote-insight-disposition'
+import { getRuntimeSettings } from '@/lib/settings/runtime-settings'
 
 export type QuoteInsightView = {
   id: string
@@ -1675,6 +1681,114 @@ function normalizeInsightForDiff(item: {
   }
 }
 
+function toLlmQuoteInsightCandidate(item: {
+  insightType: string
+  productSkuSnapshot: string
+  productNameSnapshot: string
+  productFamilySnapshot: string
+  title: string
+  insightSummary: string
+  recommendedActionSummary?: string | null
+  confidenceScore?: number | null
+  fitScore?: number | null
+  recommendedQuantity?: number | null
+  recommendedUnitPrice?: unknown
+  recommendedDiscountPercent?: unknown
+  estimatedArrImpact?: unknown
+}): QuoteInsightLlmCandidate {
+  return {
+    insightKey: buildInsightKey(item.insightType, item.productSkuSnapshot),
+    productSkuSnapshot: item.productSkuSnapshot,
+    productNameSnapshot: item.productNameSnapshot,
+    productFamilySnapshot: item.productFamilySnapshot,
+    insightType: item.insightType,
+    title: item.title,
+    insightSummary: item.insightSummary,
+    recommendedActionSummary: item.recommendedActionSummary ?? null,
+    confidenceScore: item.confidenceScore ?? null,
+    fitScore: item.fitScore ?? null,
+    recommendedQuantity: item.recommendedQuantity ?? null,
+    recommendedUnitPrice: toNullableNumber(item.recommendedUnitPrice),
+    recommendedDiscountPercent: toNullableNumber(item.recommendedDiscountPercent),
+    estimatedArrImpact: toNullableNumber(item.estimatedArrImpact),
+  }
+}
+
+function mergeLlmCandidateIntoInsight<T extends {
+  productSkuSnapshot: string
+  title: string
+  insightSummary: string
+  recommendedActionSummary?: string | null
+  confidenceScore?: number | null
+  fitScore?: number | null
+  recommendedQuantity?: number | null
+  recommendedUnitPrice?: unknown
+  recommendedDiscountPercent?: unknown
+  estimatedArrImpact?: unknown
+  sourceType: string
+  justificationJson?: string | null
+}>(item: T, candidate: QuoteInsightLlmCandidate | null, trace: QuoteInsightLlmTrace): T {
+  if (!candidate || !trace.acceptedProductSkus.includes(item.productSkuSnapshot)) {
+    return item
+  }
+
+  const justification = parseQuoteInsightJustification(item.justificationJson)
+  const nextJustification = justification
+    ? buildJustificationJson({
+        ...justification,
+        sourceType: 'LLM_ASSISTED_GUARDED',
+        reasoning: [
+          `LLM-assisted guarded calculation accepted this ${candidate.insightType} Quote Insight inside the deterministic safe candidate envelope.`,
+          ...justification.reasoning,
+        ].slice(0, 8),
+        signals: [
+          ...justification.signals,
+          { label: 'LLM Calculation Mode', value: trace.mode },
+          { label: 'LLM Model', value: trace.modelLabel },
+          { label: 'LLM Validation Status', value: trace.validationStatus },
+          { label: 'LLM Prompt Version', value: trace.promptVersion },
+        ],
+        decisionMeta: justification.decisionMeta
+          ? {
+              ...justification.decisionMeta,
+              actor: 'LLM_ASSISTED_GUARDED',
+            }
+          : justification.decisionMeta,
+        ruleHits: [
+          ...(justification.ruleHits ?? []),
+          {
+            ruleId: 'LLM_QUOTE_INSIGHT_CALCULATION_ACCEPTED',
+            reasonCode: 'LLM_GUARDED_VALIDATION_PASSED',
+            outcome: 'ACCEPTED',
+            weight: 80,
+            detail:
+              'LLM proposal matched the supported product, insight type, and deterministic commercial math.',
+          },
+        ],
+      })
+    : item.justificationJson
+
+  return {
+    ...item,
+    sourceType: 'LLM_ASSISTED_GUARDED',
+    title: candidate.title,
+    insightSummary: candidate.insightSummary,
+    recommendedActionSummary: candidate.recommendedActionSummary,
+    confidenceScore: candidate.confidenceScore,
+    fitScore: candidate.fitScore,
+    recommendedQuantity: candidate.recommendedQuantity,
+    recommendedUnitPrice:
+      candidate.recommendedUnitPrice == null ? null : decimal(candidate.recommendedUnitPrice),
+    recommendedDiscountPercent:
+      candidate.recommendedDiscountPercent == null
+        ? null
+        : decimal(candidate.recommendedDiscountPercent),
+    estimatedArrImpact:
+      candidate.estimatedArrImpact == null ? null : decimal(candidate.estimatedArrImpact),
+    justificationJson: nextJustification,
+  }
+}
+
 function parseMlInsightPredictions(raw: string | null | undefined) {
   if (!raw) {
     return {
@@ -1824,7 +1938,43 @@ export async function recalculateQuoteInsights(caseId: string) {
     generatedAtIso,
   })
 
-  const nextSuggested = [...lineInsights, ...additiveInsights].map((item) =>
+  const deterministicInsights = [...lineInsights, ...additiveInsights]
+  const runtimeSettings = getRuntimeSettings()
+  const llmCalculation = await calculateQuoteInsightsWithLlm({
+    mode: runtimeSettings.guardedDecisioningMode,
+    caseContext: {
+      caseId,
+      accountName: renewalCase.account.name,
+      accountIndustry: renewalCase.account.industry,
+      accountSegment: renewalCase.account.segment,
+      recommendedAction: renewalCase.recommendedAction,
+      riskLevel: renewalCase.riskLevel,
+      riskScore: renewalCase.riskScore,
+      scenarioKey,
+    },
+    candidates: deterministicInsights.map((item) => toLlmQuoteInsightCandidate(item)),
+  })
+  const llmCandidateBySku = new Map(
+    llmCalculation.insights.map((candidate) => [candidate.productSkuSnapshot, candidate]),
+  )
+  const calculatedInsights = deterministicInsights.map((item) =>
+    mergeLlmCandidateIntoInsight(
+      item,
+      llmCandidateBySku.get(item.productSkuSnapshot) ?? null,
+      llmCalculation.trace,
+    ),
+  )
+  const bundleCurrentArr = renewalCase.items.reduce(
+    (sum, item) => sum.add(decimal(item.currentArr)),
+    new Prisma.Decimal(0),
+  ).toDecimalPlaces(2)
+  const bundleDeltaArr = calculatedInsights.reduce(
+    (sum, item) => sum.add(decimal(item.estimatedArrImpact)),
+    new Prisma.Decimal(0),
+  ).toDecimalPlaces(2)
+  const bundleProposedArr = bundleCurrentArr.add(bundleDeltaArr).toDecimalPlaces(2)
+
+  const nextSuggested = calculatedInsights.map((item) =>
     normalizeInsightForDiff(item),
   )
 
@@ -1915,7 +2065,7 @@ export async function recalculateQuoteInsights(caseId: string) {
     modified.map((item) => [buildInsightKey(item.insightType, item.productSkuSnapshot), item]),
   )
 
-  const enrichedSuggestedInsights = [...lineInsights, ...additiveInsights].map((item) => {
+  const enrichedSuggestedInsights = calculatedInsights.map((item) => {
     const key = buildInsightKey(item.insightType, item.productSkuSnapshot)
     const previous = previousByKey.get(key)
     const modifiedEntry = modifiedByKey.get(key)
@@ -1975,6 +2125,9 @@ export async function recalculateQuoteInsights(caseId: string) {
         quoteInsightsNeedRefresh: false,
         quoteInsightsGeneratedAt: new Date(),
         quoteScenariosNeedRefresh: true,
+        bundleCurrentArr,
+        bundleProposedArr,
+        bundleDeltaArr,
         lastInsightDiffJson: JSON.stringify({
           added,
           removed,
@@ -1985,6 +2138,7 @@ export async function recalculateQuoteInsights(caseId: string) {
           engineVersion: DECISION_ENGINE_VERSION,
           policyVersion: POLICY_VERSION,
           scenarioVersion: SCENARIO_VERSION,
+          quoteInsightCalculation: llmCalculation.trace,
         }),
       },
     })
@@ -1997,6 +2151,13 @@ export async function recalculateQuoteInsights(caseId: string) {
       added: added.length,
       removed: removed.length,
       modified: modified.length,
+    },
+    quoteInsightCalculation: {
+      mode: llmCalculation.trace.mode,
+      generatedBy: llmCalculation.trace.generatedBy,
+      validationStatus: llmCalculation.trace.validationStatus,
+      acceptedProductSkus: llmCalculation.trace.acceptedProductSkus,
+      fallbackReason: llmCalculation.trace.fallbackReason,
     },
   }
 }

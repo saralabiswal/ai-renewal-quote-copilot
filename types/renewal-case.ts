@@ -382,6 +382,26 @@ export type QuoteInsightModifiedView = {
   }
 }
 
+export type QuoteInsightCalculationTraceView = {
+  promptVersion: string | null
+  validationVersion: string | null
+  mode: string | null
+  generatedBy: string | null
+  modelLabel: string | null
+  fallbackReason: string | null
+  validationStatus: string | null
+  acceptedProductSkus: string[]
+  rejectedProductSkus: string[]
+  checks: Array<{
+    name: string
+    status: string
+    detail: string
+  }>
+  systemPrompt: string | null
+  promptInput: unknown | null
+  rawText: string | null
+}
+
 export type QuoteInsightChangeView = {
   added: QuoteInsightDeltaView[]
   removed: QuoteInsightDeltaView[]
@@ -392,6 +412,7 @@ export type QuoteInsightChangeView = {
   engineVersion?: string | null
   policyVersion?: string | null
   scenarioVersion?: string | null
+  quoteInsightCalculation?: QuoteInsightCalculationTraceView | null
 }
 
 export type RenewalCaseDetailView = {

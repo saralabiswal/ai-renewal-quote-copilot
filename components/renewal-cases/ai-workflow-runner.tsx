@@ -59,8 +59,8 @@ const DEFAULT_STEPS: WorkflowStep[] = [
   },
   {
     key: 'insights_ai',
-    title: 'Generate Quote Insights + AI Rationales',
-    subtitle: 'Regenerates line insights and AI explanation narratives.',
+    title: 'Generate Quote Insights, then AI Rationales',
+    subtitle: 'Finalizes quote insights first, then writes separate explanation narratives.',
     status: 'pending',
     detail: null,
   },
@@ -317,14 +317,15 @@ export function AiWorkflowRunner({
       appendLog(`Recommendation updated: ${recalcDetail}.`, 'success')
 
       const insightsStarted = Date.now()
-      const insightsStepTitle = 'Generate Quote Insights + AI Rationales'
+      const insightsStepTitle = 'Generate Quote Insights, then AI Rationales'
       updateStep('insights_ai', {
         status: 'running',
-        detail: 'Generating quote insights and AI rationale narratives...',
+        detail: 'Generating quote insights, then AI rationale narratives...',
       })
       const insightsReasoning = streamStepReasoning(insightsStepTitle, [
-        'Synthesizing line-by-line quote opportunities from refreshed recommendation outputs.',
-        'Drafting AI rationales for each insight so reviewer intent is explicit.',
+        'Generating guarded quote insight dispositions from deterministic candidate envelopes.',
+        'Validating products, pricing math, discounts, quantities, ARR impact, and policy citations.',
+        'Drafting separate AI rationales for each accepted insight so reviewer intent is explicit.',
       ])
       const insightsBody = await postJson<{
         ok: boolean

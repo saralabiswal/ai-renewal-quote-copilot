@@ -638,6 +638,29 @@ The LLM should return structured JSON only. It proposes final disposition and Qu
 - [ ] If policy retrieval or LLM generation fails, the system falls back to deterministic platform rules and records the fallback reason.
 - [ ] The reviewer UI clearly shows whether a Quote Insight came from platform rules, customer-policy-guided LLM, repaired LLM output, or deterministic fallback.
 
+### 2026-05-06 Phase 11 First Implementation Slice
+
+Implemented the first guarded Quote Insight calculation slice. This does not yet include customer document upload or vector retrieval; it establishes the LLM disposition contract, prompt boundary, deterministic validation, fallback behavior, and persistence trace needed before customer-uploaded policy RAG is introduced.
+
+- Added `quote-insight-disposition-rag-v1` prompt input and JSON contract.
+- Added guarded LLM calculation for Quote Insights in `LLM_ASSISTED_GUARDED` mode.
+- Kept all non-guarded modes deterministic.
+- Validated LLM proposals against the deterministic safe candidate envelope.
+  - Product SKU must match an existing candidate.
+  - Insight type must match the supported candidate.
+  - Quantity, unit price, discount, and ARR impact must reconcile to deterministic math.
+  - Policy citations must use supplied platform policy citations.
+- Accepted LLM proposals update Quote Insight title, summaries, scores, economics, source type, and justification trace.
+- Rejected or unavailable LLM proposals fall back to deterministic Quote Insights.
+- Stored calculation trace in `RenewalCase.lastInsightDiffJson.quoteInsightCalculation`.
+- Added `npm run test:quote-insight-llm-disposition`.
+
+Verification:
+
+- `npm run test:quote-insight-llm-disposition` passed.
+- `npx tsc --noEmit` passed.
+- Manual guarded recalculation on `rcase_bluepeak` recorded `LLM_REJECTED` with fallback reason `Request was aborted` when local `llama3.1` did not return in time, while persisted Quote Insights remained deterministic and valid.
+
 ## Suggested Execution Order
 
 1. Phase 1: Dynamic Evidence Foundation.

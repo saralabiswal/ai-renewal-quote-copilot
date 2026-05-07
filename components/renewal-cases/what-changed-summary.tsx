@@ -74,6 +74,31 @@ function insightKeyLabel(insightType: string, sku: string) {
   return `${humanizeLabel(insightType)} · ${sku}`
 }
 
+function statusClass(value: string | null | undefined) {
+  const normalized = value?.toUpperCase()
+  if (normalized === 'PASSED' || normalized === 'LLM') return 'success'
+  if (normalized === 'REJECTED' || normalized === 'LLM_REJECTED') return 'danger'
+  if (normalized === 'SKIPPED' || normalized === 'DETERMINISTIC_RULES') return 'warn'
+
+  return 'default'
+}
+
+function formatSkuList(values: string[]) {
+  if (values.length === 0) return 'None'
+  return values.join(', ')
+}
+
+function formatTracePayload(value: unknown) {
+  if (value == null || value === '') return 'Not captured for this run.'
+  if (typeof value === 'string') return value
+
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
 export function WhatChangedSummary({
   recommendation,
   insights,
@@ -85,6 +110,7 @@ export function WhatChangedSummary({
 }) {
   const recommendationUpdatedAt = formatDateTime(recommendation?.recalculatedAt ?? null)
   const insightsUpdatedAt = formatDateTime(insights?.regeneratedAt ?? null)
+  const calculation = insights?.quoteInsightCalculation ?? null
 
   const hasInsightChanges = Boolean(
     (insights?.added?.length ?? 0) > 0 ||
@@ -166,6 +192,8 @@ export function WhatChangedSummary({
                   Engine: {insights.engineVersion ?? 'N/A'} · Policy: {insights.policyVersion ?? 'N/A'}
                 </div>
               ) : null}
+
+              {calculation ? <QuoteInsightCalculationTrace calculation={calculation} /> : null}
 
               {!hasInsightChanges ? (
                 <div className="small muted">
@@ -285,6 +313,138 @@ export function WhatChangedSummary({
   return (
     <div className="card" style={{ marginTop: 16 }}>
       {content}
+    </div>
+  )
+}
+
+function QuoteInsightCalculationTrace({
+  calculation,
+}: {
+  calculation: NonNullable<QuoteInsightChangeView['quoteInsightCalculation']>
+}) {
+  const acceptedCount = calculation.acceptedProductSkus.length
+  const rejectedCount = calculation.rejectedProductSkus.length
+  const statusTone = statusClass(calculation.validationStatus)
+  const generatedByTone = statusClass(calculation.generatedBy)
+
+  return (
+    <div className="quote-insight-calculation">
+      <div className="quote-insight-calculation-head">
+        <div>
+          <div className="quote-insight-calculation-title">Quote Insight Calculation</div>
+          <div className="small muted">
+            Guarded LLM disposition is validated against deterministic quote insight candidates.
+          </div>
+        </div>
+        <div className="quote-insight-calculation-badges">
+          <span className={`badge ${generatedByTone}`}>{humanizeLabel(calculation.generatedBy)}</span>
+          <span className={`badge ${statusTone}`}>
+            Validation: {humanizeLabel(calculation.validationStatus)}
+          </span>
+        </div>
+      </div>
+
+      <div className="quote-insight-calculation-grid">
+        <TraceStat label="Mode" value={humanizeLabel(calculation.mode)} />
+        <TraceStat label="Model" value={calculation.modelLabel ?? 'Rules only'} />
+        <TraceStat label="Accepted Products" value={String(acceptedCount)} />
+        <TraceStat label="Rejected Products" value={String(rejectedCount)} />
+      </div>
+
+      <div className="quote-insight-calculation-products">
+        <div>
+          <div className="quote-insight-calculation-label">Accepted</div>
+          <div className="small muted">{formatSkuList(calculation.acceptedProductSkus)}</div>
+        </div>
+        <div>
+          <div className="quote-insight-calculation-label">Fallback / Rejected</div>
+          <div className="small muted">
+            {calculation.fallbackReason ?? formatSkuList(calculation.rejectedProductSkus)}
+          </div>
+        </div>
+      </div>
+
+      <details className="quote-insight-calculation-details">
+        <summary>
+          <span>Validation Checks</span>
+          <span className="what-changed-count-badge">{calculation.checks.length}</span>
+        </summary>
+        <div className="quote-insight-calculation-checks">
+          {calculation.checks.length === 0 ? (
+            <div className="small muted">No validation checks were recorded.</div>
+          ) : (
+            calculation.checks.map((check, index) => (
+              <div
+                key={`${check.name}-${index}`}
+                className="quote-insight-calculation-check"
+              >
+                <div className="quote-insight-calculation-check-head">
+                  <span>{check.name}</span>
+                  <span className={`badge ${statusClass(check.status)}`}>
+                    {humanizeLabel(check.status)}
+                  </span>
+                </div>
+                {check.detail ? <div className="small muted">{check.detail}</div> : null}
+              </div>
+            ))
+          )}
+        </div>
+      </details>
+
+      <div className="quote-insight-calculation-io">
+        <TracePayloadDetails
+          title="Prompt Input"
+          helper="Exact JSON payload sent as the user message for guarded Quote Insight disposition."
+          payload={calculation.promptInput}
+        />
+        <TracePayloadDetails
+          title="LLM Raw Output"
+          helper="Raw text returned by the model before guarded validation."
+          payload={calculation.rawText}
+        />
+      </div>
+
+      {calculation.systemPrompt ? (
+        <TracePayloadDetails
+          title="System Prompt"
+          helper="Exact system instruction sent with the Quote Insight disposition request."
+          payload={calculation.systemPrompt}
+        />
+      ) : null}
+
+      <div className="quote-insight-calculation-versions">
+        <span>Prompt: {calculation.promptVersion ?? 'N/A'}</span>
+        <span>Validator: {calculation.validationVersion ?? 'N/A'}</span>
+      </div>
+    </div>
+  )
+}
+
+function TracePayloadDetails({
+  title,
+  helper,
+  payload,
+}: {
+  title: string
+  helper: string
+  payload: unknown
+}) {
+  return (
+    <details className="quote-insight-calculation-payload">
+      <summary>
+        <span>{title}</span>
+      </summary>
+      <div className="small muted">{helper}</div>
+      <pre>{formatTracePayload(payload)}</pre>
+    </details>
+  )
+}
+
+function TraceStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="quote-insight-calculation-stat">
+      <div className="quote-insight-calculation-label">{label}</div>
+      <div>{value}</div>
     </div>
   )
 }

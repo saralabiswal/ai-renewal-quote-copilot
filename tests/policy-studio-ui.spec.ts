@@ -89,7 +89,7 @@ test('policy playbook prompt governance tab shows versioned prompt packs and gua
   await expect(page.getByRole('heading', { name: /Current LLM Prompts/i })).toBeVisible()
   await expect(page.getByText(/System Prompt \(Exact\)/i).first()).toBeVisible()
   await expect(page.getByText(/Input Sent To LLM/i).first()).toBeVisible()
-  await expect(page.getByText(/Step 2: Quote Insights \+ AI Rationales/i)).toBeVisible()
+  await expect(page.getByText(/Step 2: Quote Insights, then AI Rationales/i)).toBeVisible()
   await expect(page.getByText(/Prompt Sources/i)).toBeVisible()
   await expect(page.getByText(/Access & Guardrails/i)).toBeVisible()
 })

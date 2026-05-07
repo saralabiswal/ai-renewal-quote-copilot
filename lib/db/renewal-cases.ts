@@ -514,6 +514,8 @@ function normalizeInsightChange(
   fallbackScenarioKey: string,
 ): QuoteInsightChangeView | null {
   if (!value) return null
+  const calculation = asRecord(value.quoteInsightCalculation)
+  const calculationChecks = Array.isArray(calculation?.checks) ? calculation.checks : []
 
   return {
     added: Array.isArray(value.added) ? value.added : [],
@@ -525,6 +527,41 @@ function normalizeInsightChange(
     engineVersion: value.engineVersion ?? null,
     policyVersion: value.policyVersion ?? null,
     scenarioVersion: value.scenarioVersion ?? null,
+    quoteInsightCalculation: calculation
+      ? {
+          promptVersion:
+            typeof calculation.promptVersion === 'string' ? calculation.promptVersion : null,
+          validationVersion:
+            typeof calculation.validationVersion === 'string' ? calculation.validationVersion : null,
+          mode: typeof calculation.mode === 'string' ? calculation.mode : null,
+          generatedBy:
+            typeof calculation.generatedBy === 'string' ? calculation.generatedBy : null,
+          modelLabel:
+            typeof calculation.modelLabel === 'string' ? calculation.modelLabel : null,
+          fallbackReason:
+            typeof calculation.fallbackReason === 'string' ? calculation.fallbackReason : null,
+          validationStatus:
+            typeof calculation.validationStatus === 'string' ? calculation.validationStatus : null,
+          acceptedProductSkus: Array.isArray(calculation.acceptedProductSkus)
+            ? calculation.acceptedProductSkus.map(String)
+            : [],
+          rejectedProductSkus: Array.isArray(calculation.rejectedProductSkus)
+            ? calculation.rejectedProductSkus.map(String)
+            : [],
+          checks: calculationChecks.map((item) => {
+            const record = asRecord(item)
+            return {
+              name: typeof record?.name === 'string' ? record.name : 'Unknown',
+              status: typeof record?.status === 'string' ? record.status : 'UNKNOWN',
+              detail: typeof record?.detail === 'string' ? record.detail : '',
+            }
+          }),
+          systemPrompt:
+            typeof calculation.systemPrompt === 'string' ? calculation.systemPrompt : null,
+          promptInput: calculation.promptInput ?? null,
+          rawText: typeof calculation.rawText === 'string' ? calculation.rawText : null,
+        }
+      : null,
   }
 }
 

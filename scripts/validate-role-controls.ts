@@ -8,6 +8,7 @@ import type { RuntimeSettings } from '../lib/settings/runtime-settings'
 const current: RuntimeSettings = {
   mlRecommendationMode: 'HYBRID_RULES_ML',
   guardedDecisioningMode: 'LLM_CRITIC_SHADOW',
+  llmJsonTimeoutMs: 60000,
 }
 
 const guarded: RuntimeSettings = {

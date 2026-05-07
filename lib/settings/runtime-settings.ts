@@ -12,6 +12,7 @@ export type GuardedDecisioningMode =
 export type RuntimeSettings = {
   mlRecommendationMode: MlRecommendationMode
   guardedDecisioningMode: GuardedDecisioningMode
+  llmJsonTimeoutMs: number
 }
 
 const SETTINGS_PATH = path.join(process.cwd(), '.runtime-settings.json')
@@ -62,13 +63,27 @@ export function normalizeGuardedDecisioningMode(value: unknown): GuardedDecision
   }
 }
 
+export function normalizeLlmJsonTimeoutMs(value: unknown): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return 60000
+
+  return Math.max(1000, Math.min(300000, Math.round(parsed)))
+}
+
 function envDefaultSettings(): RuntimeSettings {
   const guardedDecisioningMode = normalizeGuardedDecisioningMode(
     process.env.GUARDED_DECISIONING_MODE || 'LLM_CRITIC_SHADOW',
   )
+  const llmJsonTimeoutMs = normalizeLlmJsonTimeoutMs(
+    process.env.LLM_JSON_TIMEOUT_MS || 60000,
+  )
 
   if (isEnabled(process.env.ML_RECOMMENDATION_ENABLED)) {
-    return { mlRecommendationMode: 'HYBRID_RULES_ML', guardedDecisioningMode }
+    return {
+      mlRecommendationMode: 'HYBRID_RULES_ML',
+      guardedDecisioningMode,
+      llmJsonTimeoutMs,
+    }
   }
 
   return {
@@ -76,6 +91,7 @@ function envDefaultSettings(): RuntimeSettings {
       process.env.ML_RECOMMENDATION_MODE || 'HYBRID_RULES_ML',
     ),
     guardedDecisioningMode,
+    llmJsonTimeoutMs,
   }
 }
 
@@ -96,6 +112,9 @@ export function getRuntimeSettings(): RuntimeSettings {
       guardedDecisioningMode: normalizeGuardedDecisioningMode(
         parsed.guardedDecisioningMode ?? defaults.guardedDecisioningMode,
       ),
+      llmJsonTimeoutMs: normalizeLlmJsonTimeoutMs(
+        parsed.llmJsonTimeoutMs ?? defaults.llmJsonTimeoutMs,
+      ),
     }
   } catch {
     return defaults
@@ -111,6 +130,9 @@ export function saveRuntimeSettings(next: Partial<RuntimeSettings>): RuntimeSett
     ),
     guardedDecisioningMode: normalizeGuardedDecisioningMode(
       next.guardedDecisioningMode ?? current.guardedDecisioningMode,
+    ),
+    llmJsonTimeoutMs: normalizeLlmJsonTimeoutMs(
+      next.llmJsonTimeoutMs ?? current.llmJsonTimeoutMs,
     ),
   }
 

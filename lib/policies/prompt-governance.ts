@@ -10,6 +10,10 @@ import {
   quoteInsightInstructions,
   reasoningInstructions,
 } from '@/lib/ai/prompts'
+import {
+  buildQuoteInsightDispositionPromptInput,
+  quoteInsightDispositionJsonInstructions,
+} from '@/lib/ai/quote-insight-disposition-prompt'
 
 export type PromptStageId = 'recalculate' | 'insights_ai' | 'full_ai'
 export type PromptViewMode = 'business' | 'technical'
@@ -67,8 +71,9 @@ const STAGE_META: Record<PromptStageId, { label: string; subtitle: string }> = {
     subtitle: 'Deterministic rules refresh risk/action posture. No LLM call is made.',
   },
   insights_ai: {
-    label: 'Step 2: Quote Insights + AI Rationales',
-    subtitle: 'LLM generates reviewer-ready explanation text for quote insights.',
+    label: 'Step 2: Quote Insights, then AI Rationales',
+    subtitle:
+      'Guarded LLM may finalize quote insight disposition, then separate LLM text explains each accepted insight.',
   },
   full_ai: {
     label: 'Step 3: Full AI Review Guidance',
@@ -107,6 +112,41 @@ const QUOTE_INSIGHT_INPUT_TEMPLATE = buildQuoteInsightInput({
   whatChangedSummary: '{{WHAT_CHANGED_SUMMARY}}',
   expectedImpactSummary: '{{EXPECTED_IMPACT_SUMMARY}}',
 })
+
+const QUOTE_INSIGHT_DISPOSITION_TEMPLATE = JSON.stringify(
+  buildQuoteInsightDispositionPromptInput({
+    caseContext: {
+      caseId: '{{RENEWAL_CASE_ID}}',
+      accountName: '{{ACCOUNT_NAME}}',
+      accountIndustry: '{{INDUSTRY}}',
+      accountSegment: '{{SEGMENT}}',
+      recommendedAction: '{{RECOMMENDED_ACTION}}',
+      riskLevel: '{{RISK_LEVEL}}',
+      riskScore: 42,
+      scenarioKey: '{{SCENARIO_KEY}}',
+    },
+    candidates: [
+      {
+        insightKey: '{{INSIGHT_KEY}}',
+        productSkuSnapshot: '{{PRODUCT_SKU}}',
+        productNameSnapshot: '{{PRODUCT_NAME}}',
+        productFamilySnapshot: '{{PRODUCT_FAMILY}}',
+        insightType: '{{INSIGHT_TYPE}}',
+        title: '{{DETERMINISTIC_CANDIDATE_TITLE}}',
+        insightSummary: '{{DETERMINISTIC_CANDIDATE_SUMMARY}}',
+        recommendedActionSummary: '{{DETERMINISTIC_ACTION_SUMMARY}}',
+        confidenceScore: 84,
+        fitScore: 79,
+        recommendedQuantity: 10,
+        recommendedUnitPrice: 1250,
+        recommendedDiscountPercent: 15,
+        estimatedArrImpact: 0,
+      },
+    ],
+  }),
+  null,
+  2,
+)
 
 const CASE_EXECUTIVE_SUMMARY_TEMPLATE = buildCaseExecutiveSummaryInput({
   accountName: '{{ACCOUNT_NAME}}',
@@ -242,10 +282,54 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
     ],
   },
   {
+    id: 'quote-insight-disposition',
+    stage: 'insights_ai',
+    stageLabel: STAGE_META.insights_ai.label,
+    name: 'Generate Quote Insights Prompt',
+    purpose:
+      'Asks the LLM to produce final Quote Insight dispositions from deterministic safe candidates.',
+    businessSummary:
+      'The LLM can explain and confirm quote insight disposition only inside the deterministic candidate envelope. Product, pricing, discount, quantity, ARR impact, and policy citations are validated before anything is accepted.',
+    owner: 'AI Workflow Team',
+    modelLabel: 'Runtime JSON generation model',
+    temperature: '0',
+    visibilityNote:
+      'Shown for governance traceability. The validator remains final for math, catalog, and policy boundaries.',
+    redactionNote: 'Account and case identifiers are masked in variable previews.',
+    sourcePath: 'lib/ai/quote-insight-disposition-prompt.ts',
+    version: 'quote-insight-disposition-rag-v1',
+    lastUpdated: '2026-05-06',
+    systemPrompt: quoteInsightDispositionJsonInstructions(),
+    inputTemplate: QUOTE_INSIGHT_DISPOSITION_TEMPLATE,
+    variables: [
+      { key: 'renewal_case_id', label: 'Renewal Case ID', exampleValue: 'rcase_aster_commerce', sensitivity: 'sensitive' },
+      { key: 'account_name', label: 'Account Name', exampleValue: 'Aster Commerce', sensitivity: 'sensitive' },
+      { key: 'scenario_key', label: 'Scenario Key', exampleValue: 'MARGIN_RECOVERY', sensitivity: 'public' },
+      { key: 'recommended_action', label: 'Recommended Action', exampleValue: 'RENEW_AS_IS', sensitivity: 'public' },
+      { key: 'product_sku', label: 'Product SKU', exampleValue: 'PLATFORM-SUBSCRIPTION', sensitivity: 'public' },
+      { key: 'insight_type', label: 'Insight Type', exampleValue: 'MARGIN_RECOVERY', sensitivity: 'public' },
+    ],
+    history: [
+      {
+        version: 'quote-insight-disposition-rag-v1',
+        releasedAt: '2026-05-06',
+        changeSummary:
+          'Added guarded JSON prompt for Quote Insight disposition using deterministic candidate envelopes.',
+        diff: {
+          added: [
+            'Strict JSON output contract.',
+            'Hard rule that LLM cannot invent products, pricing, discounts, quantities, ARR impact, or citations.',
+            'Policy context chunk for safe commercial envelope behavior.',
+          ],
+        },
+      },
+    ],
+  },
+  {
     id: 'quote-insight-rationale',
     stage: 'insights_ai',
     stageLabel: STAGE_META.insights_ai.label,
-    name: 'Quote Insight Narrative Prompt',
+    name: 'AI Rationale Prompt',
     purpose: 'Explains each quote insight in reviewer-friendly language.',
     businessSummary:
       'Transforms structured signal evidence into a clear Decision / Why / Commercial Impact / What Changed narrative for each quote insight.',
@@ -509,6 +593,7 @@ const BASE_CATALOG: Omit<PromptGovernanceArtifact, 'fingerprint'>[] = [
 
 export const promptGovernanceSources = Object.freeze([
   'lib/ai/prompts.ts',
+  'lib/ai/quote-insight-disposition-prompt.ts',
   'lib/db/generate-ai-content.ts',
   'lib/rules/recommendation-engine.ts',
 ] as const)

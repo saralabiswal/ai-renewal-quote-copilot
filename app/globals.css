@@ -7599,6 +7599,27 @@ h3,
 
 .command-hero-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: stretch;
+}
+
+.command-hero-grid .renewal-context-item {
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: grid;
+  align-content: center;
+}
+
+.command-hero-grid .small {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.command-hero-grid .renewal-context-value {
+  margin-top: 3px;
+  font-size: 0.92rem;
+  line-height: 1.25;
 }
 
 .command-workspace {
@@ -7767,42 +7788,42 @@ h3,
 
 .command-step-status.ready {
   background: var(--success-bg);
-  color: #246341;
+  color: var(--success-text);
 }
 
 .command-step-status.complete {
-  background: #e7f5ed;
-  color: #1f6b45;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .command-step-status.waiting {
-  background: var(--warn-bg);
-  color: #76695e;
+  background: rgba(124, 111, 160, 0.22);
+  color: #c8c0e8;
 }
 
 .command-step-status.refresh {
   background: var(--warn-bg);
-  color: #9a4f14;
+  color: var(--warn-text);
 }
 
 .command-step-status.review {
   background: var(--warn-bg);
-  color: #8b5e11;
+  color: var(--warn-text);
 }
 
 .command-step-status.optional {
   background: var(--surface-muted);
-  color: #526071;
+  color: var(--text-muted);
 }
 
 .command-step-status.final {
-  background: var(--info-bg);
-  color: #5a43a0;
+  background: rgba(124, 111, 160, 0.22);
+  color: #d8d0f0;
 }
 
 .command-step-status.current {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: rgba(79, 155, 150, 0.22);
+  color: #84d1ca;
 }
 
 .command-sticky-bar .command-tabbar {
@@ -12433,9 +12454,9 @@ pre,
 .what-changed-count-badge,
 .nav-step-label,
 .workspace-nav-step {
-  background: rgba(255, 255, 255, 0.07) !important;
-  border-color: var(--border) !important;
-  color: var(--text-muted) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  color: var(--text) !important;
 }
 
 .badge.info,
@@ -12448,9 +12469,9 @@ pre,
 .quote-change-strip-narrative,
 .case-board-chip.current,
 .story-lane-urgency-chip.medium {
-  background: rgba(124, 111, 160, 0.22) !important;
-  border-color: rgba(124, 111, 160, 0.46) !important;
-  color: #d8d0f0 !important;
+  background: rgba(124, 111, 160, 0.32) !important;
+  border-color: rgba(124, 111, 160, 0.60) !important;
+  color: #e0d8ff !important;
 }
 
 .badge.success,
@@ -12463,28 +12484,38 @@ pre,
 .what-changed-stat-after,
 .what-changed-field-after,
 .technical-candidate-card.selected {
-  background: var(--success-bg) !important;
-  border-color: rgba(107, 160, 138, 0.48) !important;
-  color: var(--success-text) !important;
+  background: rgba(107, 160, 138, 0.28) !important;
+  border-color: rgba(107, 160, 138, 0.60) !important;
+  color: #b8f0d8 !important;
 }
 
 .workflow-journey-step.current,
 .workflow-step-state.current {
-  background: rgba(79, 155, 150, 0.20) !important;
-  border-color: rgba(79, 155, 150, 0.52) !important;
-  color: #84d1ca !important;
+  background: rgba(79, 155, 150, 0.28) !important;
+  border-color: rgba(79, 155, 150, 0.65) !important;
+  color: #a0e8e2 !important;
 }
 
-.workflow-step-state.waiting {
-  background: rgba(124, 111, 160, 0.18) !important;
-  border-color: rgba(124, 111, 160, 0.42) !important;
-  color: #c8c0e8 !important;
+.workflow-step-state.waiting,
+.command-step-status.waiting {
+  background: rgba(124, 111, 160, 0.28) !important;
+  border-color: rgba(124, 111, 160, 0.58) !important;
+  color: #e0d8ff !important;
 }
 
-.workflow-step-state.final {
-  background: rgba(107, 160, 138, 0.15) !important;
-  border-color: rgba(107, 160, 138, 0.40) !important;
-  color: var(--success-text) !important;
+.workflow-step-state.final,
+.command-step-status.final {
+  background: rgba(124, 111, 160, 0.28) !important;
+  border-color: rgba(124, 111, 160, 0.55) !important;
+  color: #e0d8ff !important;
+}
+
+.workflow-step-state.refresh,
+.command-step-status.refresh,
+.workflow-step-state.needs-refresh {
+  background: rgba(232, 131, 90, 0.28) !important;
+  border-color: rgba(232, 131, 90, 0.60) !important;
+  color: #ffd4b0 !important;
 }
 
 .badge.warn,
@@ -12494,10 +12525,30 @@ pre,
 .scenario-state-callout-warn,
 .what-changed-stat-before,
 .what-changed-field-before,
-.case-board-chip.stale {
-  background: var(--warn-bg) !important;
-  border-color: rgba(232, 131, 90, 0.48) !important;
-  color: var(--warn-text) !important;
+.case-board-chip.stale,
+.command-step-status.review {
+  background: rgba(232, 131, 90, 0.28) !important;
+  border-color: rgba(232, 131, 90, 0.60) !important;
+  color: #ffd4b0 !important;
+}
+
+.command-step-status.ready,
+.command-step-status.complete {
+  background: rgba(107, 160, 138, 0.28) !important;
+  border-color: rgba(107, 160, 138, 0.60) !important;
+  color: #b8f0d8 !important;
+}
+
+.command-step-status.current {
+  background: rgba(79, 155, 150, 0.28) !important;
+  border-color: rgba(79, 155, 150, 0.65) !important;
+  color: #a0e8e2 !important;
+}
+
+.command-step-status.optional {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: var(--text-muted) !important;
 }
 
 .badge.danger,
