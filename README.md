@@ -140,7 +140,9 @@ Quote insights are generated after recommendation recalculation. They are not fr
 4. Additive insights may be generated for eligible cross-sell or expansion motions.
 5. Existing quote actions already added to the quote are preserved.
 6. Suggested insights are diffed against the prior generation so the UI can show added, removed, or modified actions.
-7. Optional LLM or deterministic local rationale generation produces reviewer-facing narrative, but structured evidence remains the source of truth.
+7. In `LLM_ASSISTED_GUARDED` mode, the app sends deterministic safe candidates to the LLM using the `quote-insight-disposition-rag-v1` prompt contract. The validator accepts only matching products, insight types, pricing fields, ARR impacts, scores, and policy citations.
+8. Larger candidate sets are split into small guarded batches so the local model can finish inside the configured JSON timeout.
+9. Optional LLM or deterministic local rationale generation produces reviewer-facing narrative, but structured evidence remains the source of truth.
 
 ---
 
@@ -196,6 +198,7 @@ First-run seed data is designed for a complete standalone walkthrough:
 - Scenario quote artifacts are materialized for eligible cases and shown in the Scenario Quote Review index.
 - Scenario Quote Review shows per-case scenario counts before the user opens a case.
 - The baseline quote remains the editable execution source; scenario quotes are read-only comparison artifacts.
+- Seeded renewal item, Quote Insight, and scenario quote commercial math is validated by `npm run test:seed-commercial-sanity`.
 - Default Recommendation Mode is ML-Assisted Rules.
 - Default text generation provider is Ollama, with OpenAI available by configuration.
 - Guarded decisioning mode can be selected in Decisioning Setup and is audited in Decision Trace.
@@ -222,6 +225,11 @@ First-run seed data is designed for a complete standalone walkthrough:
 - Node.js `>=20`
 - npm
 - Python 3.11 recommended for ML setup
+- Ollama with `llama3.1` pulled when you want to demo live guarded LLM Quote Insight generation locally:
+
+```bash
+ollama pull llama3.1
+```
 
 ### One-command standalone setup
 
@@ -244,6 +252,19 @@ npm run ml:train
 npm run ml:evaluate
 npm run dev
 ```
+
+For a live guarded LLM demo, confirm `.env` uses:
+
+```bash
+AI_PROVIDER="ollama"
+OLLAMA_BASE_URL="http://localhost:11434/v1"
+OLLAMA_MODEL="llama3.1"
+LLM_JSON_TIMEOUT_MS="60000"
+GUARDED_DECISIONING_MODE="LLM_ASSISTED_GUARDED"
+DEMO_USER_ROLE="AI_GOVERNANCE_ADMIN"
+```
+
+You can also set guarded mode and the JSON timeout from `Decisioning Setup -> Technical View -> Apply Settings`.
 
 ---
 
@@ -281,7 +302,7 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434/v1` | Local Ollama OpenAI-compatible endpoint. |
 | `OLLAMA_MODEL` | No | `llama3.1` | Ollama model label used when `AI_PROVIDER=ollama`. |
 | `OPENAI_MOCK_MODE` | No | `0` | Forces deterministic mock AI text output when enabled. |
-| `LLM_JSON_TIMEOUT_MS` | No | `3500` | Timeout for guarded JSON LLM calls before deterministic fallback is used. |
+| `LLM_JSON_TIMEOUT_MS` | No | `60000` | Timeout for guarded JSON LLM calls before deterministic fallback is used. The local Llama guarded Quote Insight path uses the longer default to avoid aborting valid JSON runs. |
 
 ---
 
@@ -300,10 +321,13 @@ If `ML_SERVICE_URL` is not set, the app uses subprocess prediction.
 | `npm run ml:evaluate` | Evaluate model candidates and update reports. |
 | `npm run ml:predict` | Run stdin/stdout predictor. |
 | `npm run ml:serve` | Start optional local ML prediction service. |
+| `npm run test:seed-commercial-sanity` | Validate seeded baseline quote, item, Quote Insight, and scenario quote commercial math. |
 | `npm run test:scenario:coverage` | Validate scenario generation coverage. |
 | `npm run test:guarded-decisioning` | Validate guarded validator behavior. |
 | `npm run test:guarded-finalizer` | Validate validator-gated recommendation finalization. |
 | `npm run test:quote-insight-finalizer` | Validate guarded quote insight prioritization. |
+| `npm run test:quote-insight-llm-disposition` | Validate guarded Quote Insight LLM output acceptance/rejection rules. |
+| `npm run test:quote-insight-llm-all-quotes` | Run a live LLM sweep across all seeded baseline quotes and require every Quote Insight generation to pass guarded validation. Requires a live LLM runtime. |
 | `npm run test:decision-replay` | Validate deterministic replay checks for decision traces. |
 | `npm run test:role-controls` | Validate guarded mode role gates. |
 | `npm run test:policy-runtime` | Validate policy runtime rule evaluation. |
