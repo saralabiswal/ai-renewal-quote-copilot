@@ -21,15 +21,19 @@ export function ScenarioStrategyCoachPanel({
   workspace: QuoteScenarioWorkspaceView
 }) {
   return (
-    <section className="card coach-shell">
-      <div className="section-header">
+    <details className="card coach-shell coach-disclosure">
+      <summary className="coach-disclosure-summary">
         <div>
           <h3 className="panel-title">AI Scenario Coach</h3>
           <p className="section-subtitle">
             Account-aware scenario recommendation using weighted ARR, margin, and risk posture.
           </p>
         </div>
-      </div>
+        <span className="button-secondary-sm coach-disclosure-action">
+          <span className="coach-disclosure-expand">Expand</span>
+          <span className="coach-disclosure-collapse">Collapse</span>
+        </span>
+      </summary>
 
       <div className="coach-chip-row">
         <span className="scenario-chip">{coach.personaSummary}</span>
@@ -116,6 +120,6 @@ export function ScenarioStrategyCoachPanel({
           </tbody>
         </table>
       </div>
-    </section>
+    </details>
   )
 }

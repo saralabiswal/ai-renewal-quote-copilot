@@ -30,12 +30,17 @@ export function QuoteScenariosPanel({
         </div>
 
         <div className="scenario-state-actions">
-          <GenerateQuoteScenariosButton
-            caseId={caseId}
-            label="Regenerate Scenarios"
-            loadingLabel="Regenerating Scenarios..."
-            buttonClassName="button-link"
-          />
+          <div className="scenario-action-group">
+            <GenerateQuoteScenariosButton
+              caseId={caseId}
+              label="Regenerate Scenarios"
+              loadingLabel="Regenerating Scenarios..."
+              buttonClassName="button-link"
+            />
+            <div className="small muted">
+              Rebuilds read-only alternatives from the current baseline quote and suggested insights.
+            </div>
+          </div>
           <Link className="button-tertiary" href={`/renewal-cases/${caseId}`}>
             Open Generation Trace
           </Link>

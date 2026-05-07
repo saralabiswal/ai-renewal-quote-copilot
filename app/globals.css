@@ -6616,6 +6616,41 @@ summary:focus-visible {
   gap: 12px;
 }
 
+.coach-disclosure {
+  gap: 0;
+}
+
+.coach-disclosure[open] {
+  gap: 12px;
+}
+
+.coach-disclosure-summary {
+  align-items: flex-start;
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.coach-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+
+.coach-disclosure-action {
+  flex: 0 0 auto;
+  pointer-events: none;
+}
+
+.coach-disclosure-collapse,
+.coach-disclosure[open] .coach-disclosure-expand {
+  display: none;
+}
+
+.coach-disclosure[open] .coach-disclosure-collapse {
+  display: inline;
+}
+
 .coach-chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -8149,6 +8184,12 @@ h3,
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.scenario-action-group {
+  display: grid;
+  gap: 4px;
+  max-width: 440px;
 }
 
 .scenario-nav-rail {
@@ -12670,4 +12711,171 @@ textarea:focus-visible,
 summary:focus-visible {
   outline: 2px solid var(--accent-coral) !important;
   outline-offset: 2px !important;
+}
+
+/* Scenario comparison is a wide-table workflow, so keep selection compact and give comparison the full tab width. */
+.scenario-nav-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.scenario-nav-rail {
+  align-items: start;
+  display: grid !important;
+  gap: 10px !important;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(180px, 0.5fr) minmax(0, 2.8fr);
+  padding: 12px !important;
+}
+
+.scenario-nav-rail > .small:first-child {
+  align-self: end;
+}
+
+.scenario-nav-subtitle {
+  grid-column: 1;
+  margin: 0 !important;
+}
+
+.scenario-preferred-summary {
+  align-self: stretch;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-content: center;
+  min-height: 0;
+}
+
+.scenario-nav-list {
+  display: grid !important;
+  gap: 8px !important;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.scenario-nav-button {
+  align-content: start;
+  min-height: 92px;
+}
+
+.scenario-compare-table {
+  min-width: 1120px;
+}
+
+@media (max-width: 1100px) {
+  .scenario-nav-rail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scenario-nav-subtitle,
+  .scenario-preferred-summary,
+  .scenario-nav-list {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+/* Business Review Flow: compact clickable journey rail instead of a static card list. */
+.workflow-journey {
+  gap: 10px !important;
+  padding: 12px 14px !important;
+}
+
+.workflow-journey-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.workflow-journey-head .section-title {
+  margin: 0;
+}
+
+.workflow-journey-head .section-subtitle {
+  margin: 4px 0 0;
+}
+
+.workflow-journey-progress {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: var(--text);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 760;
+  min-height: 28px;
+  padding: 4px 10px;
+}
+
+.workflow-journey-list {
+  display: grid !important;
+  gap: 8px !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+}
+
+.workflow-journey-step {
+  background: transparent !important;
+  border: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+.workflow-journey-step:not(:last-child)::after {
+  display: none !important;
+}
+
+.workflow-step-target {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 74px;
+  padding: 10px;
+  text-decoration: none;
+}
+
+.workflow-step-link:hover {
+  background: rgba(79, 155, 150, 0.14) !important;
+  border-color: rgba(79, 155, 150, 0.42);
+}
+
+.workflow-journey-step.complete .workflow-step-target {
+  background: rgba(107, 160, 138, 0.16);
+  border-color: rgba(107, 160, 138, 0.45);
+}
+
+.workflow-journey-step.current .workflow-step-target {
+  background: rgba(79, 155, 150, 0.2) !important;
+  border-color: rgba(79, 155, 150, 0.65) !important;
+}
+
+.workflow-step-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workflow-step-description {
+  display: block;
+  margin: 0 !important;
+}
+
+.workflow-step-state {
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .workflow-journey-head {
+    flex-direction: column;
+  }
+
+  .workflow-journey-progress {
+    align-self: flex-start;
+  }
 }
